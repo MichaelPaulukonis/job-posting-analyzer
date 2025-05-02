@@ -3,6 +3,13 @@
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-semibold">Analysis Results</h2>
       <div class="flex space-x-2">
+        <NuxtLink 
+          v-if="analysisId"
+          :to="`/cover-letter/${analysisId}`" 
+          class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+        >
+          <span>Create Cover Letter</span>
+        </NuxtLink>
         <button 
           @click="showExportOptions = !showExportOptions" 
           class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
@@ -194,6 +201,7 @@ const props = defineProps<{
   jobTitle?: string;
   originalJobPosting?: string;
   originalResume?: string;
+  analysisId?: string;  // Add this prop
 }>();
 
 defineEmits(['clear']);

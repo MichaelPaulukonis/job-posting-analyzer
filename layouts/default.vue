@@ -7,6 +7,7 @@
           <ul class="flex space-x-4">
             <li><NuxtLink to="/" class="hover:underline">Home</NuxtLink></li>
             <li><NuxtLink to="/analyze" class="hover:underline">Analyze</NuxtLink></li>
+            <li><a href="/cover-letter/" class="hover:underline">Cover Letters</a></li>
           </ul>
         </nav>
       </div>

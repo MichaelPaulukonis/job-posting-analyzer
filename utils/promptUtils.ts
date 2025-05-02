@@ -1,4 +1,4 @@
-import type { JobPosting, Resume } from '../types';
+import type { JobPosting, Resume, SavedAnalysis } from '../types';
 
 /**
  * Template for analyzing job postings against resumes
@@ -37,4 +37,62 @@ RESUME:
 ---
 ${resume.content}
 ---`;
+};
+
+/**
+ * Template for generating a cover letter based on analysis results
+ */
+export const createCoverLetterPrompt = (analysis: SavedAnalysis, sampleLetter?: string): string => {
+  const { jobPosting, resume, matches, maybes, gaps } = analysis;
+  
+  let prompt = `
+Generate a professional cover letter for the following job application. The cover letter should be personalized based on the analysis results of my resume against the job posting.
+
+JOB POSTING ${jobPosting.title ? `(${jobPosting.title})` : ''}:
+---
+${jobPosting.content}
+---
+
+MY RESUME:
+---
+${resume.content}
+---
+
+ANALYSIS RESULTS:
+1. Matching Skills and Qualifications:
+${matches.map(match => `- ${match}`).join('\n')}
+
+2. Potential Skill Matches (different terminology):
+${maybes?.map(maybe => `- ${maybe}`).join('\n')}
+
+3. Missing Skills and Qualifications (skill gaps):
+${gaps.map(gap => `- ${gap}`).join('\n')}
+
+REQUIREMENTS FOR THE COVER LETTER:
+1. Address the most important matching skills and qualifications
+2. Acknowledge the skill gaps and explain how I plan to address them or relevant transferable skills I have
+3. Address ability to adapt to new domains despite limited direct experience
+4. Use simple, direct language - avoid corporate jargon and flowery phrases
+5. Do not mention specific years of experience to avoid potential age discrimination
+6. Show enthusiasm for the role and company
+7. Keep the letter professional, concise, and focused on how I can provide value to the company
+8. Include a strong opening and closing paragraph
+9. Make it around 300-400 words (3-4 paragraphs)
+
+The tone should be professional but non-dramatic and straightforward, avoiding buzzwords like 'meaningful impact' or 'cross-functional improvement efforts' (unless used in the job posting).
+Format the letter in Markdown with appropriate structure and spacing.
+The letter should be in standard business letter format without the address blocks. 
+`;
+
+  // If a sample letter is provided, use it as a style reference
+  if (sampleLetter) {
+    prompt += `
+MY SAMPLE COVER LETTER (please use a similar tone and style and use any relevant content from this letter):
+---
+${sampleLetter}
+---
+`;
+  }
+  
+  return prompt;
 };

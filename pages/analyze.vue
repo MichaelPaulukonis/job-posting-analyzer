@@ -103,6 +103,7 @@
           v-if="analysisResults" 
           :results="analysisResults" 
           :job-title="jobPosting.title"
+          :analysis-id="currentAnalysisId"
           @clear="clearResults"
           class="analysis-results"
         />
@@ -158,6 +159,7 @@ const analysisResults = ref<AnalysisResult | null>(null);
 const savedAnalyses = ref<SavedAnalysis[]>([]);
 const selectedService = ref<'mock' | 'gemini' | 'openai'>('mock');
 const isIncompleteAnalysis = ref(false);
+const currentAnalysisId = ref<string | undefined>(undefined);
 
 // Add refs for the input containers
 const jobPostingContainer = ref(null);
@@ -223,6 +225,7 @@ const validateAndAnalyze = async () => {
       const savedAnalysis = await StorageService.saveAnalysis(results, jobPosting, resume);
       analysisResults.value = results;
       savedAnalyses.value = await StorageService.getAnalyses();
+      currentAnalysisId.value = savedAnalysis.id;  // Store the ID for reference
 
       // Auto-collapse input sections after results are ready
       collapseInputSections();
@@ -250,6 +253,7 @@ const validateAndAnalyze = async () => {
 
 const clearResults = () => {
   analysisResults.value = null;
+  currentAnalysisId.value = undefined;
   // Expand input sections when results are cleared
   expandInputSections();
 };
@@ -281,6 +285,9 @@ const loadSavedAnalysis = (analysis: SavedAnalysis) => {
   if (analysis.resume && analysis.resume.content) {
     resume.content = analysis.resume.content;
   }
+
+  // Store the analysis ID
+  currentAnalysisId.value = analysis.id;
 
   // Auto-collapse input sections
   collapseInputSections();

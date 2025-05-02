@@ -15,10 +15,17 @@ export interface AnalysisResult {
   timestamp: string;
 }
 
+export interface CoverLetter {
+  content: string;
+  timestamp: string;
+  sampleContent?: string;  // Optional sample letter
+}
+
 export interface SavedAnalysis extends AnalysisResult {
   id: string;
   jobTitle?: string;
   resumeSnippet?: string;
   jobPosting: JobPosting;
   resume: Resume;
+  coverLetter?: CoverLetter;  // Optional cover letter
 }

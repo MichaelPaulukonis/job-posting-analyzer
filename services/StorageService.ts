@@ -1,4 +1,4 @@
-import type { AnalysisResult, SavedAnalysis, JobPosting, Resume } from '../types';
+import type { AnalysisResult, SavedAnalysis, JobPosting, Resume, CoverLetter } from '../types';
 
 export class StorageService {
   /**
@@ -45,6 +45,39 @@ export class StorageService {
       console.error('Error saving analysis:', error);
       // Fallback to localStorage if server storage fails
       return this.saveAnalysisToLocalStorage(result, jobPosting, resume);
+    }
+  }
+  
+  /**
+   * Save a cover letter for an analysis
+   */
+  static async saveCoverLetter(analysisId: string, coverLetter: CoverLetter): Promise<void> {
+    try {
+      // Get current analyses
+      const savedAnalyses = await this.getAnalyses();
+      
+      // Find the analysis to update
+      const analysisIndex = savedAnalyses.findIndex(a => a.id === analysisId);
+      
+      if (analysisIndex === -1) {
+        throw new Error('Analysis not found');
+      }
+      
+      // Update the cover letter
+      savedAnalyses[analysisIndex].coverLetter = coverLetter;
+      
+      // Save to server
+      await fetch('/api/storage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(savedAnalyses)
+      });
+      
+    } catch (error) {
+      console.error('Error saving cover letter:', error);
+      throw error;
     }
   }
   
