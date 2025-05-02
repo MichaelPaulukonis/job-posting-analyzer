@@ -192,6 +192,8 @@ import KeywordTag from './KeywordTag.vue';
 const props = defineProps<{
   results: AnalysisResult;
   jobTitle?: string;
+  originalJobPosting?: string;
+  originalResume?: string;
 }>();
 
 defineEmits(['clear']);
@@ -257,16 +259,18 @@ ${calculateMatchScore()}%
 MATCHING SKILLS & QUALIFICATIONS:
 ${props.results.matches.length ? props.results.matches.map(m => `- ${m}`).join('\n') : 'None found'}
 
-POSSIBLY SKILLS & QUALIFICATIONS (think about revising):
-${props.results.maybes.length ? props.results.maybes.map(m => `- ${m}`).join('\n') : 'None found'}
+POSSIBLY MATCHING SKILLS & QUALIFICATIONS:
+${props.results.maybes?.length ? props.results.maybes.map(m => `- ${m}`).join('\n') : 'None found'}
 
 MISSING SKILLS & QUALIFICATIONS:
 ${props.results.gaps.length ? props.results.gaps.map(g => `- ${g}`).join('\n') : 'None found'}
 
 SUGGESTIONS FOR IMPROVEMENT:
 ${props.results.suggestions.length ? props.results.suggestions.map(s => `- ${s}`).join('\n') : 'None provided'}
+
+${props.originalJobPosting ? `\nORIGINAL JOB POSTING:\n${props.originalJobPosting}` : ''}
+${props.originalResume ? `\nORIGINAL RESUME:\n${props.originalResume}` : ''}
   `.trim();
-  // TODO: include the job description and resume content
 };
 
 const createHtmlContent = () => {
@@ -338,6 +342,9 @@ const createHtmlContent = () => {
       ? `<ul>${props.results.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}</ul>` 
       : '<p><em>No suggestions available.</em></p>'}
   </div>
+  
+  ${props.originalJobPosting ? `<div class="section"><h3>Original Job Posting</h3><pre>${props.originalJobPosting}</pre></div>` : ''}
+  ${props.originalResume ? `<div class="section"><h3>Original Resume</h3><pre>${props.originalResume}</pre></div>` : ''}
   
   <div class="timestamp">
     Generated on: ${new Date(props.results.timestamp).toLocaleString()}

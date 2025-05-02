@@ -5,7 +5,11 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Main content area - 2/3 width on large screens -->
       <div class="lg:col-span-2">
-        <InputContainer title="Job Posting">
+        <InputContainer 
+          ref="jobPostingContainer"
+          title="Job Posting"
+          :summary="jobPosting.title ? `Job Title: ${jobPosting.title}` : 'Job posting content'"
+        >
           <div class="flex flex-col md:flex-row gap-4 mb-4">
             <div class="md:w-1/2">
               <TextAreaInput
@@ -39,7 +43,11 @@
           </div>
         </InputContainer>
 
-        <InputContainer title="Your Resume">
+        <InputContainer 
+          ref="resumeContainer"
+          title="Your Resume"
+          summary="Resume content"
+        >
           <div class="flex flex-col md:flex-row gap-4">
             <div class="md:w-1/2">
               <TextAreaInput
@@ -63,7 +71,10 @@
           </div>
         </InputContainer>
 
-        <InputContainer title="Analysis Settings">
+        <InputContainer 
+          ref="settingsContainer"
+          title="Analysis Settings"
+        >
           <ServiceSelector v-model="selectedService" />
         </InputContainer>
 
@@ -146,6 +157,12 @@ const error = ref('');
 const analysisResults = ref<AnalysisResult | null>(null);
 const savedAnalyses = ref<SavedAnalysis[]>([]);
 const selectedService = ref<'mock' | 'gemini' | 'openai'>('mock');
+const isIncompleteAnalysis = ref(false);
+
+// Add refs for the input containers
+const jobPostingContainer = ref(null);
+const resumeContainer = ref(null);
+const settingsContainer = ref(null);
 
 // Load saved analyses on mount
 onMounted(async () => {
@@ -170,46 +187,46 @@ const validateAndAnalyze = async () => {
   errors.jobPosting = '';
   errors.resume = '';
   error.value = '';
-  
   let isValid = true;
-  
+
   // Validate job posting
   if (!jobPosting.content || jobPosting.content.trim().length < 10) {
     errors.jobPosting = 'Please enter a valid job posting with sufficient information';
     isValid = false;
   }
-  
+
   // Validate resume
   if (!resume.content || resume.content.trim().length < 10) {
     errors.resume = 'Please enter a valid resume with sufficient information';
     isValid = false;
   }
-  
+
   if (isValid) {
     // Proceed with analysis
     isAnalyzing.value = true;
-    
     try {
       // Check if service is available
       const isAvailable = await AnalysisService.isServiceAvailable(selectedService.value);
-      
       if (!isAvailable) {
         const serviceName = AnalysisService.getServiceName(selectedService.value);
         throw new Error(`${serviceName} is currently unavailable. Please check your API key or try the mock service.`);
       }
-      
+
       // Call the analysis service
       const results = await AnalysisService.analyzeJobPosting(
-        jobPosting, 
-        resume, 
+        jobPosting,
+        resume,
         selectedService.value
       );
-      
+
       // Save results to storage and update UI
       const savedAnalysis = await StorageService.saveAnalysis(results, jobPosting, resume);
       analysisResults.value = results;
       savedAnalyses.value = await StorageService.getAnalyses();
-      
+
+      // Auto-collapse input sections after results are ready
+      collapseInputSections();
+
       // Scroll to results
       setTimeout(() => {
         const resultsElement = document.querySelector('.analysis-results');
@@ -223,8 +240,8 @@ const validateAndAnalyze = async () => {
         }
       }, 100);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'An unknown error occurred';
       console.error('Analysis error:', err);
+      error.value = err instanceof Error ? err.message : 'An unknown error occurred';
     } finally {
       isAnalyzing.value = false;
     }
@@ -233,20 +250,48 @@ const validateAndAnalyze = async () => {
 
 const clearResults = () => {
   analysisResults.value = null;
+  // Expand input sections when results are cleared
+  expandInputSections();
 };
 
 const loadSavedAnalysis = (analysis: SavedAnalysis) => {
+  // First, reset all fields
+  jobPosting.title = '';
+  jobPosting.content = '';
+  resume.content = '';
+
+  // Then populate the analysis results
   analysisResults.value = {
     matches: analysis.matches,
-    maybes: analysis.maybes,
+    maybes: analysis.maybes || [],
     gaps: analysis.gaps,
     suggestions: analysis.suggestions,
     timestamp: analysis.timestamp
   };
-  
-  if (analysis.jobTitle) {
+
+  // Finally, load the job posting and resume if available
+  if (analysis.jobPosting) {
+    jobPosting.title = analysis.jobPosting.title || '';
+    jobPosting.content = analysis.jobPosting.content;
+  } else if (analysis.jobTitle) {
+    // Fallback for older saved analyses
     jobPosting.title = analysis.jobTitle;
   }
+
+  if (analysis.resume && analysis.resume.content) {
+    resume.content = analysis.resume.content;
+  }
+
+  // Auto-collapse input sections
+  collapseInputSections();
+
+  // Scroll to results
+  setTimeout(() => {
+    const resultsElement = document.querySelector('.analysis-results');
+    if (resultsElement) {
+      resultsElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, 100);
 };
 
 const deleteSavedAnalysis = async (id: string) => {
@@ -257,5 +302,18 @@ const deleteSavedAnalysis = async (id: string) => {
 const clearSavedAnalyses = async () => {
   await StorageService.clearAnalyses();
   savedAnalyses.value = [];
+};
+
+// Helper functions for collapsing/expanding input sections
+const collapseInputSections = () => {
+  jobPostingContainer.value?.collapse();
+  resumeContainer.value?.collapse();
+  settingsContainer.value?.collapse();
+};
+
+const expandInputSections = () => {
+  jobPostingContainer.value?.expand();
+  resumeContainer.value?.expand();
+  settingsContainer.value?.expand();
 };
 </script>

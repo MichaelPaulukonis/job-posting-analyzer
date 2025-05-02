@@ -19,4 +19,6 @@ export interface SavedAnalysis extends AnalysisResult {
   id: string;
   jobTitle?: string;
   resumeSnippet?: string;
+  jobPosting: JobPosting;
+  resume: Resume;
 }

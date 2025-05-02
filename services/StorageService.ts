@@ -9,12 +9,20 @@ export class StorageService {
       // Get current analyses
       const savedAnalyses = await this.getAnalyses();
       
-      // Create new analysis object
+      // Create new analysis object with complete job posting and resume
       const analysisToSave: SavedAnalysis = {
         ...result,
         id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
         jobTitle: jobPosting.title || undefined,
-        resumeSnippet: resume.content.substring(0, 100) + (resume.content.length > 100 ? '...' : '')
+        resumeSnippet: resume.content.substring(0, 100) + (resume.content.length > 100 ? '...' : ''),
+        // Store the complete job posting and resume
+        jobPosting: {
+          title: jobPosting.title,
+          content: jobPosting.content
+        },
+        resume: {
+          content: resume.content
+        }
       };
       
       // Add to the beginning of the array
@@ -101,7 +109,15 @@ export class StorageService {
       ...result,
       id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
       jobTitle: jobPosting.title || undefined,
-      resumeSnippet: resume.content.substring(0, 100) + (resume.content.length > 100 ? '...' : '')
+      resumeSnippet: resume.content.substring(0, 100) + (resume.content.length > 100 ? '...' : ''),
+      // Store the complete job posting and resume
+      jobPosting: {
+        title: jobPosting.title,
+        content: jobPosting.content
+      },
+      resume: {
+        content: resume.content
+      }
     };
     
     savedAnalyses.unshift(analysisToSave);
