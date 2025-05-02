@@ -9,6 +9,7 @@ export interface Resume {
 
 export interface AnalysisResult {
   matches: string[];
+  maybes: string[];
   gaps: string[];
   suggestions: string[];
   timestamp: string;

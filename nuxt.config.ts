@@ -2,7 +2,7 @@
 export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss'],
-  
+
   // Runtime config for environment variables
   runtimeConfig: {
     // Private keys (server-side only)
@@ -14,5 +14,7 @@ export default defineNuxtConfig({
       // We don't expose the actual API keys to the client
       geminiApiAvailable: !!process.env.GEMINI_API_KEY,
     }
-  }
+  },
+
+  compatibilityDate: '2025-05-01'
 })

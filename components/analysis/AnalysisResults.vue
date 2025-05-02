@@ -95,6 +95,33 @@
         <p v-else class="text-gray-600 italic">No matches found.</p>
       </div>
     </div>
+
+    <div class="mb-6">
+      <div 
+        @click="toggleSection('matches')" 
+        class="flex justify-between items-center p-4 bg-blue-50 rounded-t-md cursor-pointer"
+        :class="{ 'rounded-b-md': !sectionsOpen.maybes }"
+      >
+        <h3 class="font-semibold text-blue-800">Semi Matching Skills & Qualifications</h3>
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          class="h-5 w-5 text-blue-800 transition-transform" 
+          :class="{ 'transform rotate-180': sectionsOpen.matches }"
+          viewBox="0 0 20 20" 
+          fill="currentColor"
+        >
+          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div v-if="sectionsOpen.matches" class="p-4 border border-blue-100 rounded-b-md">
+        <ul v-if="results.matches.length" class="list-disc pl-5 space-y-1">
+          <li v-for="(maybe, index) in results.maybes" :key="`match-${index}`" class="text-blue-700">
+            {{ maybe }}
+          </li>
+        </ul>
+        <p v-else class="text-gray-600 italic">No maybes found.</p>
+      </div>
+    </div>
     
     <div class="mb-6">
       <div 
@@ -172,6 +199,7 @@ defineEmits(['clear']);
 const showExportOptions = ref(false);
 const sectionsOpen = reactive({
   matches: true,
+  maybes: true,
   gaps: true,
   suggestions: true
 });
@@ -229,12 +257,16 @@ ${calculateMatchScore()}%
 MATCHING SKILLS & QUALIFICATIONS:
 ${props.results.matches.length ? props.results.matches.map(m => `- ${m}`).join('\n') : 'None found'}
 
+POSSIBLY SKILLS & QUALIFICATIONS (think about revising):
+${props.results.maybes.length ? props.results.maybes.map(m => `- ${m}`).join('\n') : 'None found'}
+
 MISSING SKILLS & QUALIFICATIONS:
 ${props.results.gaps.length ? props.results.gaps.map(g => `- ${g}`).join('\n') : 'None found'}
 
 SUGGESTIONS FOR IMPROVEMENT:
 ${props.results.suggestions.length ? props.results.suggestions.map(s => `- ${s}`).join('\n') : 'None provided'}
   `.trim();
+  // TODO: include the job description and resume content
 };
 
 const createHtmlContent = () => {
@@ -251,8 +283,10 @@ const createHtmlContent = () => {
     .score-bar { background-color: #edf2f7; border-radius: 9999px; height: 20px; overflow: hidden; }
     .score-fill { height: 100%; }
     .match { color: #2f855a; }
+    .maube { color: #2b6cb0; }
     .gap { color: #c53030; }
     .match-tag { background-color: #c6f6d5; color: #2f855a; display: inline-block; padding: 3px 8px; margin: 2px; border-radius: 9999px; }
+    .maybe-tag { background-color: #bee3f8; color: #2b6cb0; display: inline-block; padding: 3px 8px; margin: 2px; border-radius: 9999px; }
     .gap-tag { background-color: #fed7d7; color: #c53030; display: inline-block; padding: 3px 8px; margin: 2px; border-radius: 9999px; }
     .section { margin: 20px 0; padding: 15px; border-radius: 5px; }
     .matches-section { background-color: #ebf8ff; }
@@ -283,6 +317,13 @@ const createHtmlContent = () => {
       ? `<ul>${props.results.matches.map(match => `<li class="match">${match}</li>`).join('')}</ul>` 
       : '<p><em>No matches found.</em></p>'}
   </div>
+
+  <div class="section maybes-section">
+    <h3>Semi Matching Skills & Qualifications</h3>
+    ${props.results.maybes.length 
+      ? `<ul>${props.results.maybes.map(maybe => `<li class="maybe">${maybe}</li>`).join('')}</ul>` 
+      : '<p><em>No maybes found.</em></p>'}
+  </div>
   
   <div class="section gaps-section">
     <h3>Missing Skills & Qualifications</h3>
@@ -307,9 +348,18 @@ const createHtmlContent = () => {
 };
 
 const calculateMatchScore = () => {
-  const total = props.results.matches.length + props.results.gaps.length;
+  // Count each maybe as half a match
+  const maybeMatchWeight = props.results.maybes?.length ? props.results.maybes.length / 2 : 0;
+  
+  // Add weighted maybes to direct matches for the numerator
+  const effectiveMatches = props.results.matches.length + maybeMatchWeight;
+  
+  // Total skills required (for denominator)
+  const total = props.results.matches.length + props.results.gaps.length + (props.results.maybes?.length || 0);
+  
   if (total === 0) return 0;
-  return Math.round((props.results.matches.length / total) * 100);
+  
+  return Math.round((effectiveMatches / total) * 100);
 };
 
 const getScoreColor = () => {

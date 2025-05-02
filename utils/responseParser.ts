@@ -8,6 +8,7 @@ export function parseGeminiResponse(text: string): AnalysisResult {
     // Default empty results
     const result: AnalysisResult = {
       matches: [],
+      maybes: [],
       gaps: [],
       suggestions: [],
       timestamp: new Date().toISOString()
@@ -17,19 +18,16 @@ export function parseGeminiResponse(text: string): AnalysisResult {
     const sections = text.split(/\n\d+\./).filter(section => section.trim().length > 0);
     
     if (sections.length >= 3) {
-      // Extract matches from the first section
       result.matches = extractListItems(sections[0]);
-      
-      // Extract gaps from the second section
-      result.gaps = extractListItems(sections[1]);
-      
-      // Extract suggestions from the third section
-      result.suggestions = extractListItems(sections[2]);
+      result.maybes = extractListItems(sections[1]);
+      result.gaps = extractListItems(sections[2]);
+      result.suggestions = extractListItems(sections[3]);
     } else {
       // Fallback parser for unexpected format
       const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
       
-      // Try to categorize lines into matches, gaps, and suggestions
+      // Try to categorize lines into matches, maybes, gaps, and suggestions
+      // TODO: heuristic for maybes
       for (const line of lines) {
         const lowerLine = line.toLowerCase();
         if (lowerLine.includes('match') && !lowerLine.includes('no match')) {
@@ -47,6 +45,7 @@ export function parseGeminiResponse(text: string): AnalysisResult {
     console.error('Error parsing Gemini response:', error);
     return {
       matches: ['Error parsing response from AI'],
+      maybes: ['Did you upload the correct files?'],
       gaps: ['Please try again or check console for details'],
       suggestions: ['Consider using a different LLM model'],
       timestamp: new Date().toISOString()
@@ -66,7 +65,7 @@ export function extractListItems(text: string): string[] {
   if (matches.length === 0) {
     return text.split('\n')
       .map(line => line.trim())
-      .filter(line => line.length > 0 && !line.match(/^(matches|gaps|suggestions):/i));
+      .filter(line => line.length > 0 && !line.match(/^(matches|maybes|gaps|suggestions):/i));
   }
   
   return matches;

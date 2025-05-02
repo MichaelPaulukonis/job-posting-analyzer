@@ -240,6 +240,7 @@ const clearResults = () => {
 const loadSavedAnalysis = (analysis: SavedAnalysis) => {
   analysisResults.value = {
     matches: analysis.matches,
+    maybes: analysis.maybes,
     gaps: analysis.gaps,
     suggestions: analysis.suggestions,
     timestamp: analysis.timestamp

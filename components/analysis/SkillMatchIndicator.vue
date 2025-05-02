@@ -31,10 +31,10 @@ const score = computed(() => {
 });
 
 const scoreColorClass = computed(() => {
-  if (score.value >= 80) return 'bg-green-600 text-green-700';
-  if (score.value >= 60) return 'bg-blue-600 text-blue-700';
-  if (score.value >= 40) return 'bg-yellow-500 text-yellow-700';
-  return 'bg-red-500 text-red-700';
+  if (score.value >= 80) return 'bg-green-400 text-black';
+  if (score.value >= 60) return 'bg-blue-400 text-black';
+  if (score.value >= 40) return 'bg-yellow-500 text-black';
+  return 'bg-red-500 text-black';
 });
 
 const message = computed(() => {
