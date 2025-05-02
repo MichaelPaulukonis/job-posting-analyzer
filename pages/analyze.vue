@@ -148,8 +148,8 @@ const savedAnalyses = ref<SavedAnalysis[]>([]);
 const selectedService = ref<'mock' | 'gemini' | 'openai'>('mock');
 
 // Load saved analyses on mount
-onMounted(() => {
-  savedAnalyses.value = StorageService.getAnalyses();
+onMounted(async () => {
+  savedAnalyses.value = await StorageService.getAnalyses();
 });
 
 // Methods
@@ -205,12 +205,10 @@ const validateAndAnalyze = async () => {
         selectedService.value
       );
       
-      // Save results to storage
-      const savedAnalysis = StorageService.saveAnalysis(results, jobPosting, resume);
-      
-      // Update the UI
+      // Save results to storage and update UI
+      const savedAnalysis = await StorageService.saveAnalysis(results, jobPosting, resume);
       analysisResults.value = results;
-      savedAnalyses.value = StorageService.getAnalyses();
+      savedAnalyses.value = await StorageService.getAnalyses();
       
       // Scroll to results
       setTimeout(() => {
@@ -251,13 +249,13 @@ const loadSavedAnalysis = (analysis: SavedAnalysis) => {
   }
 };
 
-const deleteSavedAnalysis = (id: string) => {
-  StorageService.deleteAnalysis(id);
-  savedAnalyses.value = StorageService.getAnalyses();
+const deleteSavedAnalysis = async (id: string) => {
+  await StorageService.deleteAnalysis(id);
+  savedAnalyses.value = await StorageService.getAnalyses();
 };
 
-const clearSavedAnalyses = () => {
-  StorageService.clearAnalyses();
+const clearSavedAnalyses = async () => {
+  await StorageService.clearAnalyses();
   savedAnalyses.value = [];
 };
 </script>
