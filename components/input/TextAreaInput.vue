@@ -1,16 +1,21 @@
 <template>
   <div class="mb-4">
-    <label :for="id" class="block text-sm font-medium text-gray-700 mb-1">{{ label }}</label>
+    <label :for="id" class="block text-sm font-medium mb-1" :class="labelClasses">
+      {{ label }} 
+      <span v-if="required" class="text-red-500 ml-1">*</span>
+    </label>
     <textarea
       :id="id"
-      v-model="inputValue"
+      :value="modelValue"
       :placeholder="placeholder"
-      class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 min-h-[200px]"
-      :class="{ 'border-red-500': error }"
-      @input="updateValue"
+      :aria-required="required"
+      :class="textareaClasses"
+      class="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 min-h-[120px]"
+      @input="$emit('update:modelValue', $event.target.value)"
+      @blur="$emit('blur')"
     ></textarea>
     <p v-if="error" class="mt-1 text-sm text-red-600">{{ error }}</p>
-    <p v-if="hint" class="mt-1 text-sm text-gray-500">{{ hint }}</p>
+    <p v-else-if="hint" class="mt-1 text-sm text-gray-500">{{ hint }}</p>
   </div>
 </template>
 
@@ -18,40 +23,48 @@
 import { computed } from 'vue';
 
 const props = defineProps({
-  modelValue: {
-    type: String,
-    required: true,
-  },
   id: {
     type: String,
-    required: true,
+    required: true
   },
   label: {
     type: String,
-    required: true,
+    required: true
+  },
+  modelValue: {
+    type: String,
+    required: true
   },
   placeholder: {
     type: String,
-    default: '',
+    default: ''
   },
   error: {
     type: String,
-    default: '',
+    default: ''
   },
   hint: {
     type: String,
-    default: '',
+    default: ''
   },
+  required: {
+    type: Boolean,
+    default: false
+  }
 });
 
-const emit = defineEmits(['update:modelValue']);
+defineEmits(['update:modelValue', 'blur']);
 
-const inputValue = computed({
-  get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
-});
+const labelClasses = computed(() => ({
+  'text-gray-700': !props.error,
+  'text-red-600': props.error
+}));
 
-const updateValue = () => {
-  emit('update:modelValue', inputValue.value);
-};
+const textareaClasses = computed(() => ({
+  'border-gray-300': !props.error && (!props.required || props.modelValue.trim()),
+  'border-red-300': props.error, 
+  'bg-red-50': props.error,
+  'border-yellow-300': props.required && !props.modelValue.trim() && !props.error,
+  'bg-yellow-50': props.required && !props.modelValue.trim() && !props.error
+}));
 </script>
