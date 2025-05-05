@@ -7,7 +7,7 @@
           <ul class="flex space-x-4">
             <li><NuxtLink to="/" class="hover:underline">Home</NuxtLink></li>
             <li><NuxtLink to="/analyze" class="hover:underline">Analyze</NuxtLink></li>
-            <li><a href="/cover-letter/" class="hover:underline">Cover Letters</a></li>
+            <li><NuxtLink to="/cover-letter" class="hover:underline">Cover Letters</NuxtLink></li>
           </ul>
         </nav>
       </div>
@@ -17,7 +17,7 @@
     </main>
     <footer class="bg-gray-100 p-4 mt-8 border-t">
       <div class="container mx-auto text-center text-gray-600">
-        <p>© {{ new Date().getFullYear() }} Job Posting Analyzer - Personal Tool</p>
+        <p>© {{ new Date().getFullYear() }} Job Posting Analyzer - Michael Paulukonis</p>
       </div>
     </footer>
   </div>

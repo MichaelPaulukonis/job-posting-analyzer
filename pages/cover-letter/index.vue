@@ -37,11 +37,11 @@
       <div v-else>
         <p class="mb-4 text-gray-600">Select an analysis to create a cover letter for:</p>
         <div class="space-y-3">
-          <div 
+          <NuxtLink 
             v-for="analysis in analyses" 
             :key="analysis.id"
-            class="border border-gray-200 rounded-md p-4 hover:shadow-md transition-shadow cursor-pointer"
-            @click="navigateToAnalysis(analysis.id)"
+            :to="`/cover-letter/${analysis.id}`"
+            class="block border border-gray-200 rounded-md p-4 hover:shadow-md transition-shadow"
           >
             <div class="flex justify-between items-start">
               <div>
@@ -65,7 +65,7 @@
                 {{ calculateMatchScore(analysis) }}% Match
               </span>
             </div>
-          </div>
+          </NuxtLink>
         </div>
       </div>
     </div>
@@ -93,11 +93,6 @@ onMounted(async () => {
     loading.value = false;
   }
 });
-
-// Navigate to a specific analysis
-const navigateToAnalysis = (id: string) => {
-  navigateTo(`/cover-letter/${id}`);
-};
 
 // Calculate match score
 const calculateMatchScore = (analysis: SavedAnalysis) => {

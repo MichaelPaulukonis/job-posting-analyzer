@@ -1,5 +1,5 @@
 import { parseGeminiResponse, extractListItems } from '../../utils/responseParser';
-import { response as sampleResponse } from './sample.response.01';  // Adjust path as needed
+import { response as sampleResponse } from '../utils/sample.response.01';  // Adjust path as needed
 
 describe('Response Parser', () => {
   describe('parseGeminiResponse', () => {
