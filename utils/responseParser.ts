@@ -14,10 +14,10 @@ export function parseGeminiResponse(text: string): AnalysisResult {
       timestamp: new Date().toISOString()
     };
     
-    // Parse response sections (1. Matches, 2. Gaps, 3. Suggestions)
+    // Parse response sections (1. Matches, 2. Maybes 3. Gaps, 4. Suggestions)
     const sections = text.split(/\n\d+\./).filter(section => section.trim().length > 0);
     
-    if (sections.length >= 3) {
+    if (sections.length >= 4) {
       result.matches = extractListItems(sections[0]);
       result.maybes = extractListItems(sections[1]);
       result.gaps = extractListItems(sections[2]);
@@ -28,6 +28,7 @@ export function parseGeminiResponse(text: string): AnalysisResult {
       
       // Try to categorize lines into matches, maybes, gaps, and suggestions
       // TODO: heuristic for maybes
+      // the heuristic for all of this is sketchy at best
       for (const line of lines) {
         const lowerLine = line.toLowerCase();
         if (lowerLine.includes('match') && !lowerLine.includes('no match')) {
