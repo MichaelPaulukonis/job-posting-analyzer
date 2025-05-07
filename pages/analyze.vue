@@ -40,16 +40,32 @@
         </InputContainer>
 
         <InputContainer ref="resumeContainer" title="Your Resume" summary="Resume content">
-          <div class="flex flex-col md:flex-row gap-4">
-            <div class="md:w-1/2">
-              <TextAreaInput id="resume" label="Paste Resume" v-model="resume.content"
-                placeholder="Paste your resume text here..." :error="errors.resume"
-                hint="For best results, include your skills, experience, and qualifications" 
-                required @blur="validateField('resume')" />
+          <div class="flex flex-col gap-4">
+            <ResumeSelector v-model="selectedResumeId" @select="handleResumeSelect" />
+            <div class="flex flex-col md:flex-row gap-4">
+              <div class="md:w-1/2">
+                <TextAreaInput id="resume" label="Paste Resume" v-model="resume.content"
+                  placeholder="Paste your resume text here..." :error="errors.resume"
+                  hint="For best results, include your skills, experience, and qualifications" 
+                  required @blur="validateField('resume')" />
+              </div>
+              <div class="md:w-1/2">
+                <FileUpload id="resume-file-upload" label="Upload Resume" accept=".txt,.md,.pdf"
+                  :error="errors.resumeFile" @file-selected="handleResumeFileUpload" />
+              </div>
             </div>
-            <div class="md:w-1/2">
-              <FileUpload id="resume-file-upload" label="Upload Resume" accept=".txt,.md,.pdf"
-                :error="errors.resumeFile" @file-selected="handleResumeFileUpload" />
+            <div class="flex justify-end">
+              <button @click="saveResume"
+                class="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-1 px-4 rounded-md transition-colors"
+                :disabled="!resume.content || resume.content.trim().length < 10"
+                title="Save current resume">
+                <span class="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                  Save Resume
+                </span>
+              </button>
             </div>
           </div>
         </InputContainer>
@@ -90,6 +106,12 @@
           @clear="clearSavedAnalyses" />
       </div>
     </div>
+
+    <!-- Resume Name Dialog -->
+    <ResumeNameDialog
+      v-model="showResumeNameDialog"
+      @save="handleResumeNameSave"
+    />
   </div>
 </template>
 
@@ -106,6 +128,8 @@ import FileUpload from '../components/input/FileUpload.vue';
 import ServiceSelector from '../components/input/ServiceSelector.vue';
 import AnalysisResults from '../components/analysis/AnalysisResults.vue';
 import AnalysisHistory from '../components/analysis/AnalysisHistory.vue';
+import ResumeSelector from '../components/input/ResumeSelector.vue';
+import ResumeNameDialog from '../components/input/ResumeNameDialog.vue';
 
 // State
 const jobPosting = reactive<JobPosting>({
@@ -128,9 +152,11 @@ const isAnalyzing = ref(false);
 const error = ref('');
 const analysisResults = ref<AnalysisResult | null>(null);
 const savedAnalyses = ref<SavedAnalysis[]>([]);
-const selectedService = ref<'mock' | 'gemini' | 'openai'>('mock');
+const selectedService = ref<'mock' | 'gemini' | 'openai'>('gemini');
 const isIncompleteAnalysis = ref(false);
 const currentAnalysisId = ref<string | undefined>(undefined);
+const selectedResumeId = ref('');
+const showResumeNameDialog = ref(false);
 
 // Add refs for the input containers
 const jobPostingContainer = ref(null);
@@ -153,6 +179,34 @@ const handleResumeFileUpload = ({ content }: { content: string }) => {
   resume.content = content;
   errors.resume = '';
   errors.resumeFile = '';
+};
+
+const handleResumeSelect = (selectedResume: { content: string }) => {
+  resume.content = selectedResume.content;
+  errors.resume = '';
+};
+
+const saveResume = async () => {
+  if (!resume.content || resume.content.trim().length < 10) {
+    errors.resume = 'Please enter a valid resume with sufficient information';
+    return;
+  }
+
+  showResumeNameDialog.value = true;
+};
+
+const handleResumeNameSave = async (name: string) => {
+  try {
+    await StorageService.saveResume(resume, name);
+    // Refresh the resume selector
+    const resumeSelector = document.querySelector('resume-selector');
+    if (resumeSelector) {
+      (resumeSelector as any).refresh();
+    }
+  } catch (err) {
+    console.error('Error saving resume:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to save resume';
+  }
 };
 
 const validateField = (field: 'jobPosting' | 'resume') => {

@@ -131,6 +131,182 @@ export class StorageService {
     }
   }
   
+  /**
+   * Save a resume to storage
+   */
+  static async saveResume(resume: Resume, title?: string): Promise<string> {
+    try {
+      // Get current resumes
+      const savedResumes = await this.getResumes();
+      
+      // Create new resume object
+      const resumeToSave = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+        title: title || `Resume ${savedResumes.length + 1}`,
+        content: resume.content,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Add to the beginning of the array
+      savedResumes.unshift(resumeToSave);
+      
+      // Keep only the latest 10 resumes
+      const trimmedResumes = savedResumes.slice(0, 10);
+      
+      // Save to server
+      await fetch('/api/resumes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(trimmedResumes)
+      });
+      
+      return resumeToSave.id;
+    } catch (error) {
+      console.error('Error saving resume:', error);
+      // Fallback to localStorage if server storage fails
+      return this.saveResumeToLocalStorage(resume, title);
+    }
+  }
+
+  /**
+   * Get all saved resumes
+   */
+  static async getResumes(): Promise<Array<{ id: string; title: string; content: string; timestamp: string }>> {
+    try {
+      // Fetch from server
+      const response = await fetch('/api/resumes');
+      if (!response.ok) {
+        throw new Error('Failed to fetch resumes from server');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching resumes:', error);
+      // Fallback to localStorage if server fetch fails
+      return this.getResumesFromLocalStorage();
+    }
+  }
+
+  /**
+   * Delete a specific resume
+   */
+  static async deleteResume(id: string): Promise<void> {
+    try {
+      // Delete from server
+      await fetch(`/api/resumes/${id}`, {
+        method: 'DELETE'
+      });
+    } catch (error) {
+      console.error('Error deleting resume:', error);
+      // Fallback to localStorage if server delete fails
+      this.deleteResumeFromLocalStorage(id);
+    }
+  }
+
+  /**
+   * Clear all saved resumes
+   */
+  static async clearResumes(): Promise<void> {
+    try {
+      // Clear from server
+      await fetch('/api/resumes', {
+        method: 'DELETE'
+      });
+    } catch (error) {
+      console.error('Error clearing resumes:', error);
+      // Fallback to localStorage if server clear fails
+      this.clearResumesFromLocalStorage();
+    }
+  }
+  
+  /**
+   * Save a cover letter sample
+   */
+  static async saveCoverLetterSample(sample: { content: string; name: string; notes: string }): Promise<string> {
+    try {
+      // Get current samples
+      const savedSamples = await this.getCoverLetterSamples();
+      
+      // Create new sample object
+      const sampleToSave = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+        name: sample.name,
+        content: sample.content,
+        notes: sample.notes,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Add to the beginning of the array
+      savedSamples.unshift(sampleToSave);
+      
+      // Save to server
+      await fetch('/api/cover-letter-samples', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(savedSamples)
+      });
+      
+      return sampleToSave.id;
+    } catch (error) {
+      console.error('Error saving cover letter sample:', error);
+      // Fallback to localStorage if server storage fails
+      return this.saveCoverLetterSampleToLocalStorage(sample);
+    }
+  }
+
+  /**
+   * Get all saved cover letter samples
+   */
+  static async getCoverLetterSamples(): Promise<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>> {
+    try {
+      // Fetch from server
+      const response = await fetch('/api/cover-letter-samples');
+      if (!response.ok) {
+        throw new Error('Failed to fetch cover letter samples from server');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching cover letter samples:', error);
+      // Fallback to localStorage if server fetch fails
+      return this.getCoverLetterSamplesFromLocalStorage();
+    }
+  }
+
+  /**
+   * Delete a specific cover letter sample
+   */
+  static async deleteCoverLetterSample(id: string): Promise<void> {
+    try {
+      // Delete from server
+      await fetch(`/api/cover-letter-samples/${id}`, {
+        method: 'DELETE'
+      });
+    } catch (error) {
+      console.error('Error deleting cover letter sample:', error);
+      // Fallback to localStorage if server delete fails
+      this.deleteCoverLetterSampleFromLocalStorage(id);
+    }
+  }
+
+  /**
+   * Clear all saved cover letter samples
+   */
+  static async clearCoverLetterSamples(): Promise<void> {
+    try {
+      // Clear from server
+      await fetch('/api/cover-letter-samples', {
+        method: 'DELETE'
+      });
+    } catch (error) {
+      console.error('Error clearing cover letter samples:', error);
+      // Fallback to localStorage if server clear fails
+      this.clearCoverLetterSamplesFromLocalStorage();
+    }
+  }
+  
   // --- Fallback localStorage methods ---
   
   private static STORAGE_KEY = 'job-analysis-history';
@@ -182,5 +358,93 @@ export class StorageService {
   
   private static clearAnalysesFromLocalStorage(): void {
     localStorage.removeItem(this.STORAGE_KEY);
+  }
+  
+  // --- Fallback localStorage methods for resumes ---
+  
+  private static RESUMES_STORAGE_KEY = 'saved-resumes';
+  
+  private static saveResumeToLocalStorage(resume: Resume, title?: string): string {
+    const savedResumes = this.getResumesFromLocalStorage();
+    
+    const resumeToSave = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+      title: title || `Resume ${savedResumes.length + 1}`,
+      content: resume.content,
+      timestamp: new Date().toISOString()
+    };
+    
+    savedResumes.unshift(resumeToSave);
+    
+    // Keep only the latest 10 resumes
+    const trimmedResumes = savedResumes.slice(0, 10);
+    localStorage.setItem(this.RESUMES_STORAGE_KEY, JSON.stringify(trimmedResumes));
+    
+    return resumeToSave.id;
+  }
+  
+  private static getResumesFromLocalStorage(): Array<{ id: string; title: string; content: string; timestamp: string }> {
+    const data = localStorage.getItem(this.RESUMES_STORAGE_KEY);
+    if (!data) return [];
+    
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      console.error('Failed to parse saved resumes from localStorage:', e);
+      return [];
+    }
+  }
+  
+  private static deleteResumeFromLocalStorage(id: string): void {
+    const savedResumes = this.getResumesFromLocalStorage();
+    const updatedResumes = savedResumes.filter(resume => resume.id !== id);
+    localStorage.setItem(this.RESUMES_STORAGE_KEY, JSON.stringify(updatedResumes));
+  }
+  
+  private static clearResumesFromLocalStorage(): void {
+    localStorage.removeItem(this.RESUMES_STORAGE_KEY);
+  }
+
+  // --- Fallback localStorage methods for cover letter samples ---
+  
+  private static COVER_LETTER_SAMPLES_STORAGE_KEY = 'saved-cover-letter-samples';
+  
+  private static saveCoverLetterSampleToLocalStorage(sample: { content: string; name: string; notes: string }): string {
+    const savedSamples = this.getCoverLetterSamplesFromLocalStorage();
+    
+    const sampleToSave = {
+      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+      name: sample.name,
+      content: sample.content,
+      notes: sample.notes,
+      timestamp: new Date().toISOString()
+    };
+    
+    savedSamples.unshift(sampleToSave);
+    localStorage.setItem(this.COVER_LETTER_SAMPLES_STORAGE_KEY, JSON.stringify(savedSamples));
+    
+    return sampleToSave.id;
+  }
+  
+  private static getCoverLetterSamplesFromLocalStorage(): Array<{ id: string; name: string; content: string; notes: string; timestamp: string }> {
+    const data = localStorage.getItem(this.COVER_LETTER_SAMPLES_STORAGE_KEY);
+    if (!data) return [];
+    
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      console.error('Failed to parse saved cover letter samples from localStorage:', e);
+      return [];
+    }
+  }
+  
+  private static deleteCoverLetterSampleFromLocalStorage(id: string): void {
+    const savedSamples = this.getCoverLetterSamplesFromLocalStorage();
+    const updatedSamples = savedSamples.filter(sample => sample.id !== id);
+    localStorage.setItem(this.COVER_LETTER_SAMPLES_STORAGE_KEY, JSON.stringify(updatedSamples));
+  }
+  
+  private static clearCoverLetterSamplesFromLocalStorage(): void {
+    localStorage.removeItem(this.COVER_LETTER_SAMPLES_STORAGE_KEY);
   }
 }
