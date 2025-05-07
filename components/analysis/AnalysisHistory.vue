@@ -4,7 +4,7 @@
       <h2 class="text-xl font-semibold">Analysis History</h2>
       <button 
         v-if="items.length > 0"
-        @click="clearHistory" 
+        @click="showClearDialog = true" 
         class="text-sm text-red-600 hover:text-red-800"
       >
         Clear All
@@ -23,9 +23,29 @@
         :item="item" 
         :is-selected="selectedId === item.id"
         @select="selectItem"
-        @delete="deleteItem"
+        @delete="showDeleteConfirmation(item.id)"
       />
     </div>
+
+    <!-- Delete Confirmation Dialog -->
+    <ConfirmDialog
+      v-model="showDeleteDialog"
+      title="Delete Analysis"
+      message="Are you sure you want to delete this analysis? This action cannot be undone."
+      confirm-text="Delete"
+      cancel-text="Cancel"
+      @confirm="handleDeleteConfirm"
+    />
+
+    <!-- Clear All Confirmation Dialog -->
+    <ConfirmDialog
+      v-model="showClearDialog"
+      title="Clear All Analyses"
+      message="Are you sure you want to clear all saved analyses? This action cannot be undone."
+      confirm-text="Clear All"
+      cancel-text="Cancel"
+      @confirm="handleClearConfirm"
+    />
   </div>
 </template>
 
@@ -33,6 +53,7 @@
 import { ref, computed } from 'vue';
 import type { SavedAnalysis } from '../../types';
 import AnalysisHistoryItem from './AnalysisHistoryItem.vue';
+import ConfirmDialog from '../common/ConfirmDialog.vue';
 
 const props = defineProps<{
   items: SavedAnalysis[];
@@ -41,25 +62,32 @@ const props = defineProps<{
 const emit = defineEmits(['select', 'clear', 'delete']);
 
 const selectedId = ref<string | null>(null);
+const showDeleteDialog = ref(false);
+const showClearDialog = ref(false);
+const itemToDelete = ref<string | null>(null);
 
 const selectItem = (item: SavedAnalysis) => {
   selectedId.value = item.id;
   emit('select', item);
 };
 
-const deleteItem = (id: string) => {
-  if (confirm('Are you sure you want to delete this analysis?')) {
-    emit('delete', id);
-    if (selectedId.value === id) {
+const showDeleteConfirmation = (id: string) => {
+  itemToDelete.value = id;
+  showDeleteDialog.value = true;
+};
+
+const handleDeleteConfirm = () => {
+  if (itemToDelete.value) {
+    emit('delete', itemToDelete.value);
+    if (selectedId.value === itemToDelete.value) {
       selectedId.value = null;
     }
+    itemToDelete.value = null;
   }
 };
 
-const clearHistory = () => {
-  if (confirm('Are you sure you want to clear all saved analyses?')) {
-    emit('clear');
-    selectedId.value = null;
-  }
+const handleClearConfirm = () => {
+  emit('clear');
+  selectedId.value = null;
 };
 </script>

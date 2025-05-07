@@ -29,20 +29,20 @@
       </div>
       
       <div class="bg-white shadow-md rounded-lg p-6 mb-6">
-        <h2 class="text-xl font-semibold mb-4">Job: {{ analysis.jobTitle || 'Untitled Position' }}</h2>
+        <h2 class="text-xl font-semibold mb-4">Job: {{ analysis?.jobTitle || 'Untitled Position' }}</h2>
         
         <div class="mb-6 p-4 bg-gray-50 rounded-md">
           <div class="flex items-center mb-2">
             <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-            <h3 class="font-medium">Matching Skills: {{ analysis.matches.length }}</h3>
+            <h3 class="font-medium">Matching Skills: {{ analysis?.matches.length || 0 }}</h3>
           </div>
           <div class="flex items-center mb-2">
             <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
-            <h3 class="font-medium">Potential Matches: {{ analysis.maybes.length }}</h3>
+            <h3 class="font-medium">Potential Matches: {{ analysis?.maybes.length || 0 }}</h3>
           </div>
           <div class="flex items-center">
             <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-            <h3 class="font-medium">Skill Gaps: {{ analysis.gaps.length }}</h3>
+            <h3 class="font-medium">Skill Gaps: {{ analysis?.gaps.length || 0 }}</h3>
           </div>
         </div>
       </div>
@@ -107,24 +107,27 @@
               v-model="coverLetter.content"
               :rows="12"
               hint="You can edit this cover letter as needed"
+              @blur="handleContentBlur"
             />
             
             <div class="flex justify-between mt-4">
-              <button 
-                @click="regenerateCoverLetter"
-                class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md transition-colors"
-              >
-                Regenerate
-              </button>
-              
               <div class="space-x-2">
+                <button 
+                  @click="showRegenerateDialog = true"
+                  class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md transition-colors"
+                >
+                  Regenerate
+                </button>
+                
                 <button 
                   @click="copyToClipboard"
                   class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium py-2 px-4 rounded-md transition-colors"
                 >
                   Copy to Clipboard
                 </button>
-                
+              </div>
+              
+              <div class="space-x-2">
                 <button 
                   @click="saveCoverLetter"
                   class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
@@ -145,15 +148,64 @@
       </div>
     </div>
   </div>
+
+  <!-- Regenerate Dialog -->
+  <div v-if="showRegenerateDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+      <h3 class="text-lg font-semibold mb-4">Regenerate Cover Letter</h3>
+      
+      <div class="mb-4">
+        <TextAreaInput
+          id="regenerate-instructions"
+          label="Instructions (Optional)"
+          v-model="regenerateInstructions"
+          placeholder="E.g., 'Make it more professional', 'Focus on technical skills', 'Change the second paragraph'"
+          :rows="3"
+        />
+      </div>
+
+      <div v-if="hasManualEdits" class="mb-4 p-4 bg-yellow-50 rounded-md">
+        <p class="text-yellow-800">
+          You have made manual edits to the current letter. Would you like to:
+        </p>
+        <div class="mt-2 space-y-2">
+          <label class="flex items-center">
+            <input type="radio" v-model="regenerateOption" value="keep" class="mr-2">
+            Keep my edits and use them as a reference
+          </label>
+          <label class="flex items-center">
+            <input type="radio" v-model="regenerateOption" value="discard" class="mr-2">
+            Discard my edits and start fresh
+          </label>
+        </div>
+      </div>
+      
+      <div class="flex justify-end space-x-2">
+        <button 
+          @click="showRegenerateDialog = false"
+          class="px-4 py-2 text-gray-600 hover:text-gray-800"
+        >
+          Cancel
+        </button>
+        <button 
+          @click="handleRegenerate"
+          class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Regenerate
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import type { SavedAnalysis, CoverLetter } from '../../types';
 import { StorageService } from '../../services/StorageService';
 import { CoverLetterService } from '../../services/CoverLetterService';
 import TextAreaInput from '../../components/input/TextAreaInput.vue';
 import FileUpload from '../../components/input/FileUpload.vue';
+import { diffWords } from 'diff';
 
 // Get analysis ID from route param
 const route = useRoute();
@@ -167,10 +219,53 @@ const sampleLetter = ref('');
 const coverLetter = reactive<CoverLetter>({
   content: '',
   timestamp: '',
-  sampleContent: ''
+  sampleContent: '',
+  history: [],
+  editedSections: []
 });
 const isGenerating = ref(false);
 const copySuccess = ref(false);
+const showRegenerateDialog = ref(false);
+const regenerateInstructions = ref('');
+const regenerateOption = ref('keep');
+const originalContent = ref('');
+
+// Track manual edits
+const hasManualEdits = computed(() => {
+  return originalContent.value !== coverLetter.content;
+});
+
+// Handle content changes on blur
+const handleContentBlur = () => {
+  if (!originalContent.value) {
+    originalContent.value = coverLetter.content;
+    return;
+  }
+
+  if (coverLetter.content !== originalContent.value) {
+    // Use diff library to find changes
+    const changes = diffWords(originalContent.value, coverLetter.content);
+    const edits = changes
+      .filter(change => change.added || change.removed)
+      .map(change => ({
+        type: change.added ? 'added' : 'removed',
+        value: change.value,
+        timestamp: new Date().toISOString()
+      }));
+
+    if (edits.length > 0) {
+      // Add current version to history
+      coverLetter.history.push({
+        content: originalContent.value,
+        timestamp: new Date().toISOString(),
+        edits
+      });
+
+      // Update original content
+      originalContent.value = coverLetter.content;
+    }
+  }
+};
 
 // Fetch analysis data on mount
 onMounted(async () => {
@@ -239,10 +334,50 @@ const generateCoverLetter = async () => {
   }
 };
 
-const regenerateCoverLetter = () => {
-  // Confirm before regenerating
-  if (confirm('Are you sure you want to regenerate the cover letter? This will replace your current letter.')) {
-    generateCoverLetter();
+const handleRegenerate = async () => {
+  if (!analysis.value) return;
+  
+  // Save current version to history
+  coverLetter.history.push({
+    content: coverLetter.content,
+    timestamp: coverLetter.timestamp,
+    instructions: regenerateInstructions.value,
+    sampleContent: sampleLetter.value
+  });
+
+  // If keeping edits, use current content as reference
+  const referenceContent = regenerateOption.value === 'keep' ? coverLetter.content : undefined;
+  
+  isGenerating.value = true;
+  showRegenerateDialog.value = false;
+  
+  try {
+    // Call the service to generate the cover letter
+    const generated = await CoverLetterService.generateCoverLetter(
+      analysis.value,
+      sampleLetter.value,
+      regenerateInstructions.value,
+      referenceContent
+    );
+    
+    coverLetter.content = generated.content;
+    coverLetter.timestamp = generated.timestamp;
+    coverLetter.instructions = regenerateInstructions.value;
+    
+    // Reset tracking
+    originalContent.value = coverLetter.content;
+    coverLetter.editedSections = [];
+    
+    // Save to the analysis automatically
+    await saveCoverLetter();
+    
+  } catch (err) {
+    console.error('Error generating cover letter:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to generate cover letter';
+  } finally {
+    isGenerating.value = false;
+    regenerateInstructions.value = '';
+    regenerateOption.value = 'keep';
   }
 };
 
@@ -254,7 +389,9 @@ const saveCoverLetter = async () => {
     await StorageService.saveCoverLetter(analysisId, {
       content: coverLetter.content,
       timestamp: new Date().toISOString(),
-      sampleContent: sampleLetter.value
+      sampleContent: sampleLetter.value,
+      history: coverLetter.history,
+      editedSections: coverLetter.editedSections
     });
     
   } catch (err) {

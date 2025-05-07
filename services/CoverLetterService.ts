@@ -4,7 +4,12 @@ export class CoverLetterService {
   /**
    * Generate a cover letter based on analysis results
    */
-  static async generateCoverLetter(analysis: SavedAnalysis, sampleLetter?: string): Promise<CoverLetter> {
+  static async generateCoverLetter(
+    analysis: SavedAnalysis, 
+    sampleLetter?: string,
+    instructions?: string,
+    referenceContent?: string
+  ): Promise<CoverLetter> {
     try {
       // Call our server API endpoint
       const response = await fetch('/api/cover-letter/generate', {
@@ -15,6 +20,8 @@ export class CoverLetterService {
         body: JSON.stringify({
           analysis,
           sampleLetter,
+          instructions,
+          referenceContent
         }),
       });
       
@@ -27,7 +34,10 @@ export class CoverLetterService {
       return {
         content: result.content,
         timestamp: result.timestamp,
-        sampleContent: sampleLetter
+        sampleContent: sampleLetter,
+        instructions,
+        history: [],
+        editedSections: []
       };
     } catch (error) {
       console.error('Cover letter service error:', error);

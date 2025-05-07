@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     
     // Parse request body
     const body = await readBody(event);
-    const { analysis, sampleLetter } = body;
+    const { analysis, sampleLetter, instructions, referenceContent } = body;
     
     if (!analysis) {
       throw createError({
@@ -26,7 +26,9 @@ export default defineEventHandler(async (event) => {
     console.log('Generating cover letter for analysis:', {
       jobTitle: analysis.jobTitle,
       matches: analysis.matches.length,
-      gaps: analysis.gaps.length
+      gaps: analysis.gaps.length,
+      hasInstructions: !!instructions,
+      hasReference: !!referenceContent
     });
     
     // Initialize Gemini client
@@ -34,7 +36,7 @@ export default defineEventHandler(async (event) => {
     const model = ai.getGenerativeModel({ model: config.geminiModel });
     
     // Generate prompt
-    const prompt = createCoverLetterPrompt(analysis, sampleLetter);
+    const prompt = createCoverLetterPrompt(analysis, sampleLetter, instructions, referenceContent);
     console.log('Generated prompt for cover letter:', prompt);
     
     // Call Gemini API

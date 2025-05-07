@@ -19,6 +19,23 @@ export interface CoverLetter {
   content: string;
   timestamp: string;
   sampleContent?: string;  // Optional sample letter
+  instructions?: string;   // Optional instructions for regeneration
+  history: CoverLetterVersion[];  // History of previous versions
+  editedSections: Edit[];
+}
+
+export interface CoverLetterVersion {
+  content: string;
+  timestamp: string;
+  instructions?: string;
+  sampleContent?: string;
+  edits?: Edit[];
+}
+
+export interface Edit {
+  type: 'added' | 'removed';
+  value: string;
+  timestamp: string;
 }
 
 export interface SavedAnalysis extends AnalysisResult {

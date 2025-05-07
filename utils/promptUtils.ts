@@ -42,7 +42,12 @@ ${resume.content}
 /**
  * Template for generating a cover letter based on analysis results
  */
-export const createCoverLetterPrompt = (analysis: SavedAnalysis, sampleLetter?: string): string => {
+export const createCoverLetterPrompt = (
+  analysis: SavedAnalysis, 
+  sampleLetter?: string,
+  instructions?: string,
+  referenceContent?: string
+): string => {
   const { jobPosting, resume, matches, maybes, gaps } = analysis;
   
   let prompt = `
@@ -83,6 +88,26 @@ The tone should be professional but non-dramatic and straightforward, avoiding b
 Format the letter in Markdown with appropriate structure and spacing.
 The letter should be in standard business letter format without the address blocks. 
 `;
+
+  // If there are specific instructions for regeneration, add them
+  if (instructions) {
+    prompt += `
+SPECIFIC INSTRUCTIONS FOR THIS VERSION:
+---
+${instructions}
+---
+`;
+  }
+
+  // If a reference content is provided (e.g., manually edited version), use it as a reference
+  if (referenceContent) {
+    prompt += `
+REFERENCE VERSION (please maintain any good edits while incorporating the changes requested):
+---
+${referenceContent}
+---
+`;
+  }
 
   // If a sample letter is provided, use it as a style reference
   if (sampleLetter) {
