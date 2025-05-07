@@ -1,334 +1,471 @@
 <template>
   <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">✍️ Cover Letter Generator</h1>
-      <button @click="clearFormFields" 
-        class="text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-1 px-4 rounded-md transition-colors"
-        title="Clear all form fields">
-        <span class="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-          Clear Form
-        </span>
-      </button>
+      <NuxtLink :to="`/analyze${route.query.analysisId ? `?analysisId=${route.query.analysisId}` : ''}`" class="text-blue-600 hover:underline flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+        </svg>
+        Back to Analysis
+      </NuxtLink>
+      <h1 class="text-2xl font-bold">📝 Cover Letter Generator</h1>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+      <p>{{ error }}</p>
+    </div>
+
+    <div v-if="!analysis" class="text-center py-8">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p class="text-gray-600">Loading analysis...</p>
+    </div>
+
+    <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Main content area - 2/3 width on large screens -->
       <div class="lg:col-span-2">
-        <InputContainer ref="coverLetterContainer" title="Cover Letter" summary="Your generated cover letter">
-          <div class="space-y-4">
-            <CoverLetterSampleSelector
-              v-model="selectedSampleId"
-              @select="handleSampleSelect"
-            />
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+          <h2 class="text-xl font-semibold mb-4">Job: {{ analysis?.jobTitle || 'Untitled Position' }}</h2>
+          
+          <div class="mb-6 p-4 bg-gray-50 rounded-md">
+            <div class="flex items-center mb-2">
+              <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+              <h3 class="font-medium">Matching Skills: {{ analysis?.matches.length || 0 }}</h3>
+            </div>
+            <div class="flex items-center mb-2">
+              <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+              <h3 class="font-medium">Potential Matches: {{ analysis?.maybes.length || 0 }}</h3>
+            </div>
+            <div class="flex items-center">
+              <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+              <h3 class="font-medium">Skill Gaps: {{ analysis?.gaps.length || 0 }}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Cover Letter</h2>
+            <div class="space-x-2">
+              <button 
+                @click="showRegenerateDialog = true"
+                class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md transition-colors"
+              >
+                Regenerate
+              </button>
+              <button 
+                @click="copyToClipboard"
+                class="bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium py-2 px-4 rounded-md transition-colors"
+              >
+                Copy to Clipboard
+              </button>
+              <button 
+                @click="saveCoverLetter"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+
+          <div v-if="isGenerating" class="text-center py-8">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Generating cover letter...</p>
+          </div>
+
+          <div v-else>
             <TextAreaInput
               id="cover-letter"
               label="Cover Letter"
-              v-model="coverLetter"
-              placeholder="Your cover letter will appear here..."
-              :rows="15"
-              class="w-full"
+              v-model="coverLetter.content"
+              :rows="12"
+              hint="You can edit this cover letter as needed"
+              @blur="handleContentBlur"
             />
-            <div class="flex justify-between items-center">
-              <div class="space-x-2">
-                <button
-                  @click="generateCoverLetter"
-                  :disabled="!canGenerate || isGenerating"
-                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <span v-if="isGenerating" class="flex items-center">
-                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Generating...
-                  </span>
-                  <span v-else>Generate Cover Letter</span>
-                </button>
-                <button
-                  @click="regenerateCoverLetter"
-                  :disabled="!canRegenerate || isGenerating"
-                  class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Regenerate
-                </button>
-              </div>
-              <div class="space-x-2">
-                <button
-                  @click="saveCurrentVersion"
-                  :disabled="!isCoverLetterValid"
-                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Save Version
-                </button>
-                <button
-                  @click="saveSample"
-                  :disabled="!isCoverLetterValid"
-                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Save as Sample
-                </button>
-                <button
-                  @click="copyToClipboard"
-                  :disabled="!isCoverLetterValid"
-                  class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Copy to Clipboard
-                </button>
-              </div>
-            </div>
-            <!-- Version History -->
-            <div v-if="coverLetterVersions.length > 0" class="mt-4">
-              <h3 class="text-sm font-medium text-gray-700 mb-2">Version History</h3>
-              <div class="space-y-2">
-                <button
-                  v-for="(version, index) in coverLetterVersions"
-                  :key="version.timestamp"
-                  @click="loadVersion(index)"
-                  :class="[
-                    'w-full text-left px-3 py-2 text-sm rounded-md transition-colors',
-                    currentVersionIndex === index
-                      ? 'bg-indigo-100 text-indigo-700'
-                      : 'hover:bg-gray-100 text-gray-700'
-                  ]"
-                >
-                  <div class="flex justify-between items-center">
-                    <span>Version {{ index + 1 }}</span>
-                    <span class="text-xs text-gray-500">
-                      {{ new Date(version.timestamp).toLocaleString() }}
-                    </span>
-                  </div>
-                </button>
-              </div>
-            </div>
           </div>
-        </InputContainer>
+        </div>
       </div>
 
       <!-- Sidebar - 1/3 width on large screens -->
       <div class="lg:col-span-1">
-        <AnalysisHistory :items="savedAnalyses" @select="loadSavedAnalysis" @delete="deleteSavedAnalysis"
-          @clear="clearSavedAnalyses" />
+        <div class="bg-white shadow-md rounded-lg p-6 mb-6">
+          <h2 class="text-xl font-semibold mb-4">Sample Cover Letter</h2>
+          <TextAreaInput
+            id="sample-letter"
+            label="Paste a sample cover letter (optional)"
+            v-model="sampleLetter"
+            :rows="8"
+            hint="This will be used as a style reference for generating your cover letter"
+          />
+          <div class="mt-4">
+            <CoverLetterSampleSelector
+              v-model="selectedSampleId"
+              @select="handleSampleSelect"
+            />
+            <button 
+              @click="generateCoverLetter"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors mt-4"
+              :disabled="isGenerating"
+            >
+              Generate Cover Letter
+            </button>
+            <button 
+              @click="showSampleDialog = true"
+              class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-md transition-colors mt-2"
+              :disabled="!coverLetter.content"
+            >
+              Save as Sample
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white shadow-md rounded-lg p-6">
+          <AnalysisHistory 
+            :items="savedAnalyses" 
+            @select="loadSavedAnalysis" 
+            @delete="deleteSavedAnalysis"
+            @clear="clearSavedAnalyses" 
+          />
+        </div>
       </div>
     </div>
-
-    <!-- Cover Letter Sample Dialog -->
-    <CoverLetterSampleDialog
-      v-model="showSampleDialog"
-      :preview="coverLetter"
-      @save="handleSampleSave"
-    />
   </div>
+
+  <!-- Regenerate Dialog -->
+  <div v-if="showRegenerateDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+      <h3 class="text-lg font-semibold mb-4">Regenerate Cover Letter</h3>
+      
+      <div class="mb-4">
+        <TextAreaInput
+          id="regenerate-instructions"
+          label="Instructions (Optional)"
+          v-model="regenerateInstructions"
+          placeholder="E.g., 'Make it more professional', 'Focus on technical skills', 'Change the second paragraph'"
+          :rows="3"
+        />
+      </div>
+
+      <div v-if="hasManualEdits" class="mb-4 p-4 bg-yellow-50 rounded-md">
+        <p class="text-yellow-800">
+          You have made manual edits to the current letter. Would you like to:
+        </p>
+        <div class="mt-2 space-y-2">
+          <label class="flex items-center">
+            <input type="radio" v-model="regenerateOption" value="keep" class="mr-2">
+            Keep my edits and use them as a reference
+          </label>
+          <label class="flex items-center">
+            <input type="radio" v-model="regenerateOption" value="discard" class="mr-2">
+            Discard my edits and start fresh
+          </label>
+        </div>
+      </div>
+      
+      <div class="flex justify-end space-x-2">
+        <button 
+          @click="showRegenerateDialog = false"
+          class="px-4 py-2 text-gray-600 hover:text-gray-800"
+        >
+          Cancel
+        </button>
+        <button 
+          @click="handleRegenerate"
+          class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Regenerate
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cover Letter Sample Dialog -->
+  <CoverLetterSampleDialog
+    v-model="showSampleDialog"
+    :preview="coverLetter.content"
+    @save="handleSampleSave"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import type { SavedAnalysis } from '../types';
-import { StorageService } from '../services/StorageService';
-import { AnalysisService } from '../services/AnalysisService';
-import InputContainer from '../components/input/InputContainer.vue';
-import TextAreaInput from '../components/input/TextAreaInput.vue';
-import AnalysisHistory from '../components/analysis/AnalysisHistory.vue';
-import CoverLetterSampleSelector from '~/components/input/CoverLetterSampleSelector.vue';
-import CoverLetterSampleDialog from '~/components/input/CoverLetterSampleDialog.vue';
+import type { SavedAnalysis, CoverLetter } from '../../types';
+import { StorageService } from '../../services/StorageService';
+import { CoverLetterService } from '../../services/CoverLetterService';
+import TextAreaInput from '../../components/input/TextAreaInput.vue';
+import { diffWords } from 'diff';
+import CoverLetterSampleSelector from '../../components/input/CoverLetterSampleSelector.vue';
+import CoverLetterSampleDialog from '../../components/input/CoverLetterSampleDialog.vue';
+import AnalysisHistory from '../../components/analysis/AnalysisHistory.vue';
 
-// State
+// Get analysis ID from route param
 const route = useRoute();
 const router = useRouter();
-const coverLetter = ref('');
-const showSampleDialog = ref(false);
-const selectedSampleId = ref<string>('');
-const savedAnalyses = ref<SavedAnalysis[]>([]);
+const analysisId = route.params.id as string;
+
+// State
+const analysis = ref<SavedAnalysis | null>(null);
+const error = ref('');
+const sampleLetter = ref('');
+const coverLetter = reactive<CoverLetter>({
+  content: '',
+  timestamp: '',
+  sampleContent: '',
+  history: [],
+  editedSections: []
+});
 const isGenerating = ref(false);
-const currentAnalysisId = ref<string | undefined>(undefined);
-const coverLetterVersions = ref<Array<{ content: string; timestamp: string }>>([]);
-const currentVersionIndex = ref<number>(-1);
+const showRegenerateDialog = ref(false);
+const regenerateInstructions = ref('');
+const regenerateOption = ref('keep');
+const originalContent = ref('');
+const showSampleDialog = ref(false);
+const selectedSampleId = ref('');
+const savedAnalyses = ref<SavedAnalysis[]>([]);
 
-// Watch for route changes to handle navigation
-watch(() => route.params.id, async (newId) => {
-  if (!newId) return;
-  
-  // Clear any existing state
-  clearFormFields();
-  
-  // Load the analysis
-  const analysis = savedAnalyses.value.find(a => a.id === newId);
-  if (analysis) {
-    loadSavedAnalysis(analysis);
+// Track manual edits
+const hasManualEdits = computed(() => {
+  return originalContent.value !== coverLetter.content;
+});
+
+// Handle content changes on blur
+const handleContentBlur = () => {
+  if (!originalContent.value) {
+    originalContent.value = coverLetter.content;
+    return;
   }
-}, { immediate: true });
 
-// Load saved analyses on mount
-onMounted(async () => {
-  savedAnalyses.value = await StorageService.getAnalyses();
-  
-  // If we have an ID in the URL, load that analysis
-  const id = route.params.id;
-  if (id) {
-    const analysis = savedAnalyses.value.find(a => a.id === id);
-    if (analysis) {
-      loadSavedAnalysis(analysis);
+  if (coverLetter.content !== originalContent.value) {
+    // Use diff library to find changes
+    const changes = diffWords(originalContent.value, coverLetter.content);
+    const edits = changes
+      .filter(change => change.added || change.removed)
+      .map(change => ({
+        type: change.added ? 'added' : 'removed',
+        value: change.value,
+        timestamp: new Date().toISOString()
+      }));
+
+    if (edits.length > 0) {
+      // Add current version to history
+      coverLetter.history.push({
+        content: originalContent.value,
+        timestamp: new Date().toISOString(),
+        edits
+      });
+
+      // Update original content
+      originalContent.value = coverLetter.content;
     }
   }
-});
-
-const isCoverLetterValid = computed(() => {
-  return coverLetter.value && coverLetter.value.trim().length >= 10;
-});
-
-const canGenerate = computed(() => {
-  return currentAnalysisId.value !== undefined;
-});
-
-const canRegenerate = computed(() => {
-  return canGenerate.value && coverLetter.value.trim().length > 0;
-});
-
-const handleSampleSelect = (sample: { content: string }) => {
-  coverLetter.value = sample.content;
 };
 
+// Fetch analysis data on mount
+onMounted(async () => {
+  try {
+    // Get all saved analyses
+    savedAnalyses.value = await StorageService.getAnalyses();
+    
+    // Find the analysis with matching ID
+    const foundAnalysis = savedAnalyses.value.find(a => a.id === analysisId);
+    
+    if (foundAnalysis) {
+      analysis.value = foundAnalysis;
+      
+      // If there's a saved cover letter, load it
+      if (foundAnalysis.coverLetter) {
+        coverLetter.content = foundAnalysis.coverLetter.content;
+        coverLetter.timestamp = foundAnalysis.coverLetter.timestamp;
+        coverLetter.sampleContent = foundAnalysis.coverLetter.sampleContent || '';
+        coverLetter.history = foundAnalysis.coverLetter.history || [];
+        coverLetter.editedSections = foundAnalysis.coverLetter.editedSections || [];
+        originalContent.value = coverLetter.content;
+      }
+    } else {
+      error.value = 'Analysis not found';
+    }
+  } catch (err) {
+    console.error('Error loading analysis:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to load analysis';
+  }
+});
+
 const generateCoverLetter = async () => {
-  if (!canGenerate.value || isGenerating.value) return;
+  if (!analysis.value) return;
   
   isGenerating.value = true;
+  error.value = '';
+  
   try {
-    const analysis = savedAnalyses.value.find(a => a.id === currentAnalysisId.value);
-    if (!analysis) throw new Error('Analysis not found');
-
-    const result = await AnalysisService.generateCoverLetter(
-      analysis.jobPosting,
-      analysis.resume,
-      'gemini' // or use a service selector like in analyze.vue
+    // Call the service to generate the cover letter
+    const generated = await CoverLetterService.generateCoverLetter(
+      analysis.value,
+      sampleLetter.value
     );
-
-    // Add new version to history
-    coverLetterVersions.value.push({
-      content: result.content,
-      timestamp: new Date().toISOString()
-    });
-    currentVersionIndex.value = coverLetterVersions.value.length - 1;
-    coverLetter.value = result.content;
     
-    // Save the generated cover letter to the analysis
-    if (currentAnalysisId.value) {
-      await StorageService.saveCoverLetter(currentAnalysisId.value, {
-        content: result.content,
-        timestamp: new Date().toISOString(),
-        versions: coverLetterVersions.value
-      });
-    }
-  } catch (error) {
-    console.error('Error generating cover letter:', error);
-    // You might want to show an error message to the user here
+    coverLetter.content = generated.content;
+    coverLetter.timestamp = generated.timestamp;
+    coverLetter.sampleContent = sampleLetter.value;
+    
+    // Reset tracking
+    originalContent.value = coverLetter.content;
+    coverLetter.editedSections = [];
+    
+    // Save to the analysis automatically
+    await saveCoverLetter();
+    
+  } catch (err) {
+    console.error('Error generating cover letter:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to generate cover letter';
   } finally {
     isGenerating.value = false;
   }
 };
 
-const regenerateCoverLetter = async () => {
-  if (!canRegenerate.value || isGenerating.value) return;
-  await generateCoverLetter();
-};
-
-const saveCurrentVersion = async () => {
-  if (!currentAnalysisId.value || !coverLetter.value) return;
-
-  // Add current content as new version if it's different from the last version
-  const lastVersion = coverLetterVersions.value[coverLetterVersions.value.length - 1];
-  if (!lastVersion || lastVersion.content !== coverLetter.value) {
-    coverLetterVersions.value.push({
-      content: coverLetter.value,
-      timestamp: new Date().toISOString()
-    });
-    currentVersionIndex.value = coverLetterVersions.value.length - 1;
-  }
-
-  // Save to analysis
-  await StorageService.saveCoverLetter(currentAnalysisId.value, {
-    content: coverLetter.value,
-    timestamp: new Date().toISOString(),
-    versions: coverLetterVersions.value
+const handleRegenerate = async () => {
+  if (!analysis.value) return;
+  
+  // Save current version to history
+  coverLetter.history.push({
+    content: coverLetter.content,
+    timestamp: coverLetter.timestamp,
+    instructions: regenerateInstructions.value,
+    sampleContent: sampleLetter.value
   });
-};
 
-const loadVersion = (index: number) => {
-  if (index >= 0 && index < coverLetterVersions.value.length) {
-    currentVersionIndex.value = index;
-    coverLetter.value = coverLetterVersions.value[index].content;
+  // If keeping edits, use current content as reference
+  const referenceContent = regenerateOption.value === 'keep' ? coverLetter.content : undefined;
+  
+  isGenerating.value = true;
+  showRegenerateDialog.value = false;
+  
+  try {
+    // Call the service to generate the cover letter
+    const generated = await CoverLetterService.generateCoverLetter(
+      analysis.value,
+      sampleLetter.value,
+      regenerateInstructions.value,
+      referenceContent
+    );
+    
+    coverLetter.content = generated.content;
+    coverLetter.timestamp = generated.timestamp;
+    coverLetter.instructions = regenerateInstructions.value;
+    
+    // Reset tracking
+    originalContent.value = coverLetter.content;
+    coverLetter.editedSections = [];
+    
+    // Save to the analysis automatically
+    await saveCoverLetter();
+    
+  } catch (err) {
+    console.error('Error generating cover letter:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to generate cover letter';
+  } finally {
+    isGenerating.value = false;
+    regenerateInstructions.value = '';
+    regenerateOption.value = 'keep';
   }
 };
 
-const saveSample = () => {
-  if (!isCoverLetterValid.value) return;
-  showSampleDialog.value = true;
+const saveCoverLetter = async () => {
+  if (!analysis.value) return;
+  
+  try {
+    await StorageService.saveCoverLetter(analysisId, {
+      content: coverLetter.content,
+      timestamp: new Date().toISOString(),
+      sampleContent: sampleLetter.value,
+      history: coverLetter.history,
+      editedSections: coverLetter.editedSections
+    });
+    
+  } catch (err) {
+    console.error('Error saving cover letter:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to save cover letter';
+  }
 };
 
-const handleSampleSave = async (data: { name: string; notes: string }) => {
+const copyToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(coverLetter.content);
+    // Show success message or toast
+  } catch (err) {
+    console.error('Error copying to clipboard:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to copy to clipboard';
+  }
+};
+
+const handleSampleSelect = (sample: { content: string }) => {
+  sampleLetter.value = sample.content;
+};
+
+const handleSampleSave = async (name: string) => {
   try {
     await StorageService.saveCoverLetterSample({
-      name: data.name,
-      content: coverLetter.value,
-      notes: data.notes
+      content: coverLetter.content,
+      name,
+      notes: `Generated from analysis: ${analysis.value?.jobTitle || 'Untitled Position'}`
     });
     showSampleDialog.value = false;
-  } catch (error) {
-    console.error('Error saving cover letter sample:', error);
-    // You might want to show an error message to the user here
+  } catch (err) {
+    console.error('Error saving cover letter sample:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to save cover letter sample';
   }
 };
 
-const copyToClipboard = () => {
-  if (!isCoverLetterValid.value) return;
-  navigator.clipboard.writeText(coverLetter.value);
-};
-
-const clearFormFields = () => {
-  coverLetter.value = '';
-  selectedSampleId.value = '';
-  currentAnalysisId.value = undefined;
-  coverLetterVersions.value = [];
-  currentVersionIndex.value = -1;
-
-  // Navigate back to the base cover letter page
-  router.push('/cover-letter');
-};
-
-const loadSavedAnalysis = (analysis: SavedAnalysis) => {
-  // Clear any existing state
-  coverLetter.value = '';
-  selectedSampleId.value = '';
-  coverLetterVersions.value = [];
-  currentVersionIndex.value = -1;
+const loadSavedAnalysis = (selectedAnalysis: SavedAnalysis) => {
+  // Update the URL to reflect the new analysis
+  router.replace({
+    path: `/cover-letter/${selectedAnalysis.id}`,
+    query: { analysisId: selectedAnalysis.id }
+  });
   
-  // Set the current analysis
-  currentAnalysisId.value = analysis.id;
+  // Load the analysis data
+  analysis.value = selectedAnalysis;
   
   // Load the cover letter if it exists
-  if (analysis.coverLetter) {
-    coverLetter.value = analysis.coverLetter.content;
-    coverLetterVersions.value = analysis.coverLetter.versions || [];
-    currentVersionIndex.value = coverLetterVersions.value.length - 1;
+  if (selectedAnalysis.coverLetter) {
+    coverLetter.content = selectedAnalysis.coverLetter.content;
+    coverLetter.timestamp = selectedAnalysis.coverLetter.timestamp;
+    coverLetter.sampleContent = selectedAnalysis.coverLetter.sampleContent || '';
+    coverLetter.history = selectedAnalysis.coverLetter.history || [];
+    coverLetter.editedSections = selectedAnalysis.coverLetter.editedSections || [];
+    originalContent.value = coverLetter.content;
+  } else {
+    // Reset cover letter if none exists
+    coverLetter.content = '';
+    coverLetter.timestamp = '';
+    coverLetter.sampleContent = '';
+    coverLetter.history = [];
+    coverLetter.editedSections = [];
+    originalContent.value = '';
   }
-
-  // Update URL to use path parameter
-  router.replace(`/cover-letter/${analysis.id}`);
 };
 
 const deleteSavedAnalysis = async (id: string) => {
-  await StorageService.deleteAnalysis(id);
-  savedAnalyses.value = await StorageService.getAnalyses();
-  if (currentAnalysisId.value === id) {
-    clearFormFields();
+  try {
+    await StorageService.deleteAnalysis(id);
+    savedAnalyses.value = await StorageService.getAnalyses();
+    
+    // If we deleted the current analysis, redirect to the analyze page
+    if (id === analysisId) {
+      router.push('/analyze');
+    }
+  } catch (err) {
+    console.error('Error deleting analysis:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to delete analysis';
   }
 };
 
 const clearSavedAnalyses = async () => {
-  await StorageService.clearAnalyses();
-  savedAnalyses.value = [];
-  clearFormFields();
+  try {
+    await StorageService.clearAnalyses();
+    savedAnalyses.value = [];
+    router.push('/analyze');
+  } catch (err) {
+    console.error('Error clearing analyses:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to clear analyses';
+  }
 };
 </script>

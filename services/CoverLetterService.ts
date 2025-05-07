@@ -1,6 +1,21 @@
 import type { SavedAnalysis, CoverLetter } from '../types';
 
 export class CoverLetterService {
+  private static getBaseUrl() {
+    // In development, use the current origin
+    if (process.dev) {
+      return window.location.origin;
+    }
+    // In production, use the configured base URL or fallback to current origin
+    return process.env.NUXT_PUBLIC_API_BASE || window.location.origin;
+  }
+
+  private static async fetchWithBaseUrl(path: string, options?: RequestInit) {
+    const baseUrl = this.getBaseUrl();
+    const url = `${baseUrl}${path}`;
+    return fetch(url, options);
+  }
+
   /**
    * Generate a cover letter based on analysis results
    */
@@ -12,7 +27,7 @@ export class CoverLetterService {
   ): Promise<CoverLetter> {
     try {
       // Call our server API endpoint
-      const response = await fetch('/api/cover-letter/generate', {
+      const response = await this.fetchWithBaseUrl('/api/cover-letter/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
