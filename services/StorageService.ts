@@ -1,6 +1,21 @@
 import type { AnalysisResult, SavedAnalysis, JobPosting, Resume, CoverLetter } from '../types';
 
 export class StorageService {
+  private static getBaseUrl() {
+    // In development, use the current origin
+    if (process.dev) {
+      return window.location.origin;
+    }
+    // In production, use the configured base URL or fallback to current origin
+    return process.env.NUXT_PUBLIC_API_BASE || window.location.origin;
+  }
+
+  private static async fetchWithBaseUrl(path: string, options?: RequestInit) {
+    const baseUrl = this.getBaseUrl();
+    const url = `${baseUrl}${path}`;
+    return fetch(url, options);
+  }
+
   /**
    * Save an analysis result to file storage
    */
@@ -32,7 +47,7 @@ export class StorageService {
       const trimmedAnalyses = savedAnalyses.slice(0, 10);
       
       // Save to server
-      await fetch('/api/storage', {
+      await this.fetchWithBaseUrl('/api/storage', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +82,7 @@ export class StorageService {
       savedAnalyses[analysisIndex].coverLetter = coverLetter;
       
       // Save to server
-      await fetch('/api/storage', {
+      await this.fetchWithBaseUrl('/api/storage', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,7 +102,7 @@ export class StorageService {
   static async getAnalyses(): Promise<SavedAnalysis[]> {
     try {
       // Fetch from server
-      const response = await fetch('/api/storage');
+      const response = await this.fetchWithBaseUrl('/api/storage');
       if (!response.ok) {
         throw new Error('Failed to fetch analyses from server');
       }
@@ -105,7 +120,7 @@ export class StorageService {
   static async deleteAnalysis(id: string): Promise<void> {
     try {
       // Delete from server
-      await fetch(`/api/storage/${id}`, {
+      await this.fetchWithBaseUrl(`/api/storage/${id}`, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -121,7 +136,7 @@ export class StorageService {
   static async clearAnalyses(): Promise<void> {
     try {
       // Clear from server
-      await fetch('/api/storage', {
+      await this.fetchWithBaseUrl('/api/storage', {
         method: 'DELETE'
       });
     } catch (error) {
@@ -154,7 +169,7 @@ export class StorageService {
       const trimmedResumes = savedResumes.slice(0, 10);
       
       // Save to server
-      await fetch('/api/resumes', {
+      await this.fetchWithBaseUrl('/api/resumes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -176,7 +191,7 @@ export class StorageService {
   static async getResumes(): Promise<Array<{ id: string; title: string; content: string; timestamp: string }>> {
     try {
       // Fetch from server
-      const response = await fetch('/api/resumes');
+      const response = await this.fetchWithBaseUrl('/api/resumes');
       if (!response.ok) {
         throw new Error('Failed to fetch resumes from server');
       }
@@ -194,7 +209,7 @@ export class StorageService {
   static async deleteResume(id: string): Promise<void> {
     try {
       // Delete from server
-      await fetch(`/api/resumes/${id}`, {
+      await this.fetchWithBaseUrl(`/api/resumes/${id}`, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -210,7 +225,7 @@ export class StorageService {
   static async clearResumes(): Promise<void> {
     try {
       // Clear from server
-      await fetch('/api/resumes', {
+      await this.fetchWithBaseUrl('/api/resumes', {
         method: 'DELETE'
       });
     } catch (error) {
@@ -241,7 +256,7 @@ export class StorageService {
       savedSamples.unshift(sampleToSave);
       
       // Save to server
-      await fetch('/api/cover-letter-samples', {
+      await this.fetchWithBaseUrl('/api/cover-letter-samples', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -263,7 +278,7 @@ export class StorageService {
   static async getCoverLetterSamples(): Promise<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>> {
     try {
       // Fetch from server
-      const response = await fetch('/api/cover-letter-samples');
+      const response = await this.fetchWithBaseUrl('/api/cover-letter-samples');
       if (!response.ok) {
         throw new Error('Failed to fetch cover letter samples from server');
       }
@@ -281,7 +296,7 @@ export class StorageService {
   static async deleteCoverLetterSample(id: string): Promise<void> {
     try {
       // Delete from server
-      await fetch(`/api/cover-letter-samples/${id}`, {
+      await this.fetchWithBaseUrl(`/api/cover-letter-samples/${id}`, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -297,7 +312,7 @@ export class StorageService {
   static async clearCoverLetterSamples(): Promise<void> {
     try {
       // Clear from server
-      await fetch('/api/cover-letter-samples', {
+      await this.fetchWithBaseUrl('/api/cover-letter-samples', {
         method: 'DELETE'
       });
     } catch (error) {

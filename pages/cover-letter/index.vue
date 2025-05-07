@@ -2,7 +2,7 @@
   <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold">Cover Letter Generator</h1>
-      <NuxtLink to="/analyze" class="text-blue-600 hover:underline flex items-center">
+      <NuxtLink :to="`/analyze${$route.query.analysisId ? `?analysisId=${$route.query.analysisId}` : ''}`" class="text-blue-600 hover:underline flex items-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
         </svg>
@@ -73,9 +73,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import type { SavedAnalysis } from '../../types';
-import { StorageService } from '../../services/StorageService';
+import { ref, onMounted } from '#imports';
+import type { SavedAnalysis } from '~/types';
+import { StorageService } from '~/services/StorageService';
 
 // State
 const loading = ref(true);

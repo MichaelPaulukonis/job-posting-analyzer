@@ -1,3 +1,14 @@
+import CoverLetterSampleSelector from '~/components/input/CoverLetterSampleSelector.vue';
+import CoverLetterSampleDialog from '~/components/input/CoverLetterSampleDialog.vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import type { SavedAnalysis } from '../types';
+import { StorageService } from '../services/StorageService';
+import { AnalysisService } from '../services/AnalysisService';
+import InputContainer from '../components/input/InputContainer.vue';
+import TextAreaInput from '../components/input/TextAreaInput.vue';
+import AnalysisHistory from '../components/analysis/AnalysisHistory.vue';
+
 <template>
   <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
@@ -148,7 +159,7 @@ const coverLetterVersions = ref<Array<{ content: string; timestamp: string }>>([
 const currentVersionIndex = ref<number>(-1);
 
 // Watch for route changes to handle navigation
-watch(() => route.params.id, async (newId) => {
+watch(() => route.params.id || route.query.analysisId, async (newId) => {
   if (!newId) return;
   
   // Clear any existing state
@@ -166,7 +177,7 @@ onMounted(async () => {
   savedAnalyses.value = await StorageService.getAnalyses();
   
   // If we have an ID in the URL, load that analysis
-  const id = route.params.id;
+  const id = route.params.id || route.query.analysisId;
   if (id) {
     const analysis = savedAnalyses.value.find(a => a.id === id);
     if (analysis) {
@@ -293,8 +304,11 @@ const clearFormFields = () => {
   coverLetterVersions.value = [];
   currentVersionIndex.value = -1;
 
-  // Navigate back to the base cover letter page
-  router.push('/cover-letter');
+  // Clear URL parameters
+  router.replace({
+    path: '/cover-letter',
+    query: {}
+  });
 };
 
 const loadSavedAnalysis = (analysis: SavedAnalysis) => {
@@ -314,8 +328,11 @@ const loadSavedAnalysis = (analysis: SavedAnalysis) => {
     currentVersionIndex.value = coverLetterVersions.value.length - 1;
   }
 
-  // Update URL to use path parameter
-  router.replace(`/cover-letter/${analysis.id}`);
+  // Update URL to use path parameter instead of query
+  router.replace({
+    path: `/cover-letter/${analysis.id}`,
+    query: {}
+  });
 };
 
 const deleteSavedAnalysis = async (id: string) => {
@@ -331,4 +348,4 @@ const clearSavedAnalyses = async () => {
   savedAnalyses.value = [];
   clearFormFields();
 };
-</script>
+</script> 

@@ -6,8 +6,8 @@
         <nav>
           <ul class="flex space-x-4">
             <li><NuxtLink to="/" class="hover:underline">Home</NuxtLink></li>
-            <li><NuxtLink to="/analyze" class="hover:underline">Analyze</NuxtLink></li>
-            <li><NuxtLink to="/cover-letter" class="hover:underline">Cover Letters</NuxtLink></li>
+            <li><NuxtLink :to="`/analyze${currentAnalysisId ? `?analysisId=${currentAnalysisId}` : ''}`" class="hover:underline">Analyze</NuxtLink></li>
+            <li><NuxtLink :to="currentAnalysisId ? `/cover-letter/${currentAnalysisId}` : '/cover-letter'" class="hover:underline">Cover Letters</NuxtLink></li>
           </ul>
         </nav>
       </div>
@@ -22,3 +22,39 @@
     </footer>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref, onMounted, watch } from '#imports';
+import { useRoute } from '#imports';
+import { StorageService } from '~/services/StorageService';
+import type { LocationQueryValue } from 'vue-router';
+
+const route = useRoute();
+const currentAnalysisId = ref<string | undefined>(undefined);
+
+// Watch for route changes to update the current analysis ID
+watch(() => route.params.id || route.query.analysisId, async (newId: LocationQueryValue | LocationQueryValue[]) => {
+  // If newId is explicitly undefined or empty, clear the current analysis ID
+  if (!newId) {
+    currentAnalysisId.value = undefined;
+    return;
+  }
+
+  if (typeof newId === 'string') {
+    currentAnalysisId.value = newId;
+  } else {
+    try {
+      // If no ID in route, try to get the most recent analysis
+      const analyses = await StorageService.getAnalyses();
+      if (analyses.length > 0) {
+        currentAnalysisId.value = analyses[0].id;
+      } else {
+        currentAnalysisId.value = undefined;
+      }
+    } catch (error) {
+      console.warn('Error fetching analyses:', error);
+      currentAnalysisId.value = undefined;
+    }
+  }
+}, { immediate: true });
+</script>

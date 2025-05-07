@@ -117,6 +117,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import type { JobPosting, Resume, AnalysisResult, SavedAnalysis } from '../types';
 import { StorageService } from '../services/StorageService';
 import { AnalysisService } from '../services/AnalysisService';
@@ -132,6 +133,8 @@ import ResumeSelector from '../components/input/ResumeSelector.vue';
 import ResumeNameDialog from '../components/input/ResumeNameDialog.vue';
 
 // State
+const router = useRouter();
+const route = useRoute();
 const jobPosting = reactive<JobPosting>({
   title: '',
   content: ''
@@ -163,9 +166,30 @@ const jobPostingContainer = ref(null);
 const resumeContainer = ref(null);
 const settingsContainer = ref(null);
 
+// Watch for route changes to handle navigation
+watch(() => route.query.analysisId, async (newId) => {
+  if (newId) {
+    // First ensure we have the latest analyses
+    savedAnalyses.value = await StorageService.getAnalyses();
+    const analysis = savedAnalyses.value.find(a => a.id === newId);
+    if (analysis) {
+      loadSavedAnalysis(analysis);
+    }
+  }
+}, { immediate: true });
+
 // Load saved analyses on mount
 onMounted(async () => {
   savedAnalyses.value = await StorageService.getAnalyses();
+  
+  // If we have an analysisId in the URL, load that analysis
+  const analysisId = route.query.analysisId;
+  if (analysisId) {
+    const analysis = savedAnalyses.value.find(a => a.id === analysisId);
+    if (analysis) {
+      loadSavedAnalysis(analysis);
+    }
+  }
 });
 
 // Methods
@@ -266,23 +290,16 @@ const validateAndAnalyze = async () => {
       const savedAnalysis = await StorageService.saveAnalysis(results, jobPosting, resume);
       analysisResults.value = results;
       savedAnalyses.value = await StorageService.getAnalyses();
-      currentAnalysisId.value = savedAnalysis.id;  // Store the ID for reference
+      currentAnalysisId.value = savedAnalysis.id;
+
+      // Navigate to cover letter page
+      router.push({
+        path: '/cover-letter',
+        query: { analysisId: savedAnalysis.id }
+      });
 
       // Auto-collapse input sections after results are ready
       collapseInputSections();
-
-      // Scroll to results
-      setTimeout(() => {
-        const resultsElement = document.querySelector('.analysis-results');
-        if (resultsElement) {
-          resultsElement.scrollIntoView({ behavior: 'smooth' });
-        } else {
-          window.scrollTo({
-            top: document.body.scrollHeight,
-            behavior: 'smooth'
-          });
-        }
-      }, 100);
     } catch (err) {
       console.error('Analysis error:', err);
       error.value = err instanceof Error ? err.message : 'An unknown error occurred';
@@ -295,6 +312,8 @@ const validateAndAnalyze = async () => {
 const clearResults = () => {
   analysisResults.value = null;
   currentAnalysisId.value = undefined;
+  // Clear URL query parameter
+  router.replace({ query: {} });
   // Expand input sections when results are cleared
   expandInputSections();
 };
@@ -313,6 +332,13 @@ const clearFormFields = () => {
   errors.resume = '';
   errors.resumeFile = '';
   error.value = '';
+  
+  // Clear analysis results and ID
+  analysisResults.value = null;
+  currentAnalysisId.value = undefined;
+  
+  // Clear URL query parameters
+  router.replace({ query: {} });
   
   // Expand all input sections in case they were collapsed
   expandInputSections();
@@ -349,16 +375,13 @@ const loadSavedAnalysis = (analysis: SavedAnalysis) => {
   // Store the analysis ID
   currentAnalysisId.value = analysis.id;
 
+  // Update URL to reflect current analysis
+  router.replace({
+    query: { analysisId: analysis.id }
+  });
+
   // Auto-collapse input sections
   collapseInputSections();
-
-  // Scroll to results
-  setTimeout(() => {
-    const resultsElement = document.querySelector('.analysis-results');
-    if (resultsElement) {
-      resultsElement.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, 100);
 };
 
 const deleteSavedAnalysis = async (id: string) => {
