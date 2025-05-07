@@ -1,4 +1,4 @@
-JANE SMITH
+export const resume = `JANE SMITH
 Seattle, WA | janesmith@email.com | (555) 123-4567 | linkedin.com/in/janesmith
 
 PROFESSIONAL SUMMARY
@@ -54,3 +54,4 @@ CERTIFICATIONS
 PROJECTS
 - HealthDataSync: Open-source tool for secure health data exchange
 - MedReminder: Mobile app for medication adherence (5,000+ downloads)
+`
