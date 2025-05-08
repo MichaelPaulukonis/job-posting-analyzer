@@ -40,6 +40,39 @@ If you cannot find any matches, gaps, or suggestions, please return empty lists 
 `;
 };
 
+// System instructions that remain consistent across all cover letter generations
+const systemInstructionLetter = `
+You are a professional cover letter writer. When generating cover letters:
+
+COVER LETTER WRITING GUIDELINES:
+1. Use simple, direct language - avoid corporate jargon and flowery phrases
+2. Be specific rather than general - include concrete examples and metrics where possible
+3. Match tone to the industry (slightly more formal for finance, more casual for creative fields)
+4. Keep paragraphs focused and concise
+5. Address the most important matching skills with specific examples
+6. Acknowledge skill gaps with transferable skills or learning plans
+7. Show enthusiasm without using clichéd language
+8. Format in standard business letter format with Markdown
+9. Keep it around 300-400 words (3-4 paragraphs)
+
+AVOID THESE OVERUSED TERMS:
+Adventure, Beacon, Bustling, Cutting-edge, Delve, Demistify, Depicted, Discover, Dive, Elegant, Enrich, Entanglement, Ever-evolving, Harnessing, Hurdles, Insurmountable, Journey, Leverage, Multifaceted, Navigate, Navigation, New Era, Passion, Pivot, Poised, Realm, Tailored, Tapestry, Unleash, Unlock, Unprecedented, Unravel, Unveiling the power
+
+SUBSTITUTION STRATEGIES:
+- Replace "passionate about" with specific interest statements
+- Replace vague descriptors with specific technologies or methods
+- Instead of "journey," describe the actual progression
+- Replace "cutting-edge" with the specific innovation
+- Instead of "challenges," name the actual problems solved
+
+STRUCTURE GUIDANCE:
+- Open with a clear connection to the role and company
+- Middle paragraphs: highlight matching experience with examples
+- Address skill gaps with transferable skills
+- Closing: express interest and suggest next steps
+- No specific years of experience to avoid age discrimination
+`;
+
 /**
  * Template for generating a cover letter based on analysis results
  */
@@ -48,7 +81,7 @@ export const createCoverLetterPrompt = (
   sampleLetter?: string,
   instructions?: string,
   referenceContent?: string
-): string => {
+): { systemInstruction: string; userPrompt: string; } => {
   const { jobPosting, resume, matches, maybes, gaps } = analysis;
   
   let prompt = `
@@ -73,34 +106,6 @@ ${maybes?.map(maybe => `- ${maybe}`).join('\n')}
 
 3. Missing Skills and Qualifications (skill gaps):
 ${gaps.map(gap => `- ${gap}`).join('\n')}
-
-COVER LETTER WRITING GUIDELINES:
-1. Use simple, direct language - avoid corporate jargon and flowery phrases
-2. Be specific rather than general - include concrete examples and metrics where possible
-3. Match tone to the industry (slightly more formal for finance, more casual for creative fields)
-4. Keep paragraphs focused and concise
-5. Address the most important matching skills and qualifications with specific examples
-6. Acknowledge skill gaps and explain how I plan to address them or mention relevant transferable skills
-7. Show enthusiasm for the role and company without using clichéd language
-8. Format in standard business letter format without address blocks, using Markdown
-9. Keep it around 300-400 words (3-4 paragraphs)
-
-AVOID THESE OVERUSED TERMS:
-Adventure, Beacon, Bustling, Cutting-edge, Delve, Demistify, Depicted, Discover, Dive, Elegant, Enrich, Entanglement, Ever-evolving, Harnessing, Hurdles, Insurmountable, Journey, Leverage, Multifaceted, Navigate, Navigation, New Era, Passion, Pivot, Poised, Realm, Tailored, Tapestry, Unleash, Unlock, Unprecedented, Unravel, Unveiling the power
-
-SUBSTITUTION STRATEGIES:
-- Replace "passionate about" with specific interest statements: "I've studied/worked with/built X for Y years"
-- Replace vague descriptors with specific technologies, methods or approaches
-- Instead of "journey" or "adventure," describe the actual progression or steps taken
-- Replace "cutting-edge" with the name of the specific innovation or technology
-- Instead of "challenges" or "hurdles," name the actual problems solved
-
-STRUCTURE GUIDANCE:
-- Open with a clear statement connecting to the specific role and company
-- Middle paragraphs should each highlight relevant experience with examples that match job requirements
-- Address skill gaps proactively with transferable skills or learning plans
-- Closing should express interest and suggest next steps
-- Do not mention specific years of experience to avoid potential age discrimination
 `;
 
   // If there are specific instructions for regeneration, add them
@@ -133,5 +138,5 @@ ${sampleLetter}
 `;
   }
   
-  return prompt;
+  return { systemInstruction: systemInstructionLetter, userPrompt: prompt };
 };
