@@ -1,14 +1,16 @@
 <template>
   <div>
-    <header class="bg-blue-600 text-white p-4 shadow-md">
-      <div class="container mx-auto flex justify-between items-center">
+    <header class="bg-blue-600 text-white shadow">
+      <div class="container mx-auto px-4 py-4 flex justify-between items-center">
         <h1 class="text-xl font-bold">Job Posting Analyzer</h1>
-        <nav>
-          <ul class="flex space-x-4">
-            <li><NuxtLink to="/" class="hover:underline">Home</NuxtLink></li>
-            <li><NuxtLink :to="`/analyze${currentAnalysisId ? `?analysisId=${currentAnalysisId}` : ''}`" class="hover:underline">Analyze</NuxtLink></li>
-            <li><NuxtLink :to="currentAnalysisId ? `/cover-letter/${currentAnalysisId}` : '/cover-letter'" class="hover:underline">Cover Letters</NuxtLink></li>
-          </ul>
+        <nav class="flex space-x-4 text-white">
+          <NuxtLink to="/" class="hover:underline">Home</NuxtLink>
+          <NuxtLink :to="`/analyze${currentAnalysisId ? `?analysisId=${currentAnalysisId}` : ''}`"
+            class="hover:underline">Analyze</NuxtLink>
+          <NuxtLink :to="currentAnalysisId ? `/cover-letter/${currentAnalysisId}` : '/cover-letter'"
+            class="hover:underline">Cover Letters</NuxtLink>
+          <NuxtLink to="/login" class="hover:underline">Login</NuxtLink>
+          <NuxtLink to="/admin" class="hover:underline">Admin</NuxtLink>
         </nav>
       </div>
     </header>
@@ -28,6 +30,7 @@ import { ref, onMounted, watch } from '#imports';
 import { useRoute } from '#imports';
 import { StorageService } from '~/services/StorageService';
 import type { LocationQueryValue } from 'vue-router';
+import Navigation from '~/components/layout/Navigation.vue';
 
 const route = useRoute();
 const currentAnalysisId = ref<string | undefined>(undefined);
