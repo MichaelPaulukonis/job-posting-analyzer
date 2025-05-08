@@ -7,7 +7,17 @@ export const createAnalysisPrompt = (jobPosting: JobPosting, resume: Resume): st
   return `
 Please analyze the following job posting and resume to identify matches, gaps, and provide suggestions. Compare the hard and soft skills listed in both documents. Identify both direct keyword matches and instances where my resume describes a skill or experience required in the job posting but uses different terminology.
 
-Please provide your response in the following plaintext format:
+JOB POSTING ${jobPosting.title ? `(${jobPosting.title})` : ''}:
+###
+${jobPosting.content}
+###
+
+RESUME:
+###
+${resume.content}
+###
+
+Please provide your response in the following 4-part plaintext format:
 
 1. Skills and qualifications that match between the job posting and resume.
 - List each matching skill or qualification as a bullet point
@@ -25,18 +35,9 @@ Please provide your response in the following plaintext format:
 - Provide actionable suggestions to enhance the resume
 - Include recommendations for highlighting existing skills or adding missing ones
 
-Please ensure your response strictly follows the format above. Do not include any additional text or explanations outside of the specified format. 
+Please ensure your response strictly follows the 4-part format above. Do not include any additional text or explanations outside of the specified format. 
 If you cannot find any matches, gaps, or suggestions, please return empty lists for each section.
-
-JOB POSTING ${jobPosting.title ? `(${jobPosting.title})` : ''}:
----
-${jobPosting.content}
----
-
-RESUME:
----
-${resume.content}
----`;
+`;
 };
 
 /**
@@ -51,17 +52,17 @@ export const createCoverLetterPrompt = (
   const { jobPosting, resume, matches, maybes, gaps } = analysis;
   
   let prompt = `
-Generate a professional cover letter for the following job application. The cover letter should be personalized based on the analysis results of my resume against the job posting.
+Generate a AST-friendly professional cover letter for the following job application. The cover letter should be personalized based on the analysis results of the resume against the job posting.
 
 JOB POSTING ${jobPosting.title ? `(${jobPosting.title})` : ''}:
----
+###
 ${jobPosting.content}
----
+###
 
-MY RESUME:
----
+RESUME:
+###
 ${resume.content}
----
+###
 
 ANALYSIS RESULTS:
 1. Matching Skills and Qualifications:
@@ -73,29 +74,42 @@ ${maybes?.map(maybe => `- ${maybe}`).join('\n')}
 3. Missing Skills and Qualifications (skill gaps):
 ${gaps.map(gap => `- ${gap}`).join('\n')}
 
-REQUIREMENTS FOR THE COVER LETTER:
-1. Address the most important matching skills and qualifications
-2. Acknowledge the skill gaps and explain how I plan to address them or relevant transferable skills I have
-3. Address ability to adapt to new domains despite limited direct experience
-4. Use simple, direct language - avoid corporate jargon and flowery phrases
-5. Do not mention specific years of experience to avoid potential age discrimination
-6. Show enthusiasm for the role and company
-7. Keep the letter professional, concise, and focused on how I can provide value to the company
-8. Include a strong opening and closing paragraph
-9. Make it around 300-400 words (3-4 paragraphs)
+COVER LETTER WRITING GUIDELINES:
+1. Use simple, direct language - avoid corporate jargon and flowery phrases
+2. Be specific rather than general - include concrete examples and metrics where possible
+3. Match tone to the industry (slightly more formal for finance, more casual for creative fields)
+4. Keep paragraphs focused and concise
+5. Address the most important matching skills and qualifications with specific examples
+6. Acknowledge skill gaps and explain how I plan to address them or mention relevant transferable skills
+7. Show enthusiasm for the role and company without using clichéd language
+8. Format in standard business letter format without address blocks, using Markdown
+9. Keep it around 300-400 words (3-4 paragraphs)
 
-The tone should be professional but non-dramatic and straightforward, avoiding buzzwords like 'meaningful impact' or 'cross-functional improvement efforts' (unless used in the job posting).
-Format the letter in Markdown with appropriate structure and spacing.
-The letter should be in standard business letter format without the address blocks. 
+AVOID THESE OVERUSED TERMS:
+Adventure, Beacon, Bustling, Cutting-edge, Delve, Demistify, Depicted, Discover, Dive, Elegant, Enrich, Entanglement, Ever-evolving, Harnessing, Hurdles, Insurmountable, Journey, Leverage, Multifaceted, Navigate, Navigation, New Era, Passion, Pivot, Poised, Realm, Tailored, Tapestry, Unleash, Unlock, Unprecedented, Unravel, Unveiling the power
+
+SUBSTITUTION STRATEGIES:
+- Replace "passionate about" with specific interest statements: "I've studied/worked with/built X for Y years"
+- Replace vague descriptors with specific technologies, methods or approaches
+- Instead of "journey" or "adventure," describe the actual progression or steps taken
+- Replace "cutting-edge" with the name of the specific innovation or technology
+- Instead of "challenges" or "hurdles," name the actual problems solved
+
+STRUCTURE GUIDANCE:
+- Open with a clear statement connecting to the specific role and company
+- Middle paragraphs should each highlight relevant experience with examples that match job requirements
+- Address skill gaps proactively with transferable skills or learning plans
+- Closing should express interest and suggest next steps
+- Do not mention specific years of experience to avoid potential age discrimination
 `;
 
   // If there are specific instructions for regeneration, add them
   if (instructions) {
     prompt += `
 SPECIFIC INSTRUCTIONS FOR THIS VERSION:
----
+###
 ${instructions}
----
+###
 `;
   }
 
@@ -103,9 +117,9 @@ ${instructions}
   if (referenceContent) {
     prompt += `
 REFERENCE VERSION (please maintain any good edits while incorporating the changes requested):
----
+###
 ${referenceContent}
----
+###
 `;
   }
 
@@ -113,9 +127,9 @@ ${referenceContent}
   if (sampleLetter) {
     prompt += `
 MY SAMPLE COVER LETTER (please use a similar tone and style and use any relevant content from this letter):
----
+###
 ${sampleLetter}
----
+###
 `;
   }
   
