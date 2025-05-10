@@ -5,7 +5,7 @@
         <h1 class="text-xl font-bold">Job Posting Analyzer</h1>
         <nav class="flex space-x-4 text-white">
           <NuxtLink to="/" class="hover:underline">Home</NuxtLink>
-          <NuxtLink :to="`/analyze${currentAnalysisId ? `?analysisId=${currentAnalysisId}` : ''}`"
+          <NuxtLink :to="currentAnalysisId ? `/analyze/${currentAnalysisId}` : '/analyze'"
             class="hover:underline">Analyze</NuxtLink>
           <NuxtLink :to="currentAnalysisId ? `/cover-letter/${currentAnalysisId}` : '/cover-letter'"
             class="hover:underline">Cover Letters</NuxtLink>

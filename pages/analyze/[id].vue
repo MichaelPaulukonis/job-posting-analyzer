@@ -122,6 +122,7 @@ import type { JobPosting, Resume, AnalysisResult, SavedAnalysis } from '../types
 import { StorageService } from '../services/StorageService';
 import { AnalysisService } from '../services/AnalysisService';
 
+// Import components
 import InputContainer from '../components/input/InputContainer.vue';
 import TextAreaInput from '../components/input/TextAreaInput.vue';
 import FileUpload from '../components/input/FileUpload.vue';
@@ -131,6 +132,7 @@ import AnalysisHistory from '../components/analysis/AnalysisHistory.vue';
 import ResumeSelector from '../components/input/ResumeSelector.vue';
 import ResumeNameDialog from '../components/input/ResumeNameDialog.vue';
 
+// State
 const router = useRouter();
 const route = useRoute();
 const jobPosting = reactive<JobPosting>({
@@ -154,31 +156,33 @@ const error = ref('');
 const analysisResults = ref<AnalysisResult | null>(null);
 const savedAnalyses = ref<SavedAnalysis[]>([]);
 const selectedService = ref<'mock' | 'gemini' | 'openai'>('gemini');
+const analysisId = route.params.id;
 const currentAnalysisId = ref<string | undefined>(undefined);
 const selectedResumeId = ref('');
 const showResumeNameDialog = ref(false);
 
+// Add refs for the input containers
 const jobPostingContainer = ref(null);
 const resumeContainer = ref(null);
 const settingsContainer = ref(null);
 
-const getAnalysisId = () => {
-  if (route.params.id) {
-    return route.params.id;
+// Watch for route changes to handle navigation
+watch(() => route.params.id, async (newId) => {
+  if (newId) {
+    // First ensure we have the latest analyses
+    savedAnalyses.value = await StorageService.getAnalyses();
+    const analysis = savedAnalyses.value.find(a => a.id === newId);
+    if (analysis) {
+      loadSavedAnalysis(analysis);
+    }
   }
-  
-  if (route.query.analysisId) {
-    return route.query.analysisId;
-  }
-  
-  return null;
-};
+}, { immediate: true });
 
+// Load saved analyses on mount
 onMounted(async () => {
   savedAnalyses.value = await StorageService.getAnalyses();
   
-  const analysisId = getAnalysisId();
-  
+  // If we have an analysisId in the URL, load that analysis
   if (analysisId) {
     const analysis = savedAnalyses.value.find(a => a.id === analysisId);
     if (analysis) {
@@ -187,17 +191,7 @@ onMounted(async () => {
   }
 });
 
-watch(() => [route.params.id, route.query.analysisId], async () => {
-  const analysisId = getAnalysisId();
-  if (analysisId) {
-    savedAnalyses.value = await StorageService.getAnalyses();
-    const analysis = savedAnalyses.value.find(a => a.id === analysisId);
-    if (analysis) {
-      loadSavedAnalysis(analysis);
-    }
-  }
-});
-
+// Methods
 const handleJobFileUpload = ({ content }: { content: string }) => {
   jobPosting.content = content;
   errors.jobPosting = '';
@@ -319,8 +313,7 @@ const clearResults = () => {
   currentAnalysisId.value = undefined;
   // Clear URL query parameter
   // TODO: mmmmmmmm
-  router.replace({ path: '/analyze',
-    query: {} });
+  router.replace({ query: {} });
   // Expand input sections when results are cleared
   expandInputSections();
 };
@@ -345,10 +338,7 @@ const clearFormFields = () => {
   currentAnalysisId.value = undefined;
   
   // Clear URL query parameters
-  router.replace({ 
-    path: '/analyze',
-    query: {} 
-  });
+  router.replace({ query: {} });
   
   // Expand all input sections in case they were collapsed
   expandInputSections();
