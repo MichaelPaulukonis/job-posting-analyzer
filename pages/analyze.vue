@@ -293,10 +293,10 @@ const validateAndAnalyze = async () => {
       currentAnalysisId.value = savedAnalysis.id;
 
       // Navigate to cover letter page
-      router.push({
-        path: '/cover-letter',
-        query: { analysisId: savedAnalysis.id }
-      });
+      // router.push({
+      //   path: '/cover-letter',
+      //   query: { analysisId: savedAnalysis.id }
+      // });
 
       // Auto-collapse input sections after results are ready
       collapseInputSections();

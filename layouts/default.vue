@@ -30,7 +30,6 @@ import { ref, onMounted, watch } from '#imports';
 import { useRoute } from '#imports';
 import { StorageService } from '~/services/StorageService';
 import type { LocationQueryValue } from 'vue-router';
-import Navigation from '~/components/layout/Navigation.vue';
 
 const route = useRoute();
 const currentAnalysisId = ref<string | undefined>(undefined);

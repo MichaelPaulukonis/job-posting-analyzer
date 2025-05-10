@@ -1,25 +1,27 @@
 <template>
   <div class="mb-4">
-    <label :for="id" class="block text-sm font-medium mb-1" :class="labelClasses">
-      {{ label }} 
-      <span v-if="required" class="text-red-500 ml-1">*</span>
-    </label>
+    <label :for="id" class="block text-sm font-medium text-gray-700 mb-1">{{ label }}</label>
     <textarea
       :id="id"
-      :value="modelValue"
+      :name="id"
+      v-model="inputValue"
+      :rows="rows"
       :placeholder="placeholder"
-      :aria-required="required"
-      :class="textareaClasses"
-      class="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 min-h-[120px]"
-      @input="$emit('update:modelValue', $event.target.value)"
-      @blur="$emit('blur')"
+      :disabled="disabled"
+      :class="[
+        'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500',
+        disabled ? 'bg-gray-100 text-gray-500' : 'bg-white text-gray-900',
+        errorMessage ? 'border-red-500' : 'border-gray-300'
+      ]"
+      @input="onInput"
+      @blur="$emit('blur', $event)"
     ></textarea>
-    <p v-if="error" class="mt-1 text-sm text-red-600">{{ error }}</p>
-    <p v-else-if="hint" class="mt-1 text-sm text-gray-500">{{ hint }}</p>
+    <p v-if="hint && !errorMessage" class="mt-1 text-sm text-gray-500">{{ hint }}</p>
+    <p v-if="errorMessage" class="mt-1 text-sm text-red-600">{{ errorMessage }}</p>
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -33,13 +35,9 @@ const props = defineProps({
   },
   modelValue: {
     type: String,
-    required: true
-  },
-  placeholder: {
-    type: String,
     default: ''
   },
-  error: {
+  placeholder: {
     type: String,
     default: ''
   },
@@ -47,24 +45,28 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  required: {
+  rows: {
+    type: Number,
+    default: 3
+  },
+  errorMessage: {
+    type: String,
+    default: ''
+  },
+  disabled: {
     type: Boolean,
     default: false
   }
 });
 
-defineEmits(['update:modelValue', 'blur']);
+const emit = defineEmits(['update:modelValue', 'input', 'blur']);
 
-const labelClasses = computed(() => ({
-  'text-gray-700': !props.error,
-  'text-red-600': props.error
-}));
+const inputValue = computed({
+  get: () => props.modelValue,
+  set: (value) => emit('update:modelValue', value)
+});
 
-const textareaClasses = computed(() => ({
-  'border-gray-300': !props.error && (!props.required || props.modelValue.trim()),
-  'border-red-300': props.error, 
-  'bg-red-50': props.error,
-  'border-yellow-300': props.required && !props.modelValue.trim() && !props.error,
-  'bg-yellow-50': props.required && !props.modelValue.trim() && !props.error
-}));
+const onInput = (event) => {
+  emit('input', event);
+};
 </script>

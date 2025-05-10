@@ -1,7 +1,7 @@
 <template>
   <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
-      <NuxtLink :to="`/analyze${route.query.analysisId ? `?analysisId=${route.query.analysisId}` : ''}`" class="text-blue-600 hover:underline flex items-center">
+      <NuxtLink :to="`/analyze${route.params.id ? `?analysisId=${route.params.id}` : ''}`" class="text-blue-600 hover:underline flex items-center">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
         </svg>
@@ -92,7 +92,7 @@
             id="sample-letter"
             label="Paste a sample cover letter (optional)"
             v-model="sampleLetter"
-            :rows="8"
+            :rows="4"
             hint="This will be used as a style reference for generating your cover letter"
           />
           <div class="mt-4">
@@ -130,6 +130,7 @@
   </div>
 
   <!-- Regenerate Dialog -->
+  <!-- TODO: extract to component -->
   <div v-if="showRegenerateDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
     <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
       <h3 class="text-lg font-semibold mb-4">Regenerate Cover Letter</h3>
