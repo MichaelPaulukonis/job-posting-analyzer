@@ -16,5 +16,12 @@ export default defineNuxtConfig({
     }
   },
 
+  // Configure Nitro to ignore specific directories
+  nitro: {
+    ignore: [
+      'notes/**', // Ignore the entire notes directory and its contents
+    ]
+  },
+
   compatibilityDate: '2025-05-01'
 })
