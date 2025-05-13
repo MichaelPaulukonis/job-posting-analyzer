@@ -1,23 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-// Get the directory name in ESM context
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// Path to storage file
-const storagePath = join(process.cwd(), '.data');
-const storageFile = join(storagePath, 'analysis-history.json');
-
-// Ensure storage directory exists
-if (!existsSync(storagePath)) {
-  mkdirSync(storagePath, { recursive: true });
-}
-
-// Initialize empty storage if file doesn't exist
-if (!existsSync(storageFile)) {
-  writeFileSync(storageFile, JSON.stringify([], null, 2), 'utf8');
-}
+import analysisRepository from '../../repositories/AnalysisRepository';
 
 export default defineEventHandler(async (event) => {
   const method = event.method;
@@ -25,10 +6,9 @@ export default defineEventHandler(async (event) => {
   // GET request to retrieve all analyses
   if (method === 'GET') {
     try {
-      const data = readFileSync(storageFile, 'utf8');
-      return JSON.parse(data);
+      return analysisRepository.getAll();
     } catch (error) {
-      console.error('Error reading storage file:', error);
+      console.error('Error reading storage:', error);
       throw createError({
         statusCode: 500,
         message: 'Error reading storage data'
@@ -40,10 +20,10 @@ export default defineEventHandler(async (event) => {
   if (method === 'POST') {
     try {
       const body = await readBody(event);
-      writeFileSync(storageFile, JSON.stringify(body, null, 2), 'utf8');
+      analysisRepository.saveAll(body);
       return { success: true };
     } catch (error) {
-      console.error('Error saving storage file:', error);
+      console.error('Error saving storage:', error);
       throw createError({
         statusCode: 500,
         message: 'Error saving storage data'
@@ -54,10 +34,10 @@ export default defineEventHandler(async (event) => {
   // DELETE request to clear all data
   if (method === 'DELETE') {
     try {
-      writeFileSync(storageFile, JSON.stringify([], null, 2), 'utf8');
+      analysisRepository.clear();
       return { success: true };
     } catch (error) {
-      console.error('Error clearing storage file:', error);
+      console.error('Error clearing storage:', error);
       throw createError({
         statusCode: 500,
         message: 'Error clearing storage data'

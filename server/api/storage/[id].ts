@@ -1,31 +1,13 @@
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-// Get the directory name in ESM context
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// Path to storage file
-const storagePath = join(process.cwd(), '.data');
-const storageFile = join(storagePath, 'analysis-history.json');
+import analysisRepository from '../../repositories/AnalysisRepository';
 
 export default defineEventHandler(async (event) => {
-  if (!existsSync(storageFile)) {
-    throw createError({
-      statusCode: 404,
-      message: 'Storage file not found'
-    });
-  }
-
   const id = getRouterParam(event, 'id');
   const method = event.method;
   
   // DELETE request to remove a specific analysis
   if (method === 'DELETE') {
     try {
-      const data = JSON.parse(readFileSync(storageFile, 'utf8'));
-      const updatedData = data.filter((item: any) => item.id !== id);
-      writeFileSync(storageFile, JSON.stringify(updatedData, null, 2), 'utf8');
+      analysisRepository.delete(id);
       return { success: true };
     } catch (error) {
       console.error(`Error deleting analysis with ID ${id}:`, error);
