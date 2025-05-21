@@ -7,7 +7,7 @@ export class AnalysisService {
   static async analyzeJobPosting(
     jobPosting: JobPosting, 
     resume: Resume, 
-    service: 'mock' | 'gemini' | 'openai' = 'mock'
+    service: 'mock' | 'gemini' | 'openai' | 'anthropic' = 'mock'
   ): Promise<AnalysisResult> {
     try {
       // Call our server API endpoint
@@ -38,7 +38,7 @@ export class AnalysisService {
   /**
    * Check if a service is available
    */
-  static async isServiceAvailable(service: 'mock' | 'gemini' | 'openai'): Promise<boolean> {
+  static async isServiceAvailable(service: 'mock' | 'gemini' | 'openai' |'anthropic'): Promise<boolean> {
     // Mock service is always available
     if (service === 'mock') return true;
     
@@ -56,11 +56,12 @@ export class AnalysisService {
   /**
    * Get service name
    */
-  static getServiceName(service: 'mock' | 'gemini' | 'openai'): string {
+  static getServiceName(service: 'mock' | 'gemini' | 'openai' | 'anthropic'): string {
     switch (service) {
       case 'mock': return 'Mock LLM Analyzer';
       case 'gemini': return 'Google Gemini AI';
       case 'openai': return 'OpenAI';
+      case 'anthropic': return 'Anthropic Claude AI';
       default: return 'Unknown Service';
     }
   }

@@ -2,13 +2,6 @@
   <div class="bg-white shadow-md rounded-lg p-6 mb-6">
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-semibold">Analysis History</h2>
-      <button 
-        v-if="items.length > 0"
-        @click="showClearDialog = true" 
-        class="text-sm text-red-600 hover:text-red-800"
-      >
-        Clear All
-      </button>
     </div>
     
     <div v-if="items.length === 0" class="text-center py-6 text-gray-500">

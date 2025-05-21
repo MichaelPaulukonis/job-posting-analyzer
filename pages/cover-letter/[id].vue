@@ -122,7 +122,6 @@
             :items="savedAnalyses" 
             @select="loadSavedAnalysis" 
             @delete="deleteSavedAnalysis"
-            @clear="clearSavedAnalyses" 
           />
         </div>
       </div>
@@ -456,17 +455,6 @@ const deleteSavedAnalysis = async (id: string) => {
   } catch (err) {
     console.error('Error deleting analysis:', err);
     error.value = err instanceof Error ? err.message : 'Failed to delete analysis';
-  }
-};
-
-const clearSavedAnalyses = async () => {
-  try {
-    await StorageService.clearAnalyses();
-    savedAnalyses.value = [];
-    router.push('/analyze');
-  } catch (err) {
-    console.error('Error clearing analyses:', err);
-    error.value = err instanceof Error ? err.message : 'Failed to clear analyses';
   }
 };
 </script>

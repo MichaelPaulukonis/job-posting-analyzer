@@ -6,6 +6,17 @@
 - multiple gemini models
 - also switch on letter page
 
+## ai-sdk
+
+
+### anthropic claude
+
+https://ai-sdk.dev/providers/ai-sdk-providers/anthropic
+https://console.anthropic.com/dashboard
+
+
+
+
 
 ## an error
 
