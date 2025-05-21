@@ -23,7 +23,10 @@ WIP to be based on
 https://gist.github.com/okineadev/8a3f392a93ae50e8d523e4ba7f9f9ac3
 
 https://essenceofcode.com/2025/04/14/customizing-copilot-for-better-commit-messages/
+https://code.visualstudio.com/docs/copilot/copilot-customization
 
+- https://github.com/Robotti-io/copilot-security-instructions
+- https://github.com/LouisShark/chatgpt_system_prompt/tree/main
 
 ### a chat
 
