@@ -8,11 +8,13 @@ export default defineNuxtConfig({
     // Private keys (server-side only)
     geminiApiKey: process.env.GEMINI_API_KEY,
     geminiModel: process.env.GEMINI_MODEL || 'gemini-pro',
-    
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+    anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-2',
     // Public keys that can be accessed client-side
     public: {
       // We don't expose the actual API keys to the client
       geminiApiAvailable: !!process.env.GEMINI_API_KEY,
+      anthropicApiAvailable: !!process.env.ANTHROPIC_API_KEY,
     }
   },
 

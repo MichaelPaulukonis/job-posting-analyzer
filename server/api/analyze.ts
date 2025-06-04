@@ -1,17 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createAnalysisPrompt } from '~/utils/promptUtils';
 import { parseGeminiResponse } from '~/utils/responseParser';
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai'
 
 export default defineEventHandler(async (event) => {
   try {
     // Get runtime config with API keys (server side only)
     const config = useRuntimeConfig();
-    
-    // Check if API key is available
-    if (!config.geminiApiKey) {
-      console.log('API key missing: Gemini API key is not configured');
-      throw new Error('Gemini API key is not configured');
-    }
     
     // Parse request body
     const body = await readBody(event);
@@ -30,8 +26,21 @@ export default defineEventHandler(async (event) => {
     // Generate analysis based on service type
     let result;
     if (service === 'gemini') {
+      // Check if API key is available
+      if (!config.geminiApiKey) {
+        console.log('API key missing: Gemini API key is not configured');
+        throw new Error('Gemini API key is not configured');
+      }
       console.log('Using Gemini service with model:', config.geminiModel);
       result = await analyzeWithGemini(jobPosting, resume, config);
+    } else if (service === 'anthropic') {
+      // Check if API key is available
+      if (!config.anthropicApiKey) {
+        console.log('API key missing: Anthropic API key is not configured');
+        throw new Error('Anthropic API key is not configured');
+      }
+      console.log('Using Anthropic Claude service with model:', config.anthropicModel || 'default model');
+      result = await analyzeWithAnthropic(jobPosting, resume, config);
     } else if (service === 'mock') {
       console.log('Using mock service');
       result = await generateMockAnalysis(jobPosting, resume);
@@ -84,6 +93,65 @@ async function analyzeWithGemini(jobPosting: any, resume: any, config: any) {
   
   // Parse the response using our utility function
   return parseGeminiResponse(text);
+}
+
+/**
+ * Analyze with Anthropic Claude API (server-side only)
+ */
+async function analyzeWithAnthropic(jobPosting: any, resume: any, config: any) {
+  try {
+    // Generate prompt
+    const prompt = createAnalysisPrompt(jobPosting, resume);
+    console.log('Generated prompt for Claude:', prompt);
+    
+    // Call Claude API
+    console.log('Calling Claude API...');
+    const startTime = Date.now();
+    
+    // // Create Anthropic client properly
+    // const anthropicClient = new AnthropicClient({
+    //   apiKey: config.anthropicApiKey
+    // });
+    
+    const response = await generateText({
+      model: anthropic(config.anthropicModel || 'claude-3-sonnet-20240229'),
+      system: "You are a professional resume analysis assistant. Analyze the job posting and resume to identify matches, gaps, and provide suggestions.",
+      messages: [
+        { 
+          role: 'user', 
+          content: prompt 
+        }
+      ]
+    });
+    
+    const endTime = Date.now();
+    console.log(`Claude API response received in ${endTime - startTime}ms`);
+    
+    // Extract text content from response
+    const text = response.text;
+    console.log('Raw Claude response:', text);
+    
+    // Parse response - using the same parser as Gemini for now
+    // You might need to create a specific parser for Claude if the formats differ
+    return parseGeminiResponse(text);
+  } catch (error: any) {
+    // Log detailed error information to backend console
+    console.error('Error in analyzeWithAnthropic function:');
+    console.error(error); // Logs the full error object
+    
+    if (error.stack) {
+      console.error('Stack trace:');
+      console.error(error.stack);
+    }
+    
+    // Add additional context if available in the error object
+    if (error.response) {
+      console.error('API response error:', error.response);
+    }
+    
+    // Re-throw the error to be handled by the parent try-catch
+    throw error;
+  }
 }
 
 /**

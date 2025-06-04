@@ -2,6 +2,7 @@ import type { JobPosting, Resume, SavedAnalysis } from '../types';
 
 /**
  * Template for analyzing job postings against resumes
+ * TODO: optimize for applicant tracking system
  */
 export const createAnalysisPrompt = (jobPosting: JobPosting, resume: Resume): string => {
   return `

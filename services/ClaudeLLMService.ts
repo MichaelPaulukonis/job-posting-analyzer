@@ -4,6 +4,7 @@ import { createAnalysisPrompt } from '../utils/promptUtils';
 import { anthropic } from '@ai-sdk/anthropic';
 import { BaseLLMService } from './BaseLLMService';
 import { generateText } from 'ai';
+import { useRuntimeConfig } from '#app';
 
 export class ClaudeLLMService extends BaseLLMService implements LLMServiceInterface {
   // private claude: anthropic;
@@ -43,9 +44,12 @@ export class ClaudeLLMService extends BaseLLMService implements LLMServiceInterf
   
   async isAvailable(): Promise<boolean> {
     try {
-      // Check if API key is available
-      return !!process.env.CLAUDE_API_KEY;
+      // ONLY check the public flag that indicates if the service is available
+      // NEVER reference the actual API key in client-side code
+      const config = useRuntimeConfig();
+      return !!config.public.anthropicApiAvailable;
     } catch (error) {
+      console.error('Error checking Claude availability:', error);
       return false;
     }
   }

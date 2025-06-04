@@ -1,4 +1,8 @@
 import type { AnalysisResult, JobPosting, Resume } from '../types';
+import { MockLLMService } from './MockLLMService';
+import { GeminiLLMService } from './GeminiLLMService';
+import { ClaudeLLMService } from './ClaudeLLMService';
+import type { LLMServiceInterface } from './LLMServiceInterface';
 
 export class AnalysisService {
   /**
@@ -34,25 +38,40 @@ export class AnalysisService {
       throw error;
     }
   }
-  
+
+  /**
+   * Get the appropriate LLM service instance
+   */
+  private static getLLMService(service: 'mock' | 'gemini' | 'openai' | 'anthropic'): LLMServiceInterface {
+    switch (service) {
+      case 'mock':
+        return new MockLLMService();
+      case 'gemini':
+        return new GeminiLLMService();
+      case 'anthropic':
+        return new ClaudeLLMService();
+      case 'openai':
+        // TODO: Implement OpenAI service
+        throw new Error('OpenAI service not yet implemented');
+      default:
+        throw new Error(`Unknown LLM service: ${service}`);
+    }
+  }
+
   /**
    * Check if a service is available
    */
-  static async isServiceAvailable(service: 'mock' | 'gemini' | 'openai' |'anthropic'): Promise<boolean> {
-    // Mock service is always available
-    if (service === 'mock') return true;
-    
-    // For other services, check runtime config
-    const runtimeConfig = useRuntimeConfig();
-    
-    if (service === 'gemini') {
-      return runtimeConfig.public.geminiApiAvailable;
+  static async isServiceAvailable(service: 'mock' | 'gemini' | 'openai' | 'anthropic'): Promise<boolean> {
+    try {
+      // Get the appropriate service instance and delegate the availability check
+      const llmService = this.getLLMService(service);
+      return await llmService.isAvailable();
+    } catch (error) {
+      console.error(`Error checking availability for ${service}:`, error);
+      return false;
     }
-    
-    // OpenAI not implemented yet
-    return false;
   }
-  
+
   /**
    * Get service name
    */
