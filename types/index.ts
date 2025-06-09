@@ -46,3 +46,12 @@ export interface SavedAnalysis extends AnalysisResult {
   resume: Resume;
   coverLetter?: CoverLetter;  // Optional cover letter
 }
+
+export interface ResumeEntry {
+  id: string;
+  name: string;
+  content: string;
+  timestamp: string;
+}
+
+export type ServiceName = 'mock' | 'gemini' | 'openai' | 'anthropic';

@@ -76,6 +76,12 @@
             />
           </div>
         </div>
+
+        <!-- Analysis Settings moved here -->
+        <div class="bg-white shadow-md rounded-lg p-6">
+          <h2 class="text-xl font-semibold mb-4">Analysis Settings</h2>
+          <ServiceSelector v-model="selectedService" />
+        </div>
       </div>
 
       <!-- Sidebar - 1/3 width on large screens -->
@@ -178,10 +184,11 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import type { SavedAnalysis, CoverLetter } from '../../types';
+import type { SavedAnalysis, CoverLetter, ServiceName } from '../../types';
 import { StorageService } from '../../services/StorageService';
 import { CoverLetterService } from '../../services/CoverLetterService';
 import TextAreaInput from '../../components/input/TextAreaInput.vue';
+import ServiceSelector from '../../components/input/ServiceSelector.vue'; // Import ServiceSelector
 import { diffWords } from 'diff';
 import CoverLetterSampleSelector from '../../components/input/CoverLetterSampleSelector.vue';
 import CoverLetterSampleDialog from '../../components/input/CoverLetterSampleDialog.vue';
@@ -211,6 +218,7 @@ const originalContent = ref('');
 const showSampleDialog = ref(false);
 const selectedSampleId = ref('');
 const savedAnalyses = ref<SavedAnalysis[]>([]);
+const selectedService = ref<ServiceName>('gemini'); // Default service
 
 // Track manual edits
 const hasManualEdits = computed(() => {
@@ -249,19 +257,20 @@ const handleContentBlur = () => {
   }
 };
 
-// Fetch analysis data on mount
+// Fetch analysis data and selected service on mount
 onMounted(async () => {
   try {
-    // Get all saved analyses
+    // Load selected service from localStorage
+    const storedService = localStorage.getItem('selected-llm-service');
+    if (storedService && ['gemini', 'anthropic', 'openai', 'mock'].includes(storedService)) {
+      selectedService.value = storedService as ServiceName;
+    }
+
     savedAnalyses.value = await StorageService.getAnalyses();
-    
-    // Find the analysis with matching ID
     const foundAnalysis = savedAnalyses.value.find(a => a.id === analysisId);
     
     if (foundAnalysis) {
       analysis.value = foundAnalysis;
-      
-      // If there's a saved cover letter, load it
       if (foundAnalysis.coverLetter) {
         coverLetter.content = foundAnalysis.coverLetter.content;
         coverLetter.timestamp = foundAnalysis.coverLetter.timestamp;
@@ -279,6 +288,13 @@ onMounted(async () => {
   }
 });
 
+// Watch for changes in selectedService and save to localStorage
+watch(selectedService, (newService) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('selected-llm-service', newService);
+  }
+});
+
 const generateCoverLetter = async () => {
   if (!analysis.value) return;
   
@@ -286,21 +302,19 @@ const generateCoverLetter = async () => {
   error.value = '';
   
   try {
-    // Call the service to generate the cover letter
     const generated = await CoverLetterService.generateCoverLetter(
       analysis.value,
-      sampleLetter.value
+      sampleLetter.value,
+      undefined, // No instructions for initial generation
+      undefined, // No reference content for initial generation
+      selectedService.value // Pass the selected service
     );
     
     coverLetter.content = generated.content;
     coverLetter.timestamp = generated.timestamp;
     coverLetter.sampleContent = sampleLetter.value;
-    
-    // Reset tracking
     originalContent.value = coverLetter.content;
     coverLetter.editedSections = [];
-    
-    // Save to the analysis automatically
     await saveCoverLetter();
     
   } catch (err) {
@@ -314,7 +328,6 @@ const generateCoverLetter = async () => {
 const handleRegenerate = async () => {
   if (!analysis.value) return;
   
-  // Save current version to history
   coverLetter.history.push({
     content: coverLetter.content,
     timestamp: coverLetter.timestamp,
@@ -322,30 +335,25 @@ const handleRegenerate = async () => {
     sampleContent: sampleLetter.value
   });
 
-  // If keeping edits, use current content as reference
   const referenceContent = regenerateOption.value === 'keep' ? coverLetter.content : undefined;
   
   isGenerating.value = true;
   showRegenerateDialog.value = false;
   
   try {
-    // Call the service to generate the cover letter
     const generated = await CoverLetterService.generateCoverLetter(
       analysis.value,
       sampleLetter.value,
       regenerateInstructions.value,
-      referenceContent
+      referenceContent,
+      selectedService.value // Pass the selected service
     );
     
     coverLetter.content = generated.content;
     coverLetter.timestamp = generated.timestamp;
     coverLetter.instructions = regenerateInstructions.value;
-    
-    // Reset tracking
     originalContent.value = coverLetter.content;
     coverLetter.editedSections = [];
-    
-    // Save to the analysis automatically
     await saveCoverLetter();
     
   } catch (err) {

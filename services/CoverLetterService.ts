@@ -1,4 +1,4 @@
-import type { SavedAnalysis, CoverLetter } from '../types';
+import type { SavedAnalysis, CoverLetter, ServiceName } from '../types';
 
 export class CoverLetterService {
   private static getBaseUrl() {
@@ -23,7 +23,8 @@ export class CoverLetterService {
     analysis: SavedAnalysis, 
     sampleLetter?: string,
     instructions?: string,
-    referenceContent?: string
+    referenceContent?: string,
+    serviceName?: ServiceName // Add serviceName parameter
   ): Promise<CoverLetter> {
     try {
       // Call our server API endpoint
@@ -36,7 +37,8 @@ export class CoverLetterService {
           analysis,
           sampleLetter,
           instructions,
-          referenceContent
+          referenceContent,
+          serviceName // Pass serviceName to the API endpoint
         }),
       });
       

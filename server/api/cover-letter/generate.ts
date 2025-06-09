@@ -1,21 +1,20 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { anthropic } from '@ai-sdk/anthropic';
 import { createCoverLetterPrompt } from '~/utils/promptUtils';
+import type { SavedAnalysis, ServiceName } from '~/types';
+import { generateText } from 'ai';
 
-// ugh this is Gemini specific now
 export default defineEventHandler(async (event) => {
   try {
-    // Get runtime config with API keys (server side only)
     const config = useRuntimeConfig();
-
-    // Check if API key is available
-    if (!config.geminiApiKey) {
-      console.log('API key missing: Gemini API key is not configured');
-      throw new Error('Gemini API key is not configured');
-    }
-
-    // Parse request body
     const body = await readBody(event);
-    const { analysis, sampleLetter, instructions, referenceContent } = body;
+    const { analysis, sampleLetter, instructions, referenceContent, serviceName } = body as {
+      analysis: SavedAnalysis;
+      sampleLetter?: string;
+      instructions?: string;
+      referenceContent?: string;
+      serviceName?: ServiceName;
+    };
 
     if (!analysis) {
       throw createError({
@@ -24,49 +23,55 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    console.log('Generating cover letter for analysis:', {
+    const selectedServiceName = serviceName || 'gemini';
+
+    console.log(`Generating cover letter using ${selectedServiceName} for analysis:`, {
       jobTitle: analysis.jobTitle,
-      matches: analysis.matches.length,
-      gaps: analysis.gaps.length,
-      hasInstructions: !!instructions,
-      hasReference: !!referenceContent
     });
 
-    // Initialize Gemini client
-    const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
-    console.log(`using model: ${config.geminiModel}`);
-
-    // Generate prompt
+    let generatedText: string = '';
     const { systemInstruction, userPrompt } = createCoverLetterPrompt(analysis, sampleLetter, instructions, referenceContent);
-    console.log('Generated prompt for cover letter:', userPrompt);
 
-    // Call Gemini API
-    console.log('Calling Gemini API for cover letter generation...');
-    const startTime = Date.now();
-    const result = await ai.models.generateContent({
-      model: config.geminiModel,
-      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-      config: {
-        systemInstruction: { parts: [{ text: systemInstruction }] }
-      }
+    switch (selectedServiceName) {
+      case 'gemini':
+        if (!config.geminiApiKey) throw new Error('Gemini API key is not configured');
+        const genAI = new GoogleGenerativeAI(config.geminiApiKey);
+        const model = genAI.getGenerativeModel({ 
+          model: config.geminiModel || 'gemini-pro',
+        });
+        const fullPromptForGemini = systemInstruction ? `${systemInstruction}\n\n${userPrompt}` : userPrompt;
+        const result = await model.generateContent(fullPromptForGemini);
+        generatedText = result.response.text();
+        break;
+      case 'anthropic':
+        if (!config.anthropicApiKey) throw new Error('Anthropic API key is not configured');
+        const claudeLanguageModel = anthropic(config.anthropicModel || "claude-3-haiku-20240307");
+        const { text: claudeText } = await generateText({
+          model: claudeLanguageModel,
+          system: systemInstruction,
+          prompt: userPrompt,
+          maxTokens: 2048,
+        });
+        generatedText = claudeText;
+        break;
+      case 'mock':
+        generatedText = `Mock cover letter for ${analysis.jobTitle}.\nSystem: ${systemInstruction}\nPrompt: ${userPrompt}`;
+        break;
+      default:
+        throw new Error(`Unsupported LLM service: ${selectedServiceName}`);
+    }
+
+    console.log('Cover letter generated successfully');
+    return {
+      content: generatedText,
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error: any) {
+    console.error('Error in cover letter generation API:', error);
+    throw createError({
+      statusCode: 500,
+      message: error.message || 'Error generating cover letter'
     });
-  const endTime = Date.now();
-  console.log(`Gemini API response received in ${endTime - startTime}ms`);
-
-  const text = result.text;
-  console.log('Cover letter generated successfully');
-
-  // Return the generated cover letter
-  return {
-    content: text,
-    timestamp: new Date().toISOString()
-  };
-
-} catch (error: any) {
-  console.error('Error in cover letter generation API:', error);
-  throw createError({
-    statusCode: 500,
-    message: error.message || 'Error generating cover letter'
-  });
-}
+  }
 });
