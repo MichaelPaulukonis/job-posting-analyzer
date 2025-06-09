@@ -10,6 +10,8 @@ The tool provides a structured way to:
 - Save analyses for future reference
 - Maintain multiple resume versions
 - Generate recommendations for resume improvements
+- Tailor a cover letter based on job requirements
+- Integrate with multiple AI services for analysis and suggestions
 
 ## Technology Stack
 
