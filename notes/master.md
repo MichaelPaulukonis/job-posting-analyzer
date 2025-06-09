@@ -23,6 +23,7 @@ The tool provides a structured way to:
 - **AI Integration**: Multiple service options
   - OpenAI
   - Google Gemini
+  - Anthropic Claude
   - Mock service (for testing/development)
 - **Storage**: Client-side storage using local storage service
 
@@ -51,7 +52,8 @@ The tool provides a structured way to:
 - Delete individual analyses or clear history
 
 ### Service Options
-- Select from multiple AI providers
+- Select from multiple AI providers for analysis and cover letter generation
+- User's preferred provider is saved and reused
 - Fallback to mock service if APIs are unavailable
 - Configurable analysis settings
 

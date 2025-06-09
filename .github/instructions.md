@@ -19,14 +19,15 @@ When suggesting code, please use the following technologies:
 
 The application will support multiple AI service providers with specific architecture requirements:
 
-- OpenAI API
+- OpenAI API (eventually)
 - Google Gemini API
+- Anthropic Claude API
 - Mock service (for testing/development)
 
 When suggesting AI-related code:
 
 - Use a service-based architecture with interfaces
-- Allow for seamless provider switching
+- Allow for seamless provider switching. The selected provider is shared between the analysis and cover letter generation features and this preference is persisted in `localStorage`.
 - Handle API errors gracefully
 - Include appropriate fallback mechanisms
 
@@ -84,6 +85,11 @@ Follow these coding style guidelines for consistency and quality:
 - Use semantic naming for variables and functions
 
 Always utilize the latest JavaScript and TypeScript features in strict mode. Prefer semantic HTML elements over generic divs and ensure compliance with W3C standards and WCAG 2.1 AA guidelines. For CSS, use TailwindCSS with responsive designs based on Flexbox/Grid.
+
+## Commit Message Guidelines
+
+All commit messages should adhere to the Conventional Commits specification.
+For detailed instructions, please refer to [Conventional Commits 1.0.0](./copilot-commit-message-instructions.md).
 
 ## Patterns and Best Practices
 
