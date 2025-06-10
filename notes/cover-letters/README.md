@@ -6,13 +6,11 @@ The Cover Letter Generation feature assists users in creating tailored cover let
 
 ## Core Functionality
 
-- **Input Job Description**: Users can paste or upload a job description.
-- **Select Resume**: Users can choose from their saved resumes or input new resume content.
-- **AI-Powered Generation**: Utilizes selected AI services (OpenAI, Gemini, Claude, or Mock) to generate a cover letter.
-- **Tailored Content**: The generated cover letter is customized to match the user's profile with the specific job.
+- **Select Analysis**: Users choose from previously saved job analyses to use as context for the cover letter.
 - **Sample-Based Generation**: Users can select from predefined cover letter samples/templates to guide the generation process.
-- **Review and Edit**: Users can review the generated cover letter and make manual edits.
-- **Save and Manage**: (Future) Ability to save and manage different versions of generated cover letters.
+- **AI-Powered Generation**: Utilizes selected AI services (OpenAI, Gemini, Claude, or Mock) to generate a cover letter.
+- **Review and Edit**: Users can review the generated cover letter, make manual edits, and regenerate with new instructions.
+- **Save and Manage**: Version and edits are saved. Eventually there will a way to view different versions of generated cover letters.
 
 ## Component Architecture
 
@@ -68,19 +66,20 @@ The Cover Letter Generation feature assists users in creating tailored cover let
 
 ## Storage
 
--   Generated cover letters are not persistently stored with their associated resume/job description
+-   Generated cover letters are persistently stored with their associated resume/job description
 -   Changes to the cover letter are also stored, but no mechanisms are currently in place to manage different versions.
 -   Cover letter samples are stored server-side and managed by `CoverLetterSampleRepository`.
 
 ## Future Enhancements
 
 1.  **Manage Cover Letters**: Allow users to manage different versions.
-2.  **Advanced Editing Tools**: Integrate a rich text editor for more sophisticated formatting of the cover letter. (meh)
+  1.  Probably not a priority, for specific job applications, users will likely just want to generate a new cover letter.
+2.  **Advanced Editing Tools**: Integrate a rich text editor for more sophisticated formatting of the cover letter.
+  1.  This could be useful, but is not a priority.
 3.  **Tone and Style Adjustment**: Provide options to adjust the tone (e.g., formal, enthusiastic) and style of the generated cover letter.
-  Which is implicit in the regeneration process, but could be made explicit with user controls.
+  1.  Which is implicit in the regeneration process, but could be made explicit with user controls.
 4.  **Feedback Mechanism**: Allow users to rate the quality of the generated cover letter to help improve the underlying prompts and models.
-  Well, this is a bit of a stretch, but could be useful for future iterations.
-5.  **Integration with Analysis**: Directly use insights from the "Job Posting Analysis" feature to further tailor the cover letter.
-  Fairly certain we are already doing this, but could be made more explicit. 
+  1.  Well, this is a bit of a stretch, but could be useful for future iterations.
 6.  **Export Options**: Allow users to download the cover letter in various formats (e.g., PDF, DOCX).
+  1.  Of limited utility, as formatting is required.
 
