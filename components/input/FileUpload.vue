@@ -50,7 +50,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+
+const pdfjsLibInstance = ref<any>(null); // To store the dynamically imported library
+
+onMounted(async () => {
+  if (typeof window !== 'undefined') { // Ensures this runs only on the client
+    try {
+      const pdfjs = await import('pdfjs-dist');
+      // @ts-ignore - pdfjs-dist types might not perfectly match the workerSrc assignment pattern here
+      // User confirmed /js/pdf.worker.min.mjs is the correct path for their local worker
+      pdfjs.GlobalWorkerOptions.workerSrc = '/js/pdf.worker.min.mjs'; 
+      pdfjsLibInstance.value = pdfjs;
+    } catch (error) {
+      console.error("Failed to load pdfjs-dist on client:", error);
+    }
+  }
+});
 
 const props = defineProps({
   id: {
@@ -63,7 +79,7 @@ const props = defineProps({
   },
   accept: {
     type: String,
-    default: '.txt,.md,.docx',
+    default: '.txt,.md,.docx,.pdf',
   },
   error: {
     type: String,
@@ -100,13 +116,43 @@ const handleFileDrop = (event: DragEvent) => {
   }
 };
 
-const processFile = (file: File) => {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const content = e.target?.result as string;
-    emit('file-selected', { file, content });
-  };
-  reader.readAsText(file);
+const processFile = async (file: File) => {
+  if (file.type === 'application/pdf') {
+    if (typeof window !== 'undefined' && pdfjsLibInstance.value) { // Check client-side and if library is loaded
+      const arrayBuffer = await file.arrayBuffer();
+      try {
+        const pdfjs = pdfjsLibInstance.value;
+        const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        let fullText = '';
+
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          fullText += textContent.items.map((item: any) => item.str).join(' ') + '\n';
+        }
+        emit('file-selected', { file, content: fullText.trim() });
+      } catch (err) {
+        console.error('Error processing PDF with PDF.js:', err);
+        let errorMessage = 'Failed to parse PDF';
+        if (err instanceof Error) {
+          errorMessage = `Failed to parse PDF: ${err.message}`;
+        }
+        emit('file-selected', { file, content: '', error: errorMessage });
+      }
+    } else if (typeof window !== 'undefined' && !pdfjsLibInstance.value) {
+      console.error("PDF.js library not loaded yet or not on client.");
+      emit('file-selected', { file, content: '', error: 'PDF library not ready. Please try again.' });
+    }
+    // If not on client, this block is skipped, preventing SSR issues.
+  } else {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      emit('file-selected', { file, content });
+    };
+    reader.readAsText(file);
+  }
 };
 </script>
 
@@ -115,7 +161,6 @@ const processFile = (file: File) => {
   @apply border-blue-500 bg-blue-50;
 }
 
-/* Add explicit size constraint for SVG */
 svg {
   max-width: 48px;
   max-height: 48px;

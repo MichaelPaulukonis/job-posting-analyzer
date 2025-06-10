@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   // DELETE request to remove a specific resume
   if (method === 'DELETE') {
     try {
-      resumeRepository.delete(id);
+      resumeRepository.delete(id!);
       return { success: true };
     } catch (error) {
       console.error(`Error deleting resume with ID ${id}:`, error);

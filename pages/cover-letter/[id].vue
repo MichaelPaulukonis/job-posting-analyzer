@@ -27,9 +27,9 @@
           <div class="mb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <h2 class="text-xl font-semibold">Job: {{ analysis?.jobTitle || 'Untitled Position' }}</h2>
             <div class="flex gap-4">
-              <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div><span class="font-medium">Matches: {{ analysis?.matches.length || 0 }}</span></div>
-              <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div><span class="font-medium">Potential: {{ analysis?.maybes.length || 0 }}</span></div>
-              <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div><span class="font-medium">Gaps: {{ analysis?.gaps.length || 0 }}</span></div>
+              <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div><span class="font-medium">Matches: {{ (analysis?.matches || []).length }}</span></div>
+              <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div><span class="font-medium">Potential: {{ (analysis?.maybes || []).length }}</span></div>
+              <div class="flex items-center"><div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div><span class="font-medium">Gaps: {{ (analysis?.gaps || []).length }}</span></div>
             </div>
           </div>
         </div>
@@ -456,3 +456,6 @@ const deleteSavedAnalysis = async (id: string) => {
   }
 };
 </script>
+
+<style scoped>
+</style>
