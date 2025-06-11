@@ -3,6 +3,7 @@ import { useRouter, useRoute } from 'vue-router';
 import type { JobPosting, Resume, AnalysisResult, SavedAnalysis, ResumeEntry, ServiceName } from '../types';
 import { StorageService } from '../services/StorageService';
 import { LLMServiceFactory } from '~/services/LLMServiceFactory';
+import { nextTick } from 'vue';
 
 const SELECTED_SERVICE_STORAGE_KEY = 'selected-llm-service';
 
@@ -184,7 +185,10 @@ export function useAnalysis() {
     jobPostingContainer.value?.expand();
     resumeContainer.value?.expand();
     settingsContainer.value?.expand();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    await nextTick();
+    window && window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // TODO: uh..... we're not scrolling to the results
 
     // Update router to reflect loaded analysis without triggering full navigation if already on /analyze/[id]
     // Or if on /analyze, navigate to /analyze/[id]
