@@ -8,4 +8,5 @@ export default {
     '^~/(.*)$': '<rootDir>/$1'
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  testMatch: ['<rootDir>/tests/**/*.test.ts'], // Only run unit tests
 };
