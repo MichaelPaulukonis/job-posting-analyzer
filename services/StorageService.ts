@@ -192,21 +192,13 @@ export class StorageService {
   /**
    * Save a resume to storage
    */
-  static async saveResume(resume: Resume, title?: string): Promise<string> {
+  static async saveResume(resume: ResumeEntry): Promise<string> {
     try {
       // Get current resumes
       const savedResumes = await this.getResumes();
       
-      // Create new resume object
-      const resumeToSave = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-        title: title || `Resume ${savedResumes.length + 1}`,
-        content: resume.content,
-        timestamp: new Date().toISOString()
-      };
-      
       // Add to the beginning of the array
-      savedResumes.unshift(resumeToSave);
+      savedResumes.unshift(resume);
       
       // Keep only the latest 10 resumes
       const trimmedResumes = savedResumes.slice(0, 10);
@@ -220,21 +212,21 @@ export class StorageService {
         body: JSON.stringify(trimmedResumes)
       });
       
-      return resumeToSave.id;
+      return resume.id;
     } catch (error) {
       console.error('Error saving resume:', error);
       // Fallback to localStorage if server storage fails
-      return this.saveResumeToLocalStorage(resume, title);
+      return this.saveResumeToLocalStorage(resume);
     }
   }
 
   /**
    * Get all saved resumes
    */
- static async getResumes(): Promise<Array<{ id: string; title: string; content: string; timestamp: string }>> {
+ static async getResumes(): Promise<ResumeEntry[]> {
     try {
       // Fetch from server
-      const asyncData = await useAPIFetch<Array<{ id: string; title: string; content: string; timestamp: string }>>('/api/resumes');
+      const asyncData = await useAPIFetch<ResumeEntry[]>('/api/resumes');
 
       if (asyncData.error.value) {
         console.error('Error fetching resumes (useAPIFetch):', asyncData.error.value);
@@ -445,30 +437,23 @@ export class StorageService {
   
   private static RESUMES_STORAGE_KEY = 'saved-resumes';
   
-  private static saveResumeToLocalStorage(resume: Resume, title?: string): string {
+  private static saveResumeToLocalStorage(resume: ResumeEntry): string {
     if (typeof localStorage === 'undefined') {
       console.warn('localStorage not available, cannot save resume to localStorage fallback.');
       throw new Error('localStorage not available for fallback save of resume.');
     }
     const savedResumes = this.getResumesFromLocalStorage();
     
-    const resumeToSave = {
-      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-      title: title || `Resume ${savedResumes.length + 1}`,
-      content: resume.content,
-      timestamp: new Date().toISOString()
-    };
-    
-    savedResumes.unshift(resumeToSave);
+    savedResumes.unshift(resume);
     
     // Keep only the latest 10 resumes
     const trimmedResumes = savedResumes.slice(0, 10);
     localStorage.setItem(this.RESUMES_STORAGE_KEY, JSON.stringify(trimmedResumes));
     
-    return resumeToSave.id;
+    return resume.id;
   }
   
-  private static getResumesFromLocalStorage(): Array<{ id: string; title: string; content: string; timestamp: string }> {
+  private static getResumesFromLocalStorage(): ResumeEntry[] {
     if (typeof localStorage === 'undefined') {
       // console.warn('localStorage not available, cannot get resumes from localStorage fallback.');
       return [];

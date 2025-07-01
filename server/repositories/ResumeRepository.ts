@@ -2,7 +2,7 @@ import { FileStorageService } from '../services/FileStorageService';
 
 export interface SavedResume {
   id: string;
-  title: string;
+  name: string;
   content: string;
   timestamp: string;
 }
