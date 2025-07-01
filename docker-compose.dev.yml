@@ -2,19 +2,18 @@ services:
   job-analyzer-dev:
     build:
       context: .
-      target: development
+      target: dev
     ports:
-      - "3000:3000"
+      - "3050:3000"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-pro}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-2}
-      - BASE_URL=http://localhost:3000
+      - BASE_URL=http://localhost:3050
     volumes:
       - .:/app
       - /app/node_modules
-      - app-storage:/app/.data
     restart: unless-stopped
 
 volumes:
