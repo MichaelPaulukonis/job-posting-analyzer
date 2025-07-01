@@ -18,6 +18,8 @@ export function useAnalysis() {
   const selectedService = ref<ServiceName>(getDefaultService());
   const currentAnalysisId = ref<string | null>(null);
   const selectedResumeId = ref<string | null>(null);
+  const savedResumes = ref<ResumeEntry[]>([]);
+
   const showResumeNameDialog = ref(false);
 
   // Refs for InputContainer components
@@ -27,6 +29,10 @@ export function useAnalysis() {
 
   const router = useRouter();
   const route = useRoute();
+
+  async function loadResumes() {
+    savedResumes.value = await StorageService.getResumes();
+  }
 
   function getDefaultService(): ServiceName {
     if (typeof window !== 'undefined') {
@@ -81,7 +87,16 @@ export function useAnalysis() {
       await StorageService.saveResume(newResume);
       selectedResumeId.value = newResume.id; // Auto-select the newly saved resume
       showResumeNameDialog.value = false;
-      // Potentially refresh resume list if displayed elsewhere
+      await loadResumes();
+    }
+  };
+
+  const deleteResume = async (id: string) => {
+    await StorageService.deleteResume(id);
+    await loadResumes();
+    if (selectedResumeId.value === id) {
+      selectedResumeId.value = null;
+      resume.content = '';
     }
   };
 
@@ -220,6 +235,7 @@ export function useAnalysis() {
   onMounted(async () => {
     selectedService.value = getDefaultService();
     await loadAnalyses();
+    await loadResumes();
   });
 
   // Watch for route changes to load analysis if ID is present
@@ -251,6 +267,7 @@ export function useAnalysis() {
     error,
     analysisResults,
     savedAnalyses,
+    savedResumes,
     selectedService,
     currentAnalysisId,
     selectedResumeId,
@@ -263,6 +280,7 @@ export function useAnalysis() {
     handleResumeSelect,
     saveResume,
     handleResumeNameSave,
+    deleteResume,
     validateField,
     validateAndAnalyze,
     clearResults,

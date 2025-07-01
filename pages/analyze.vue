@@ -43,7 +43,12 @@
 
         <InputContainer ref="resumeContainer" title="Your Resume" summary="Resume content">
           <div class="flex flex-col gap-4">
-            <ResumeSelector v-model="selectedResumeId" @select="handleResumeSelect" />
+            <ResumeSelector 
+              v-model="selectedResumeId" 
+              :resumes="savedResumes"
+              @select="handleResumeSelect" 
+              @delete="deleteResume" 
+            />
             <div class="flex flex-col md:flex-row gap-4">
               <div class="md:w-1/2">
                 <TextAreaInput id="resume" label="Paste Resume" v-model="resume.content"
@@ -138,6 +143,7 @@ const {
   error,
   analysisResults,
   savedAnalyses,
+  savedResumes,
   selectedService,
   currentAnalysisId,
   selectedResumeId,
@@ -150,6 +156,7 @@ const {
   handleResumeSelect,
   saveResume,
   handleResumeNameSave,
+  deleteResume,
   validateField,
   validateAndAnalyze,
   clearResults,
