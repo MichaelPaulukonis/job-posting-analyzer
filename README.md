@@ -10,9 +10,39 @@ To use the Google Gemini API, you'll need to install the Google Generative AI pa
 
 TODO: This is currently listed as a requirement, but it should be an option.
 
-## Nuxt Minimal Starter
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+## Node Version Management & Environment Setup
+
+This project requires **Node.js 23**. To ensure all contributors use the correct version, we use both a `.nvmrc` file and [direnv](https://direnv.net/) for automatic environment management.
+
+### Quick Setup
+
+1. **Install [nvm](https://github.com/nvm-sh/nvm) and [direnv](https://direnv.net/):**
+   ```sh
+   brew install nvm direnv
+   ```
+
+2. **Hook direnv into your shell:**
+   - For zsh, add to your `~/.zshrc`:
+     ```sh
+     eval "$(direnv hook zsh)"
+     ```
+
+3. **Allow direnv in this project directory:**
+   ```sh
+   cd /path/to/job-posting-analyzer
+   direnv allow
+   ```
+
+4. **Result:**  
+   Every time you enter this directory, direnv will automatically activate the correct Node version (as specified in `.nvmrc`) using nvm.
+
+### Why?
+
+- Ensures all contributors and CI use the same Node version.
+- No need to manually run `nvm use`—it’s automatic.
+- `.envrc` and `.nvmrc` are committed for team consistency.
+
 
 ## Setup
 

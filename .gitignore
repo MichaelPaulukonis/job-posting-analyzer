@@ -27,3 +27,6 @@ logs
 
 # local storage for project development
 .data
+
+# Playwright test artifacts
+test-results/
