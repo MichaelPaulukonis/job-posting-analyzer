@@ -1,0 +1,34 @@
+# Ignore node_modules, as they will be installed within the container
+node_modules
+
+# Ignore local development files and directories
+.nuxt
+.output
+dist
+
+# Ignore logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore environment files - these should be passed in during runtime
+.env
+
+# Ignore git files
+.git
+.gitignore
+
+# Ignore test files
+tests/
+
+# Ignore notes
+notes/
+
+# Ignore .specstory artifacts
+.specstory/
