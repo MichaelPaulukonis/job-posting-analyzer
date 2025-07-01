@@ -72,6 +72,7 @@ STRUCTURE GUIDANCE:
 - Address skill gaps with transferable skills
 - Closing: express interest and suggest next steps
 - No specific years of experience to avoid age discrimination
+- Do not include any commentary before or after the letter - only the letter should be provided
 `;
 
 /**
