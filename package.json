@@ -8,7 +8,11 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "test": "jest"
+    "test": "jest",
+    "docker:build": "docker build -t job-posting-analyzer .",
+    "docker:run": "docker-compose up -d",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up",
+    "docker:stop": "docker-compose down"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.11",

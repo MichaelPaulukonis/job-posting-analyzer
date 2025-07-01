@@ -21,6 +21,8 @@ export default defineNuxtConfig({
 
   // Configure Nitro to ignore specific directories
   nitro: {
+    host: process.env.HOST || '0.0.0.0', // Important for Docker
+    port: process.env.PORT || 3000,
     ignore: [
       'notes/**', // Ignore the entire notes directory and its contents
     ]

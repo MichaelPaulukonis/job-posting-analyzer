@@ -143,28 +143,7 @@ volumes:
 ### Phase 2: Configuration Updates
 
 #### 2.1 Update nuxt.config.ts
-```typescript
-export default defineNuxtConfig({
-  // ... existing config
-  
-  // Add Docker-specific configuration
-  nitro: {
-    port: process.env.PORT || 3000,
-    host: process.env.HOST || '0.0.0.0', // Important for Docker
-    ignore: [
-      'notes/**',
-    ]
-  },
-  
-  runtimeConfig: {
-    // ... existing config
-    public: {
-      // ... existing public config
-      baseUrl: process.env.BASE_URL || 'http://localhost:3000'
-    }
-  }
-})
-```
+No changes are required in `nuxt.config.ts` for the host and port configuration. Nuxt 3 automatically respects the `HOST` and `PORT` environment variables, which are set in the `Dockerfile`. The `runtimeConfig` for `baseUrl` should still be checked to ensure it correctly uses environment variables.
 
 #### 2.2 Update package.json scripts
 ```json
