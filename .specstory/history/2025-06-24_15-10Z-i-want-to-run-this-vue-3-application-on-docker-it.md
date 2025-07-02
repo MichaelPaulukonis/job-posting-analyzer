@@ -10,7 +10,1011 @@ I want to run this Vue 3 application on Docker. It will not be exposed to the pu
 
 _**Assistant**_
 
-I'll create a comprehensive plan for dockerizing your Vue 3/Nuxt 3 Job Posting Analyzer application. Let me analyze your project structure and create a detailed deployment plan. Now I'll create a comprehensive Docker deployment plan: 
+I'll create a comprehensive plan for dockerizing your Vue 3/Nuxt 3 Job Posting Analyzer application. Let me analyze your project structure and create a detailed deployment plan. Now I'll create a comprehensive Docker deployment plan: I've created a comprehensive Docker deployment plan for your Job Posting Analyzer application. Here's a summary of what the plan covers:
+
+## Key Highlights:
+
+### **Deployment Options Analyzed:**
+1. **Single-Stage Production Build** - Optimized for production use
+2. **Development-Focused Build** - Better for active development
+3. **Multi-Stage Build** (Recommended) - Best of both worlds
+
+### **Recommended Approach:**
+- Multi-stage Dockerfile with separate development and production stages
+- Docker Compose setup for both development and production
+- Proper environment variable handling (including your .env file)
+- Persistent storage considerations
+
+### **Required Configuration Changes:**
+- **`nuxt.config.ts`**: Need to add `host: '0.0.0.0'` for Docker networking
+- **`package.json`**: Docker convenience scripts
+- Environment variable documentation
+
+### **Key Benefits for Your Goals:**
+1. **Ready Availability**: Simple `docker-compose up` command to start the app
+2. **Docker Experience**: Comprehensive multi-stage build process
+3. **Project Expansion**: Foundation for future enhancements like database integration
+4. **Security**: Proper handling of API keys in containerized environment
+
+### **Timeline Estimate:**
+- **Total**: 7-14 hours depending on complexity
+- **Basic functionality**: 2-4 hours for Phase 1
+- **Full implementation**: Spread across 4 phases
+
+The plan includes all the Docker files you'll need (Dockerfile, docker-compose.yml, .dockerignore), configuration updates, and a clear implementation roadmap.
+
+Would you like me to proceed with implementing any specific phase of this plan, or would you like me to modify any aspects of the approach?
+
+---
+
+_**User**_
+
+Before we begin, please create a commit message for the manual change I made to `utils/promptUtils.ts`. I was trying to stop the LLM from adding commentary to the generated text. There are also a bunch of `.specstory/` deletions and untracked files and I'm not quite sure why. I do want to commit the changes, but definitely do not need commentary on their contents.
+
+---
+
+_**Assistant**_
+
+I'll help you create a commit message for your changes. Let me first check what changes were made to `promptUtils.ts` and see the current git status. 
+
+---
+
+_**User**_
+
+@agent Try Again
+
+---
+
+_**Assistant**_
+
+docs(deployment): create docker deployment plan
+
+Adds a comprehensive plan for dockerizing the application.
+The plan is located in `docker-deployment-plan.md` and covers:
+- Analysis of the current application
+- Different deployment options (single-stage, multi-stage)
+- Recommended implementation plan with Dockerfile, .dockerignore, and docker-compose files
+- Configuration updates for `nuxt.config.ts` and `package.json`
+- Development workflow with a separate `docker-compose.dev.yml`
+- Storage considerations
+- Security, monitoring, and future enhancements
+
+Also includes chat history files from the planning session.
+
+---
+
+_**User**_
+
+Sorry, please skip the `docker-deployment-plan.md` file for now - I want to commit the change(s) made PRIOR to docker work. So, please create a commit message for the manual change I made to `utils/promptUtils.ts`. I was trying to stop the LLM from adding commentary to the generated text. There are also a bunch of `.specstory/` deletions and untracked files and I'm not quite sure why. I do want to commit them, but definitely do not need commentary on their contents.
+
+
+
+---
+
+_**Assistant**_
+
+Of course. Here is a commit message for your changes.
+
+```
+fix(prompt): prevent LLM commentary in generated text
+
+Adjusts prompt formatting to explicitly instruct the language model to avoid including explanatory or conversational text in its responses. This ensures that the generated output is clean and directly usable.
+
+Also includes routine cleanup of `.specstory/` files.
+```
+
+---
+
+_**User**_
+
+Okay, do you still have the context of the docker-deployment plan you created earlier? I would like to proceed with Phase 1.
+
+---
+
+_**Assistant**_
+
+Yes, I still have the context of the Docker deployment plan. I will now begin with Phase 1: Dockerizing the Nuxt.js application.
+
+First, I will create a `Dockerfile` in the root of your project. This file will contain the instructions to build a production-ready Docker image for your Nuxt.js app. I have created the `Dockerfile` for your project. Now, I will create the `.dockerignore` file to complete Phase 1. This file will exclude unnecessary files and directories from the Docker build context, which helps to speed up the build process and create smaller images. I have created the `Dockerfile` and `.dockerignore` file in the root of your project as we planned for Phase 1.
+
+The `Dockerfile` contains the instructions to build the Docker image for your Nuxt.js application, with separate stages for development, building, and production.
+
+The `.dockerignore` file will prevent local development files, credentials, and other unnecessary files from being included in the Docker image.
+
+This completes Phase 1. Would you like to move on to Phase 2, which is building and running the container locally to test it?
+
+---
+
+_**User**_
+
+quick question - since we're excluding the .env file (credentials) from the image, how will those credentials be deployed to the running container?
+
+---
+
+_**Assistant**_
+
+That's an excellent and crucial question for security and proper deployment.
+
+You are correct that we explicitly exclude the `.env` file from the Docker image using `.dockerignore`. This is a critical security practice to prevent secrets from being baked into the image itself. If the image were ever pushed to a public or private registry, anyone with access to it could potentially extract your credentials.
+
+Instead of including the file in the image, you provide the secrets to the container **at runtime**. Here are the most common ways to do that:
+
+### 1. Using an Environment File (`--env-file`)
+
+This is the most direct replacement for a local `.env` file. You can maintain a file with your secrets on the host machine where you run the container and pass it during startup.
+
+**Example:**
+Let's say you have a file named `production.env` on your server with the following content:
+
+```
+# production.env
+NUXT_GEMINI_API_KEY=your_gemini_api_key_here
+NUXT_CLAUDE_API_KEY=your_anthropic_api_key_here
+```
+
+You would run your container like this:
+
+```bash
+docker run --env-file ./production.env -p 3000:3000 your-image-name
+```
+
+This command tells Docker to load the variables from `production.env` into the container as environment variables.
+
+### 2. Passing Individual Environment Variables (`-e`)
+
+If you only have a few variables, or if you are injecting them from a CI/CD pipeline (like GitHub Actions Secrets), you can pass them one by one using the `-e` flag.
+
+**Example:**
+
+```bash
+docker run \
+  -e "NUXT_GEMINI_API_KEY=your_gemini_api_key_here" \
+  -e "NUXT_CLAUDE_API_KEY=your_anthropic_api_key_here" \
+  -p 3000:3000 your-image-name
+```
+
+### 3. Using Orchestration Tools (Docker Compose, Kubernetes)
+
+For more complex applications, you'll likely use an orchestration tool:
+
+*   **Docker Compose:** In your `docker-compose.yml` file, you can specify an `env_file` or list environment variables directly. This is great for local development and simple deployments.
+*   **Kubernetes:** In a production environment, you would use Kubernetes Secrets. These are objects specifically designed to hold sensitive information, which you can then mount into your containers as environment variables or files.
+
+By using these methods, you keep your secrets separate from your application code and image, which is a much more secure and flexible approach.
+
+---
+
+_**User**_
+
+Please repeat that information in a single markdown-formatted code block (I want to copy it).
+
+---
+
+_**Assistant**_
+
+```markdown
+# How to Manage Secrets in Docker
+
+Since the `.env` file is correctly excluded from the Docker image for security, you must provide secrets to the container at **runtime**. Here are the common methods:
+
+### 1. Using an Environment File (`--env-file`)
+
+This method allows you to keep your secrets in a file on the host machine and pass it to the container on startup.
+
+**Example `production.env` file:**
+```
+NUXT_GEMINI_API_KEY=your_gemini_api_key_here
+NUXT_CLAUDE_API_KEY=your_anthropic_api_key_here
+```
+
+**Run command:**
+```bash
+docker run --env-file ./production.env -p 3000:3000 your-image-name
+```
+
+### 2. Passing Individual Environment Variables (`-e`)
+
+You can pass secrets one by one using the `-e` flag. This is useful for CI/CD pipelines (e.g., GitHub Actions Secrets) or when you have only a few variables.
+
+**Run command:**
+```bash
+docker run \
+  -e "NUXT_GEMINI_API_KEY=your_gemini_api_key_here" \
+  -e "NUXT_CLAUDE_API_KEY=your_anthropic_api_key_here" \
+  -p 3000:3000 your-image-name
+```
+
+### 3. Using Orchestration Tools
+
+For more complex or production-grade deployments, you would use an orchestration tool to manage secrets.
+
+*   **Docker Compose:** Use the `env_file` or `environment` keys in your `docker-compose.yml` file.
+*   **Kubernetes:** Use **Kubernetes Secrets** to store sensitive data and mount them into your containers as environment variables. This is the standard for production environments.
+
+
+---
+
+_**User**_
+
+Okay, that was a bunch of code blocks. Possibly because the answer itself contains code blocks. Maybe I'm asking the wrong question. I need that complete answer in markdown format. What's the best way for me to get it?
+
+---
+
+_**Assistant**_
+
+You are right, my apologies. The nested code blocks make it difficult to copy.
+
+The best way is for me to provide the raw markdown content in a single block. You can copy everything inside the block below.
+
+```markdown
+# How to Manage Secrets in Docker
+
+Since the `.env` file is correctly excluded from the Docker image for security, you must provide secrets to the container at **runtime**. Here are the common methods:
+
+### 1. Using an Environment File (`--env-file`)
+
+This method allows you to keep your secrets in a file on the host machine and pass it to the container on startup.
+
+**Example `production.env` file:**
+```
+NUXT_GEMINI_API_KEY=your_gemini_api_key_here
+NUXT_CLAUDE_API_KEY=your_anthropic_api_key_here
+```
+
+**Run command:**
+```bash
+docker run --env-file ./production.env -p 3000:3000 your-image-name
+```
+
+### 2. Passing Individual Environment Variables (`-e`)
+
+You can pass secrets one by one using the `-e` flag. This is useful for CI/CD pipelines (e.g., GitHub Actions Secrets) or when you have only a few variables.
+
+**Run command:**
+```bash
+docker run \
+  -e "NUXT_GEMINI_API_KEY=your_gemini_api_key_here" \
+  -e "NUXT_CLAUDE_API_KEY=your_anthropic_api_key_here" \
+  -p 3000:3000 your-image-name
+```
+
+### 3. Using Orchestration Tools
+
+For more complex or production-grade deployments, you would use an orchestration tool to manage secrets.
+
+*   **Docker Compose:** Use the `env_file` or `environment` keys in your `docker-compose.yml` file.
+*   **Kubernetes:** Use **Kubernetes Secrets** to store sensitive data and mount them into your containers as environment variables. This is the standard for production environments.
+
+
+---
+
+_**User**_
+
+Back to the dockerization project. Thanks for phase 1. Let's commit these changes, first. 
+
+---
+
+_**Assistant**_
+
+Of course. Here is a commit message for the initial Docker setup.
+
+```
+feat(docker): add initial Docker configuration
+
+Introduces a multi-stage Dockerfile to containerize the application for development, build, and production environments.
+
+- The `base` stage sets up the Node.js environment.
+- The `dev` stage installs all dependencies for local development with hot-reloading.
+- The `builder` stage creates a production-ready build of the Nuxt application.
+- The `production` stage creates a minimal final image with only the necessary built assets and production dependencies.
+
+Also adds a `.dockerignore` file to exclude development files, logs, and other unnecessary artifacts from the Docker image, ensuring a smaller and more secure image.
+```
+
+---
+
+_**User**_
+
+Thanks! Now, let's proceed with Phase 2.
+
+---
+
+_**Assistant**_
+
+Of course. Let's begin Phase 2. This phase involves updating the Nuxt configuration to work correctly within a Docker container and adding convenient scripts to your `package.json` for managing the Docker lifecycle.
+
+First, I will read the `nuxt.config.ts` file to see its current contents. Of course. Let's begin Phase 2.
+
+First, I will update the `nuxt.config.ts` file to ensure it's compatible with Docker networking. This involves telling Nuxt to listen on the correct host and port inside the container. 
+````
+
+````
+I've encountered a small issue with the deployment plan. The plan suggests adding `host` and `port` configurations directly to the `nitro` section of your `nuxt.config.ts`, but that is not the correct way to do it in the current version of Nuxt, which causes an error.
+
+The good news is that Nuxt 3 automatically respects the `HOST` and `PORT` environment variables, which we have already set in the `Dockerfile`. Therefore, no changes are needed in `nuxt.config.ts` for the host and port.
+
+I will proceed with the next step of Phase 2, which is updating your `package.json` to include the Docker-related scripts. I'll add scripts for building the Docker image and running the container.
+
+---
+
+_**User**_
+
+Also, please update the deployment plan regarding `nuxt.config.js`. Otherwise, proceed.
+
+---
+
+_**Assistant**_
+
+Of course. I will update the deployment plan to reflect that no changes are needed for the `nuxt.config.ts` file regarding host and port settings, and then I will add the necessary Docker scripts to your `package.json` file.
+
+First, I'll correct the deployment plan. 
+````
+
+````
+I have updated the deployment plan to reflect that no changes are needed for `nuxt.config.ts`.
+
+Now, I will add the Docker scripts to your `package.json` file. I have updated the deployment plan to reflect the correct configuration approach for Nuxt 3.
+
+Now, I will add the Docker-related scripts to your `package.json` file. This will give you convenient commands to build and manage your Docker containers. 
+````
+
+````
+I have updated the deployment plan to reflect that no changes are needed in `nuxt.config.ts`.
+
+I have also added the following Docker-related scripts to your `package.json`:
+
+*   `docker:build`: Builds the Docker image.
+*   `docker:run`: Starts the application in a Docker container in production mode.
+*   `docker:dev`: Starts the application in a Docker container in development mode.
+*   `docker:stop`: Stops the Docker containers.
+
+This completes Phase 2. We are now ready to move on to Phase 3, which involves creating the `docker-compose.yml` files for both production and development environments. Shall I proceed?
+
+---
+
+_**User**_
+
+Let's first commit the Phase 2 changes you just made. I have staged the files, I just need a commit message.
+
+---
+
+_**Assistant**_
+
+Of course. Here is a commit message for the Phase 2 changes.
+
+```
+feat(docker): add npm scripts and update deployment plan
+
+This commit introduces a set of npm scripts to `package.json` to simplify the Docker workflow, providing commands for building, running, and managing the Docker containers.
+
+- `docker:build`: Builds the application's Docker image.
+- `docker:run`: Starts the production container via `docker-compose`.
+- `docker:dev`: Starts the development container for local development with hot-reloading.
+- `docker:stop`: Stops the running containers.
+
+Additionally, the `docker-deployment-plan.md` has been updated to correct the instructions for `nuxt.config.ts`, clarifying that Nuxt 3 automatically respects the `HOST` and `PORT` environment variables set in the Docker environment.
+```
+
+---
+
+_**User**_
+
+Thanks! Before we continue with Phase 3, should I test any of the changes so far, or is testing dependent on phases 3 and 4?
+
+---
+
+_**Assistant**_
+
+That's an excellent question. It's always a good practice to test at logical checkpoints.
+
+Yes, you can and should test the changes from Phase 1 and 2 right now. Specifically, you can test the Docker image build process. This will confirm that:
+1.  The `Dockerfile` syntax is correct.
+2.  The build stages work as expected.
+3.  Your application's dependencies can be successfully installed and the project can be built inside the Docker environment.
+
+To do this, you can run the build script we added to `package.json`:
+
+ It seems there was a typo in the command I tried to run. I will correct it and try again. It's a good idea to test the `docker:build` command now to ensure the `Dockerfile` is set up correctly before moving on. This will confirm that the image can be built successfully.
+
+I'll run the command now.
+
+---
+
+_**User**_
+
+Not you're mistake - the shell initially prompted to update oh-my-zsh. I manually ran the command, and the build seemed to run perfectly.
+
+---
+
+_**Assistant**_
+
+Excellent! I'm glad to hear the build was successful. That's a great sign and confirms that the `Dockerfile` and `.dockerignore` file are correctly configured.
+
+Now that we know the image can be built, we can proceed with **Phase 3: Development Workflow**. This involves creating the `docker-compose.yml` files that will define how to run the containers for both production and development environments.
+
+I will now create the following two files as outlined in the plan:
+1.  `docker-compose.yml` for the production environment.
+2.  `docker-compose.dev.yml` for the development environment.
+
+Shall I proceed?
+
+---
+
+_**User**_
+
+Yes, let's continue with Phase 3
+
+---
+
+_**Assistant**_
+
+I have created the `docker-compose.yml` and `docker-compose.dev.yml` files in the root of your project.
+
+*   `docker-compose.yml` is configured to run the production-ready container. It uses the `production` stage from the `Dockerfile` and sets up a volume for persistent storage.
+*   `docker-compose.dev.yml` is set up for local development. It mounts the current directory into the container for hot-reloading and uses the `development` stage from the `Dockerfile`.
+
+This completes the first part of Phase 3. The next step is to create the startup script. Shall I proceed with creating the `scripts/docker-setup.sh` file?
+
+---
+
+_**User**_
+
+Should I test these steps, or is that dependent on the next step? Going forward, please prompt me to test at appropriate points.
+
+---
+
+_**Assistant**_
+
+That's an excellent question, and you are right to ask. I will be sure to prompt you for testing at the appropriate times.
+
+In this case, testing is dependent on the next step.
+
+While we have the `docker-compose` files, we can't run them successfully yet because they rely on environment variables (like `GEMINI_API_KEY`) that need to be defined in an `.env` file.
+
+The next step in our plan is to create the `scripts/docker-setup.sh` script. This script is designed to help create that `.env` file from the existing `.env.example`, making it easier to get the application running.
+
+Once that script is created, it will be the perfect time to test everything together.
+
+Shall I proceed with creating the `scripts/docker-setup.sh` file now?
+
+---
+
+_**User**_
+
+Please proceed.
+
+---
+
+_**Assistant**_
+
+I have created the `docker-setup.sh` file. This script will help you set up the necessary `.env` file and start the application.
+
+This completes Phase 3.
+
+### Time to Test!
+
+Now is the perfect time to test everything we've done so far. Here's how you can do it:
+
+1.  **Make the script executable:**
+    In your terminal, run the following command to give the script permission to execute:
+    ```bash
+    chmod +x scripts/docker-setup.sh
+    ```
+
+2.  **Run the setup script:**
+    Execute the script to create your `.env` file and start the containers:
+    ```bash
+    ./scripts/docker-setup.sh
+    ```
+
+3.  **Edit your `.env` file:**
+    The script will create a new `.env` file in your project root. Open this file and add your API keys for the AI services you want to use.
+
+4.  **Run the production container:**
+    Once your `.env` file is configured, you can start the production container with the following command:
+    ```bash
+    npm run docker:run
+    ```
+
+5.  **Verify it's working:**
+    Open your browser and go to `http://localhost:3000`. The application should be running. You can also check the container logs by running `docker logs -f job-posting-analyzer`.
+
+Let me know how the testing goes, and we can proceed to the next phase when you're ready.
+
+---
+
+_**User**_
+
+It's working, thanks! However, we do have a warning (see below). I can easily make that change. Can you make sure to avoid that attribute in the future, or explain why you included it?
+
+WARN[0000] /Users/michaelpaulukonis/projects/job-posting-analyzer/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+
+---
+
+_**Assistant**_
+
+You are absolutely right to point that out, and thank you for catching it. My apologies for including the obsolete attribute.
+
+The `version` tag was a requirement in older versions of the Docker Compose tool to specify the file format and which features were available. It became a standard part of most `docker-compose.yml` files. However, with the newer versions of Docker and the integration of `compose` directly into the Docker CLI, it is no longer necessary and is now considered a legacy field. My training data includes many examples from that older convention.
+
+I will remove it from both `docker-compose.yml` and `docker-compose.dev.yml` now to resolve the warning, and I will avoid using it in the future.
+
+ 
+````
+
+````
+You are absolutely right to point that out, and thank you for catching it. My apologies for including the obsolete `version` attribute.
+
+You are seeing that warning because top-level `version` property in `docker-compose.yml` files is a legacy field that was required in older versions of Docker Compose to define the file format. Modern versions of Docker Compose no longer require it and can infer the version, so it is now considered obsolete.
+
+I included it out of habit from older practices. I will be sure to avoid it in the future.
+
+I have already removed it from `docker-compose.yml`. I will now remove it from `docker-compose.dev.yml` as well to ensure consistency and prevent future warnings. 
+````
+
+````
+You are absolutely right to point that out, and thank you for catching it. My apologies for including the obsolete `version` attribute.
+
+You are correct that it is no longer needed in modern versions of Docker Compose. It was a legacy requirement in older versions to define the file format, but now it's determined automatically. Including it can lead to the warning you saw, and it's best practice to remove it to avoid confusion.
+
+I have removed the `version: '3.8'` line from both `docker-compose.yml` and `docker-compose.dev.yml` to resolve the warning. I will ensure not to include it in future `docker-compose` files.
+
+Thank you for the feedback! It helps me improve.
+
+Now that the application is running successfully in Docker, we can move on to the final phase.
+
+**Phase 4: Storage Considerations**
+
+This phase is about ensuring that any data your application saves will persist even if the container is removed or restarted. In your `docker-compose.yml` files, I've already included a volume named `app-storage` that maps to the `/app/storage` directory inside the container.
+
+This is a good starting point, but we should confirm if this is the correct location where your application stores its data.
+
+Could you please confirm if your application saves files to the `storage` directory at the root of the project? If it saves them elsewhere, I can update the `docker-compose` files to mount the correct directory.
+
+---
+
+_**User**_
+
+The app is currently hard-coded to use files in the `.data/` directory right here in the app. For now, I would be happy to have the container continue to use this location (read/write). Now that I'm actually deploying the app it will be time to consider transitioning to a database, or other storage mechanism (but not yet).
+
+---
+
+_**Assistant**_
+
+Thank you for clarifying. Based on your `FileStorageService.ts`, the application saves data to the `` directory at the root of the project.
+
+I will now update the `volumes` in both `docker-compose.yml` and `docker-compose.dev.yml` to ensure that this `` directory is persisted. This will map the `/app/.data` directory inside the container to a Docker volume named `app-storage` on your host machine.
+
+This ensures that even if you remove and recreate the container, your application's data will remain safe. 
+````
+
+````
+
+````
+
+````
+Thank you for clarifying. I have updated the `docker-compose.yml` and `docker-compose.dev.yml` files to mount the `` directory for persistent storage.
+
+This change ensures that any data written to the `` directory inside the container will be saved to the `app-storage` volume on your host machine. This way, your data will be safe even if you remove and recreate the container.
+
+This completes Phase 4 and the initial Dockerization of your application.
+
+### Next Steps
+
+You now have a fully containerized Nuxt.js application that you can easily run in both development and production modes. Here's a quick recap of the scripts you can use:
+
+*   `npm run docker:build`: To rebuild your Docker image after making changes to your application code.
+*   `npm run docker:run`: To run your application in production mode.
+*   `npm run docker:dev`: To run your application in development mode with hot-reloading.
+*   `npm run docker:stop`: To stop the running containers.
+
+What would you like to do next? We can commit these final changes, or if you have any other questions or tasks, I'm here to help.
+
+---
+
+_**User**_
+
+npm run docker:build
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+_**User**_
+
+I've staged all the changed files, so let's commit them.
+
+---
+
+_**Assistant**_
+
+Okay, I will commit the staged files with a message that summarizes the Dockerization work. I've committed the changes with the following message:
+
+```
+feat(docker): add Docker support for local development and production
+
+- Creates a multi-stage Dockerfile for development, build, and production environments.
+- Adds `docker-compose.yml` for production and `docker-compose.dev.yml` for development.
+- Includes a `docker-setup.sh` script to simplify environment configuration.
+- Updates `package.json` with `docker:*` scripts for building, running, and managing containers.
+- Configures a named volume for persistent storage of application data in the `.data` directory.
+```
+
+---
+
+_**User**_
+
+Thanks!
+
+So, I started the contained with `docker-compose up -d` but I'd like to tru it with the the `docker-compose.dev.yml` file instead Do I need to run `docker-compose down` first?
+
+---
+
+_**Assistant**_
+
+Yes, it's a good idea to stop the services launched with `docker-compose up -d` before starting new ones with the development configuration. This prevents potential conflicts, especially with port mappings.
+
+You can use the `docker:stop` script you created in `package.json` to handle this. It runs `docker-compose down`, which will stop and remove the containers defined in the default `docker-compose.yml` file.
+
+So, the process would be:
+
+1.  Run `npm run docker:stop` to stop the production containers.
+2.  Run `npm run docker:dev` to start the development containers.
+
+---
+
+_**User**_
+
+Thank you. I stopped the container, and then tried to run dev. But the target stage is missing:
+
+(base) ➜  job-posting-analyzer git:(main) npm run docker:dev
+
+> docker:dev
+> docker-compose -f docker-compose.dev.yml up
+
+[+] Building 0.2s (2/2) FINISHED                                                                    
+ => [internal] load local bake definitions                                                     0.0s
+ => => reading from stdin 485B                                                                 0.0s
+ => [internal] load build definition from Dockerfile                                           0.0s
+ => => transferring dockerfile: 1.47kB                                                         0.0s
+failed to solve: target stage "development" could not be found
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/ew4wnqycmbm3mylgpol8xt9cz
+
+---
+
+_**Assistant**_
+
+Ah, it looks like the `development` stage is missing from the `Dockerfile`. The `docker-compose.dev.yml` file is correctly configured to use a `development` target, but that stage needs to exist in the `Dockerfile` itself.
+
+I'll correct the `Dockerfile` by adding the `development` stage. This stage will be responsible for running the application in development mode with hot-reloading.
+
+I will now read the `Dockerfile` and then add the missing stage. You've correctly identified the issue. The error message `target stage "development" could not be found` indicates a mismatch between the stage name in your `docker-compose.dev.yml` and your `Dockerfile`.
+
+In your `Dockerfile`, the development stage is named `dev`:
+
+```dockerfile
+# ...
+FROM base AS dev
+# ...
+```
+
+However, in your `docker-compose.dev.yml`, you're referring to it as `development`:
+
+```yaml
+services:
+  job-analyzer-dev:
+    build:
+      context: .
+      target: development # This should be 'dev'
+# ...
+```
+
+I'll correct the `target` in `docker-compose.dev.yml` to `dev`. 
+````
+
+````
+You've found the issue. The error message `target stage "development" could not be found` is because the `docker-compose.dev.yml` file is referencing a stage named `development`, but in the `Dockerfile`, that stage is named `dev`.
+
+I've corrected the `docker-compose.dev.yml` file to point to the correct `dev` stage.
+
+You should be able to run `npm run docker:dev` successfully now.
+
+---
+
+_**User**_
+
+Thanks! It launches in dev mode. But there's a problem access the file-storage in both dev and production (the default mode?). dev cannot retrieve anything from storage. Production does show a list in Analysis History, but can't actually retrieve any of the specific analyses. TBH, I don't even know where the storage used by docker actually is - it dates back to April. When I run the app in local dev, it has the most recent data (June 30).
+
+---
+
+_**Assistant**_
+
+This is a common issue when using Docker volumes for persistent storage: the data inside the container can become disconnected from your local development data, and the location of the Docker-managed volume may not be obvious.
+
+**What's happening:**
+- In production (`docker-compose.yml`), the `` directory is mapped to a Docker-managed volume (`app-storage:/app/.data`), which is not your local `` folder.
+- In dev (`docker-compose.dev.yml`), you have:
+  ```yaml
+  volumes:
+    - .:/app
+    - /app/node_modules
+    - app-storage:/app/.data
+  ```
+  But because you mount the whole project (`.:/app`), your local `` folder should be visible inside the container as `/app/.data`. However, the additional `app-storage:/app/.data` volume mapping may override this, causing confusion and possibly hiding your local `` directory.
+
+**Why you see old data:**
+- The Docker-managed volume (`app-storage`) persists across container restarts and is not your local `` directory.
+- When running locally (not in Docker), you use your real `` folder, which is up to date.
+
+---
+
+## Solution
+
+**For development:**  
+You want the container to use your local `` directory, not a Docker-managed volume.
+
+**For production:**  
+You want persistent storage, but it doesn't need to be your local `` directory.
+
+---
+
+### 1. Fix `docker-compose.dev.yml`
+
+Remove the `app-storage:/app/.data` line from the `volumes` section for the dev service. This way, your local `` directory will be used inside the container.
+
+**Change:**
+```yaml
+volumes:
+  - .:/app
+  - /app/node_modules
+  # Remove this line in dev:
+  # - app-storage:/app/.data
+```
+
+### 2. (Optional) Clean up old Docker volumes
+
+If you want to remove the old Docker-managed volume (be careful, this deletes all data in that volume):
+
+```sh
+docker volume rm job-posting-analyzer_app-storage
+```
+
+---
+
+### 3. Where is the Docker volume data?
+
+- Docker-managed volumes are stored in a location managed by Docker (not your project folder).
+- To see where, run:  
+  `docker volume inspect job-posting-analyzer_app-storage`
+- For local dev, you want to use your real `` directory, not the Docker volume.
+
+---
+
+**Summary of actions:**
+- Edit `docker-compose.dev.yml` to remove the `app-storage:/app/.data` line.
+- Restart your dev container.
+- Your local `` directory will now be used in dev mode, and you should see your latest data.
+
+Would you like me to make this change to your `docker-compose.dev.yml`?
+
+---
+
+_**User**_
+
+I also want to change the port used by docker - 3000 is also used by the local dev server, and I don't want conflicts. Can I just pick something like 3050?
+
+---
+
+_**Assistant**_
+
+Yes, you can change the external port to any available port, such as 3050, to avoid conflicts with your local dev server. Just update the `ports` section in your `docker-compose.dev.yml` like this:
+
+```yaml
+ports:
+  - "3050:3000"
+```
+
+This will map port 3050 on your host to port 3000 inside the container.
+
+I'll make this change for you now. 
+````
+
+````
+The `docker-compose.dev.yml` file is now updated to map port 3050 on your host to port 3000 in the container. You can access your app at http://localhost:3050 when running in Docker dev mode, and there will be no conflict with your local dev server on port 3000.
+
+---
+
+_**User**_
+
+I don't need to rebuild, just to run:dev, correct?
+
+---
+
+_**Assistant**_
+
+Correct! You do not need to rebuild the image for changes to port mappings or volume mounts in `docker-compose.dev.yml`. Just run:
+
+```sh
+npm run docker:dev
+```
+
+This will start the dev container with the new port mapping. If the container is already running, stop it first with:
+
+```sh
+npm run docker:stop
+```
+
+Then start it again with `npm run docker:dev`. No rebuild is necessary unless you change the Dockerfile or dependencies.
+
+---
+
+_**User**_
+
+Okay, getting better - it can now read the Analysis History and show it on the Analyze page. But nothing will show under Cover Letters. And dev tools has an error referencing port 3000 - 
+
+StorageService.ts:147 Error fetching analyses (useAPIFetch): H3Error: [GET] "http://localhost:3000/api/storage": <no response> Failed to fetch
+    at async $fetchRaw2 (ofetch.03887fc3.mjs:270:14)
+    at async $fetch2 (ofetch.03887fc3.mjs:316:15)Caused by: TypeError: Failed to fetch
+    at index.mjs:21:60
+    at $fetchRaw2 (ofetch.03887fc3.mjs:258:32)
+    at onError (ofetch.03887fc3.mjs:179:16)
+    at $fetchRaw2 (ofetch.03887fc3.mjs:270:20)
+    at async $fetch2 (ofetch.03887fc3.mjs:316:15)
+
+---
+
+_**Assistant**_
+
+The error occurs because your app inside the Docker container is running on port 3000, but you changed the external port to 3050. However, your app (or its API calls) is still trying to reach `http://localhost:3000/api/storage`, which will not work from your browser when accessing the app at `http://localhost:3050`.
+
+**Why?**
+- When you open the app at `http://localhost:3050`, any client-side code that tries to fetch from `http://localhost:3000` will fail, because nothing is running on port 3000 on your host.
+- You need to make sure all client-side API calls use the correct port (3050 in dev).
+
+---
+
+## Solution
+
+**Update the `BASE_URL` environment variable in your `docker-compose.dev.yml` to use port 3050:**
+
+```yaml
+environment:
+  # ...existing code...
+  - BASE_URL=http://localhost:3050
+```
+
+This ensures that all API calls from the client use the correct port.
+
+---
+
+Would you like me to update your `docker-compose.dev.yml` to set `BASE_URL` to `http://localhost:3050`?
+
+---
+
+_**User**_
+
+I made the change, and it's perfect! I should have realized that needed to be updated.
+
+I added docker-compose.dev.yml to stage - Let's commit this change.
+
+
+
+---
+
+_**Assistant**_
+
+Here’s a Conventional Commit message for updating the dev Docker Compose port and BASE_URL:
+
+```
+fix(docker): update dev compose port and BASE_URL for local development
+
+- Changes external port mapping to 3050 to avoid conflicts with local dev server
+- Sets BASE_URL to http://localhost:3050 for correct client API calls in dev mode
+```
+
+I will commit the staged changes with this message. 
+
+---
+
+_**User**_
+
+Don't forget, we also removed the .data mapping from volumes.
+
+---
+
+_**Assistant**_
+
+It looks like the commit message was pasted directly into the terminal, which caused a shell error. To avoid this, you should use the following command (all on one line, or use `git commit` to open your editor):
+
+```sh
+git commit -m "fix(docker): update dev compose port and BASE_URL for local development
+
+- Changes external port mapping to 3050 to avoid conflicts with local dev server
+- Sets BASE_URL to http://localhost:3050 for correct client API calls in dev mode
+- Removes Docker-managed .data volume mapping in dev to use local .data directory for persistent storage
+"
+```
+
+Or, simply run:
+
+```sh
+git commit
+```
+
+and paste the message above into your editor. This will commit the staged changes with the correct Conventional Commit message. Let me know if you want me to try again automatically!
+
+---
+
+_**User**_
+
+Perfect, thanks so much!
+
+---
+
+_**Assistant**_
+
+You're welcome! If you need any more help with Docker, Nuxt, or anything else in your project, just let me know. Happy coding! 🚀
+
+---
+
+_**User**_
+
+When I execute "npm run docker:dev", it keeps the shell running with docker output. And if I close the shell, the container stops runing. How do I launch the container in a way that I can close the shell instance, if not the entire VS Code application containing the shell that launched it?
+
+---
+
+_**Assistant**_
+
+To run your dev container in the background (detached mode), you should add the `-d` flag to your `docker-compose` command. This way, the container will keep running even after you close the shell or VS Code.
+
+**How to fix:**
+
+Update your `package.json` script for `docker:dev` like this:
+
+```json
+"docker:dev": "docker-compose -f docker-compose.dev.yml up -d"
+```
+
+This will start the dev container in detached mode, allowing you to close the shell without stopping the container.
+
+Would you like me to update your `package.json` for you?
+
+---
+
+_**User**_
+
+What does the "-d" mean or stand for?
+
+---
+
+_**Assistant**_
+
+The `-d` flag stands for "detached mode" in Docker Compose. When you use `-d`, Docker Compose starts the containers in the background and returns control to your shell immediately. This allows the containers to keep running even after you close the terminal or VS Code window that started them.
+
+Without `-d`, the logs and output are shown in your terminal, and closing the terminal will stop the containers.
+
+---
+
+_**User**_
+
+I made the change myself. Please make a commit message for the change.
+
+---
+
+_**Assistant**_
+
+Here’s a Conventional Commit message for your change:
+
+```
+fix(docker): run dev container in detached mode
+
+- Adds -d flag to docker:dev script so the dev container runs in the background and is not tied to the shell session.
+```
 
 ---
 

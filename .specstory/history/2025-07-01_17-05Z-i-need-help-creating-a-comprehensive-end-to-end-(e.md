@@ -159,3 +159,553 @@ Would you like to proceed with Playwright setup and initial test scaffolding? If
 
 ---
 
+_**User**_
+
+Let's proceed.
+
+---
+
+_**Assistant**_
+
+Playwright is not yet installed in your project. Please confirm the installation by typing `y` and pressing Enter in your terminal. This will install Playwright and launch the code generator for interactive E2E test creation.
+
+Once installed, I will guide you through scaffolding the E2E test directory and creating your first critical user journey test. Let me know when the installation is complete, or if you'd like me to proceed with a non-interactive setup and initial test scaffolding.
+
+---
+
+_**User**_
+
+Having some trouble installing playwright:
+
+(base) ➜  job-posting-analyzer git:(main) ✗ npx playwright install && npx playwright codegen http://localhost:3000
+Need to install the following packages:
+playwright@1.53.2
+Ok to proceed? (y) y
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║ WARNING: It looks like you are running 'npx playwright install' without first ║
+║ installing your project's dependencies.                                       ║
+║                                                                               ║
+║ To avoid unexpected behavior, please install your dependencies first, and     ║
+║ then run Playwright's install command:                                        ║
+║                                                                               ║
+║     npm install                                                               ║
+║     npx playwright install                                                    ║
+║                                                                               ║
+║ If your project does not yet depend on Playwright, first install the          ║
+║ applicable npm package (most commonly @playwright/test), and                  ║
+║ then run Playwright's install command to download the browsers:               ║
+║                                                                               ║
+║     npm install @playwright/test                                              ║
+║     npx playwright install                                                    ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+Error: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
+Call log:
+  - navigating to "http://localhost:3000/", waiting until "load"
+
+---
+
+_**Assistant**_
+
+You need to install Playwright as a project dependency before running its install and codegen commands. Here’s what to do:
+
+1. Install Playwright’s test runner:
+   ```sh
+   npm install --save-dev @playwright/test
+   ```
+
+2. Install Playwright browsers:
+   ```sh
+   npx playwright install
+   ```
+
+3. (Optional) Start your Nuxt app locally (if not already running):
+   ```sh
+   npm run dev
+   ```
+
+4. Then you can run:
+   ```sh
+   npx playwright codegen http://localhost:3000
+   ```
+
+Would you like me to run these steps for you (except for starting the dev server, which you may need to do in another terminal)?
+
+---
+
+_**User**_
+
+side-question, not about the e2e tests. I'm using nvm to switch between node runtimes. This project uses node 23, but I nvm defaults to 22 because of some other projects. So when you (Copilot) launch a new shell, it opens as Node 22. How can we configure node 23 for this project?
+
+---
+
+_**Assistant**_
+
+To ensure nvm automatically uses Node.js 23 for this project, create a file named .nvmrc in your project root with the following content:
+
+```
+23
+```
+
+This tells nvm to use Node 23 when you run nvm use in this directory. You can also add this to your workflow:
+
+1. Create .nvmrc with 23 as the content.
+2. Whenever you enter the project directory, run:
+   ```sh
+   nvm use
+   ```
+   This will switch to Node 23 automatically.
+
+For even more automation, you can use tools like direnv or add a shell hook to auto-run nvm use when you cd into the directory.
+
+Would you like me to create the .nvmrc file for you?
+
+---
+
+_**User**_
+
+You can create the file. A question about the hooks - if the shell opens in that directory, will the hooks fire? That is, if you open a shell to execute commands, will it open as 22 or 23 (once the .nvmrc is set)?
+
+---
+
+_**Assistant**_
+
+The `.nvmrc` file has been created with the content 23.
+
+Regarding your question: nvm itself does not automatically switch Node versions just by opening a shell in the directory. You must run nvm use (or nvm install if not present) in that directory to activate Node 23 for the session.
+
+Some shells can be configured to auto-run nvm use when you cd into a directory with an .nvmrc (using shell hooks or tools like direnv or avn). By default, however, a new shell will still use your default Node version (22 in your case) until you explicitly run nvm use.
+
+If you want true automation, consider adding a shell hook or using a tool like direnv to auto-switch Node versions when entering the directory. Let me know if you want setup instructions for that!
+
+---
+
+_**User**_
+
+Specifying the engine in package.json won't help, will it?
+
+---
+
+_**Assistant**_
+
+Specifying the Node.js engine in your `package.json` (with the "engines" field) will not automatically switch Node versions for you. It only serves as a hint for tools like npm or yarn, which may warn you (or refuse to install) if the version does not match, but it does not change the active Node version in your shell.
+
+To actually switch Node versions automatically, you need to use .nvmrc with nvm (and optionally a shell hook or tool like direnv or avn). The "engines" field is useful for documentation and CI enforcement, but not for local shell automation.
+
+---
+
+_**User**_
+
+Please add an engines property to package.json, if only for documentation purposes. Then I would like to explore some sort of shell hook. Again, I want node 23 for this project, but node 22 for other projects.
+
+---
+
+_**Assistant**_
+
+
+````
+
+````
+The engines property has been added to your `package.json` to document the Node.js version requirement (Node 23).
+
+For automatic Node version switching, the next step is to set up a shell hook. Would you like instructions for a simple nvm shell hook, or would you prefer a tool like direnv for more robust automation? Let me know your preference!
+
+---
+
+_**User**_
+
+The simple nvm shell hook will not execute on a new shell launch, in the project director, right?
+
+---
+
+_**Assistant**_
+
+Correct. The simple nvm shell hook (such as a command in your .zshrc or .bashrc) will not automatically execute nvm use when you launch a new shell directly into the project directory. It only works when you cd into the directory from elsewhere in the same shell session.
+
+If you open a new terminal window or tab that starts in the project directory, nvm will not auto-switch Node versions—you would still need to run nvm use manually.
+
+For true automation (even on new shell launches in the project directory), you need a tool like direnv or avn, which can detect .nvmrc and auto-switch Node versions on directory entry, regardless of how the shell was started. Would you like setup instructions for direnv?
+
+---
+
+_**User**_
+
+Please tell me more about direnv. Also advise if I am going down the wrong path - perhaps my method of defaults and switching is not a best practice?
+
+---
+
+_**Assistant**_
+
+direnv is a shell extension that automatically loads and unloads environment variables (and runs scripts) when you enter or leave a directory. It’s widely used for project-specific environment setup, including Node version switching, Python virtualenv activation, and more.
+
+### How direnv works for Node version switching
+
+- You create a `.envrc` file in your project directory.
+- In `.envrc`, you can add logic to run nvm use (or asdf, pyenv, etc.).
+- When you cd into the directory, direnv automatically runs the commands in `.envrc` (after you allow it once).
+- This means Node 23 will be activated every time you enter your project directory, even if you open a new shell directly in that directory.
+
+### Example `.envrc` for nvm
+
+```sh
+use_node() {
+  if [ -f .nvmrc ]; then
+    nvm use
+  fi
+}
+use_node
+```
+
+Or simply:
+
+```sh
+layout node
+```
+(if you have the direnv/nvm integration enabled)
+
+### Setup steps
+
+1. Install direnv (brew install direnv on macOS).
+2. Add `eval \"$(direnv hook zsh)\"` to your `~/.zshrc`.
+3. Create a `.envrc` file in your project with the nvm logic above.
+4. Run `direnv allow` in your project directory.
+
+### Is this best practice?
+
+- For teams and multi-project workflows, direnv is a best practice for automating environment setup.
+- It’s more robust than relying on manual nvm use or shell hooks.
+- It works well with .nvmrc, .python-version, .env, etc.
+- It’s safe, as you must explicitly allow each `.envrc` file.
+
+**Summary:** Your approach (using .nvmrc and switching Node versions per project) is good. Using direnv makes it seamless and automatic, which is considered best practice for modern multi-project development.
+
+Would you like step-by-step setup instructions for direnv?
+
+---
+
+_**User**_
+
+I think you gave met setup steps, and they look good. I'm going to start following them after one more question. This use of direnv and nvm - should these dot-files be commited to the repo and  documented in the main README.md?
+
+---
+
+_**Assistant**_
+
+Yes, you should commit both the .nvmrc and .envrc files to your repository and document their use in your main README.md.
+
+- `.nvmrc` should always be committed. It documents the required Node version for all contributors and CI.
+- `.envrc` can be committed if it only contains project-agnostic, safe logic (like nvm use or layout node). If it contains secrets or machine-specific paths, do not commit it. For your use case (just nvm use), it is safe and recommended to commit.
+- Document the Node version policy and direnv usage/setup in your `README.md` so contributors know to install direnv and allow the .envrc.
+
+This ensures a consistent environment for all contributors and makes onboarding easier. Let me know if you want a sample `README.md` section for this!
+
+---
+
+_**User**_
+
+Step 2, above threw an error when .zshrc was re-sourced:
+
+(eval):1: file name too long:  _direnv_hook() { trap -- '' SIGINT eval  trap - SIGINT } typeset -ag precmd_functions if (( ! 0 )); then precmd_functions=(_direnv_hook _defer_async_git_register _omz_async_request omz_termsupport_precmd omz_termsupport_cwd iterm2_precmd __vsc_precmd) fi typeset -ag chpwd_functions if (( !  )); then chpwd_functions=(_direnv_hook ) fi
+
+---
+
+_**Assistant**_
+
+This error usually means that the direnv hook line in your `.zshrc` is being added or evaluated multiple times, or there’s a quoting issue. In your `.zshrc`, the line is:
+
+```zsh
+eval \"$(direnv hook zsh)\"
+```
+
+The backslashes and quotes are incorrect. It should be:
+
+```zsh
+eval "$(direnv hook zsh)"
+```
+
+**How to fix:**
+
+1. Open your `.zshrc`.
+2. Find the line:
+   ```
+   eval \"$(direnv hook zsh)\"
+   ```
+3. Replace it with:
+   ```
+   eval "$(direnv hook zsh)"
+   ```
+4. Save the file and run:
+   ```sh
+   source ~/.zshrc
+   ```
+
+This should resolve the “file name too long” error and allow direnv to work properly. Let me know if you need help with the next steps for direnv or .envrc!
+
+---
+
+_**User**_
+
+Got an error running `direnv allow`:
+
+(base) ➜  job-posting-analyzer git:(main) ✗ direnv allow
+direnv: loading ~/projects/job-posting-analyzer/.envrc                                              
+./.envrc:3: nvm: command not found
+
+---
+
+_**Assistant**_
+
+This error means that direnv is running before nvm is loaded, so the nvm command is not available in the environment when .envrc is evaluated.
+
+**How to fix:**
+
+1. You need to ensure nvm is loaded in your .envrc before calling nvm use. Add this to the top of your `.envrc`:
+
+```sh
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+
+use_node() {
+  if [ -f .nvmrc ]; then
+    nvm use
+  fi
+}
+use_node
+```
+
+2. Save the file and run:
+   ```sh
+   direnv allow
+   ```
+
+This will make nvm available to direnv and allow the Node version to be switched automatically. Let me know if this resolves the issue!
+
+---
+
+_**User**_
+
+Okay, now I see the below, which seems to be a success!
+
+(base) ➜  job-posting-analyzer git:(main) ✗ direnv allow
+direnv: loading ~/projects/job-posting-analyzer/.envrc                                              
+Found '/Users/michaelpaulukonis/projects/job-posting-analyzer/.nvmrc' with version <23>
+Now using node v23.7.0 (npm v10.9.2)
+
+---
+
+_**Assistant**_
+
+Great! That output confirms direnv and nvm are now working together as intended: every time you enter your project directory, direnv will automatically activate Node 23 (or whatever version is in your .nvmrc).
+
+This setup is now robust, portable, and best practice for multi-project Node development. Be sure to document this in your README so collaborators know to install and use direnv.
+
+If you need a sample README section or want to proceed with your E2E Playwright setup, just let me know!
+
+---
+
+_**User**_
+
+Please give me a sample README section about this.
+
+---
+
+_**Assistant**_
+
+Here’s a sample section you can add to your `README.md` to document the Node version and direnv setup:
+
+---
+
+## Node Version Management & Environment Setup
+
+This project requires **Node.js 23**. To ensure all contributors use the correct version, we use both a `.nvmrc` file and [direnv](https://direnv.net/) for automatic environment management.
+
+### Quick Setup
+
+1. **Install [nvm](https://github.com/nvm-sh/nvm) and [direnv](https://direnv.net/):**
+   ```sh
+   brew install nvm direnv
+   ```
+
+2. **Hook direnv into your shell:**
+   - For zsh, add to your `~/.zshrc`:
+     ```sh
+     eval "$(direnv hook zsh)"
+     ```
+
+3. **Allow direnv in this project directory:**
+   ```sh
+   cd /path/to/job-posting-analyzer
+   direnv allow
+   ```
+
+4. **Result:**  
+   Every time you enter this directory, direnv will automatically activate the correct Node version (as specified in `.nvmrc`) using nvm.
+
+### Why?
+
+- Ensures all contributors and CI use the same Node version.
+- No need to manually run `nvm use`—it’s automatic.
+- `.envrc` and `.nvmrc` are committed for team consistency.
+
+---
+
+Let me know if you want this inserted into your `README.md` automatically!
+
+---
+
+_**User**_
+
+I put it in there myself, thanks! Now, let's continue with Playwright, step #4 - I've gotten everything installed, and the dev server is running in another shell instance on port 3000.
+
+---
+
+_**Assistant**_
+
+Playwright's code generator is now launching and will open a browser window for http://localhost:3000. You can interact with your app, and Playwright will record your actions as test code.
+
+When you're done recording a critical user journey, save the generated test file. Let me know when you're ready to review, organize, or expand the test, or if you want help with Playwright's test directory structure and best practices!
+
+---
+
+_**User**_
+
+How do I save the generated test file?
+
+---
+
+_**Assistant**_
+
+In Playwright's codegen window, you can save the generated test file by following these steps:
+
+1. In the codegen browser window, look for the code editor panel (usually on the right).
+2. Click the "Save As" or "Export" button (floppy disk icon or menu option) at the top of the code editor panel.
+3. Choose a location in your project (commonly `tests/e2e/` or `e2e/`) and give your test file a descriptive name, such as `critical-user-journey.spec.ts`.
+4. Click "Save" to write the file to disk.
+
+If you don’t see a save button, you can also copy the generated code from the codegen window and manually paste it into a new `.spec.ts` file in your project’s test directory.
+
+Let me know when you’ve saved it, or if you want help organizing your E2E test directory!
+
+---
+
+_**User**_
+
+I've the file. How do I shut down playwright? 
+
+---
+
+_**Assistant**_
+
+To shut down Playwright's codegen or test runner, simply close the Playwright browser window and the codegen/editor window that opened. If you started Playwright from the terminal and it’s still running, you can also press Ctrl+C in the terminal to stop the process.
+
+You do not need to manually stop any background service—Playwright only runs while the codegen or test process is active.
+
+Let me know when you’re ready to run your test or need help organizing or improving your E2E test suite!
+
+---
+
+_**User**_
+
+REady, let's move forward.
+
+---
+
+_**Assistant**_
+
+Running your Playwright E2E test for the critical user journey. The results will show if the flow works as expected or if any steps need adjustment.
+
+Once the test completes, I'll help you interpret the results and suggest next steps for organizing, improving, or expanding your E2E test suite.
+
+---
+
+_**User**_
+
+The test passed! I can see by looking at the repository that I failed to capture a final step, but I am very satisfied with these results. For now, I would make sure we have some test scripts in package.json, testing notes in `notes/`, and work on committing the changes. Unless you think there are other steps that should happen first.
+
+---
+
+_**Assistant**_
+
+
+````
+
+````
+Playwright E2E test scripts have been added to your `package.json` for easy running, and a new `playwright-e2e-notes.md` file documents E2E testing usage and tips.
+
+You can now:
+- Run E2E tests with npm run test:e2e
+- See browser output with npm run test:e2e:headed
+- Use Playwright's UI mode with npm run test:e2e:ui
+
+Next, you should commit your changes. If you want, I can help you review the git status, write a Conventional Commit message, or guide you through the commit process. Let me know how you'd like to proceed!
+
+---
+
+_**User**_
+
+I can see a number of expected new and modified files, but does `test-results/` need an entry in `.gitignore` ?
+
+---
+
+_**Assistant**_
+
+
+````
+
+````
+Yes, test-results/ should be added to .gitignore to prevent Playwright's test artifacts from being committed. I've added it for you. Now your repository will stay clean of test output files. Let me know if you need help with anything else before committing!
+
+---
+
+_**User**_
+
+I've added all the files to stage, let's commit!
+
+---
+
+_**Assistant**_
+
+Here’s a Conventional Commit message you can use for this set of changes:
+
+```
+test(e2e): add Playwright setup, critical path test, and documentation
+
+- Added Playwright E2E test scripts to package.json
+- Created initial critical user journey test in tests/playwright/
+- Added E2E testing notes and strategy documentation
+- Updated .gitignore to exclude test-results/
+- Documented Node version and direnv setup in README
+
+```
+
+You can copy and use this message with git commit, or let me know if you want to adjust the scope or details!
+
+---
+
+_**User**_
+
+I have a git-related question. Since this is a one-person project used and developed by myself, I've been doing most work in the main branch. I've only broken out to branches when working on some features I'm not completely sure about, and need to pause while implementing other features. Do you see any drawbacks to this practice?
+
+---
+
+_**Assistant**_
+
+For a solo developer, working mostly in the main branch is a common and perfectly reasonable practice—especially if you’re comfortable with your workflow and don’t need code review or collaboration.
+
+**Drawbacks to consider:**
+- No “safe” place to experiment: If you try something risky on main, it’s harder to roll back or compare.
+- No clear history of feature development: Feature branches make it easier to see what was developed, when, and why.
+- Harder to pause/parallelize work: If you want to pause one feature and start another, branches help keep things organized and prevent half-finished work from landing in main.
+- No “clean” main for releases: If you ever want to tag releases or deploy from main, branches help keep main stable.
+
+**Best practice for solo projects:**
+- Continue using main for most work if it’s efficient for you.
+- Use feature/bugfix branches for risky, experimental, or long-running changes.
+- Always branch if you want to try something you might abandon or need to pause.
+- Consider using branches for “release” or “production” if you ever want to separate stable and development code.
+
+In summary: your approach is fine for solo work, but branching for experiments or big features is still a good habit. It gives you flexibility and a safety net, even if you’re the only contributor.
+
+---
+

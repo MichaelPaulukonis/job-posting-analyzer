@@ -20,3 +20,172 @@ You can safely remove both `"npm"` and `"install"` from your `dependencies` in `
 
 ---
 
+_**User**_
+
+npm uninstall them just fine. I wanted to a complete reinstall and e2e test, but I'm having issues deleting node_modules. The below is in a branch-new shell instance:
+
+direnv: loading ~/projects/job-posting-analyzer/.envrc
+Found '/Users/michaelpaulukonis/projects/job-posting-analyzer/.nvmrc' with version <23>
+Now using node v23.7.0 (npm v10.9.2)
+direnv: export ~NVM_BIN ~NVM_INC ~PATH
+(base) ➜  job-posting-analyzer git:(main) ✗ rm -rf nod
+e_modules
+rm: node_modules: Permission denied
+(base) ➜  job-posting-analyzer git:(main) ✗ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+_**Assistant**_
+
+The error `rm: node_modules: Permission denied` means some files or folders in `` are owned by another user or have restricted permissions.
+
+**To fix this:**
+
+1. Try using `sudo` (be careful, only use in your project directory):
+
+```sh
+sudo rm -rf node_modules
+```
+
+2. If you want to fix permissions first (safer):
+
+```sh
+sudo chown -R $(whoami) node_modules
+rm -rf node_modules
+```
+
+After deleting, you can reinstall dependencies with:
+
+```sh
+npm install
+```
+
+Let me know if you need help with the e2e test run after this.
+
+---
+
+_**User**_
+
+That worked. I was able to delete, re-install, launch the dev server in another instance. I then attempted to run the e2e tests and got this oddity:
+
+(base) ➜  job-posting-analyzer git:(main) ✗ npm run test:e2e
+
+> test:e2e
+> playwright test
+
+ReferenceError: describe is not defined
+
+   at tests/utils/responseParser.test.ts:4
+
+  2 | import { response as sampleResponse } from '../data/sample.response.01';  // Adjust path as needed
+  3 |
+> 4 | describe('Response Parser', () => {
+    | ^
+  5 |   describe('parseGeminiResponse', () => {
+  6 |     it('should correctly parse a sample Gemini response', () => {
+  7 |       // Parse the response
+    at /Users/michaelpaulukonis/projects/job-posting-analyzer/tests/utils/responseParser.test.ts:4:1
+
+It looks like Playwright is picking up Jest tests. Conversely, Jest is failing on the Playwright spec file.
+
+---
+
+_**Assistant**_
+
+You're correct: Playwright is running all `.test.ts` files by default, including your Jest unit tests, which use `describe`/`it` (not defined in Playwright). Similarly, Jest may try to run Playwright specs, which use Playwright's API.
+
+**How to fix:**
+
+### 1. Separate test file patterns for Playwright and Jest
+
+- **Playwright:**  
+  By default, Playwright runs all `*.spec.ts` and `*.test.ts` files.  
+  You should configure Playwright to only run E2E specs (e.g., files in `` and/or with `.spec.ts`).
+
+- **Jest:**  
+  Configure Jest to only run unit tests (e.g., files in `` with `.test.ts`).
+
+---
+
+### 2. Playwright: Restrict test match pattern
+
+Edit your Playwright config (usually `playwright.config.ts`):
+
+```ts
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  testMatch: ['tests/playwright/**/*.spec.ts'], // Only run E2E specs
+  // ...other config
+});
+```
+
+---
+
+### 3. Jest: Restrict test match pattern
+
+Edit your Jest config (`jest.config.js`):
+
+```js
+module.exports = {
+  testMatch: ['<rootDir>/tests/utils/**/*.test.ts'], // Only run unit tests
+  // ...other config
+};
+```
+
+---
+
+### 4. (Optional) Move E2E and unit tests to separate folders
+
+- Place all Playwright E2E tests in `` with `.spec.ts`
+- Place all Jest unit tests in `` with `.test.ts`
+
+---
+
+**Summary:**  
+- Playwright should only run E2E specs.  
+- Jest should only run unit tests.  
+- Update both configs to avoid overlap.
+
+Would you like me to update your config files accordingly?
+
+---
+
+_**User**_
+
+For Jest, is `<rootDir>` a place-holder for me to change, or is it a "magic string" that Jest will populate?
+
+---
+
+_**Assistant**_
+
+`<rootDir>` is a "magic string" in Jest configuration. Jest automatically replaces `<rootDir>` with the root directory of your project (where your `jest.config.js` is located). You do not need to change it—just use it as shown.
+
+---
+
+_**User**_
+
+Please make a commit message for the test changes; I committed the dependency-removals already. 
+
+---
+
+_**Assistant**_
+
+test(jest,playwright): restrict test file patterns to prevent cross-runner execution
+
+Update Jest and Playwright configurations to ensure Jest only runs unit tests and Playwright only runs E2E specs. This prevents errors caused by each runner attempting to execute incompatible test files.
+
+---
+
