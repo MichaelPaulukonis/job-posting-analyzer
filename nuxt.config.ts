@@ -1,3 +1,5 @@
+import { version } from './package.json';
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devtools: { enabled: true },
@@ -12,6 +14,7 @@ export default defineNuxtConfig({
     anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-2',
     // Public keys that can be accessed client-side
     public: {
+      appVersion: version,
       // We don't expose the actual API keys to the client
       geminiApiAvailable: !!process.env.GEMINI_API_KEY,
       anthropicApiAvailable: !!process.env.ANTHROPIC_API_KEY,
