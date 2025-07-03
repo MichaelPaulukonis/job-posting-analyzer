@@ -98,6 +98,28 @@ export const formatConversationForAI = (
   };
 };
 
+/**
+ * Format CoverLetterConversation directly for AI services
+ * This preserves all conversation context including system messages
+ */
+export const formatCoverLetterConversationForAI = (
+  conversation: CoverLetterConversation
+): { systemInstruction: string; messages: { role: string; content: string }[] } => {
+  // Find the system message (should be the first message)
+  const systemMessage = conversation.messages.find(m => m.role === 'system');
+  
+  // Get all non-system messages for the conversation flow
+  const conversationMessages = conversation.messages.filter(m => m.role !== 'system');
+
+  return {
+    systemInstruction: systemMessage?.content || 'You are a professional cover letter writer.',
+    messages: conversationMessages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }))
+  };
+};
+
 // Token management utility functions
 export const estimateTokenCount = (conversation: ConversationContext): number => {
   const allContent = [
@@ -242,10 +264,7 @@ export const createCoverLetterConversation = (
  */
 export const conversationToContext = (
   conversation: CoverLetterConversation,
-  analysis: SavedAnalysis,
-  sampleLetter?: string,
-  instructions?: string,
-  referenceContent?: string
+  analysis: SavedAnalysis
 ): ConversationContext => {
   // Get the system message from conversation or create a default one
   const systemMessage = conversation.messages.find(m => m.role === 'system') || {

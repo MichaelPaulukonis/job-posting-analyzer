@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { createCoverLetterPrompt } from '~/utils/promptUtils';
-import { createCoverLetterConversation, addMessageToConversation, formatConversationForAI, conversationToContext } from '~/utils/conversationUtils';
+import { createCoverLetterConversation, addMessageToConversation, formatCoverLetterConversationForAI } from '~/utils/conversationUtils';
 import { StorageService } from '~/services/StorageService';
 import type { SavedAnalysis, ServiceName } from '~/types';
 import type { CoverLetterConversation, ConversationMessage } from '~/types/conversation';
@@ -88,12 +88,11 @@ export default defineEventHandler(async (event) => {
         referenceContent: referenceContent || undefined
       };
     }
-    
+
     conversation = addMessageToConversation(conversation, userMessage);
 
     // Format conversation for the LLM
-    const conversationContext = conversationToContext(conversation, analysis);
-    const formattedMessages = formatConversationForAI(conversationContext);
+    const formattedMessages = formatCoverLetterConversationForAI(conversation);
 
     switch (selectedServiceName) {
       case 'gemini': {
@@ -107,6 +106,7 @@ export default defineEventHandler(async (event) => {
           formattedMessages.systemInstruction,
           ...formattedMessages.messages.map(m => `${m.role}: ${m.content}`)
         ].join('\n\n');
+        console.log(JSON.stringify(fullPromptForGemini))
         const result = await model.generateContent(fullPromptForGemini);
         generatedText = result.response.text();
         break;
