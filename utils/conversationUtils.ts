@@ -98,6 +98,33 @@ export const formatConversationForAI = (
   };
 };
 
+// Token management utility functions
+export const estimateTokenCount = (conversation: ConversationContext): number => {
+  const allContent = [
+    conversation.systemMessage.content,
+    conversation.analysisContext.content,
+    ...conversation.conversationHistory.map(m => m.content)
+  ].join(' ');
+  
+  // Rough estimation: ~4 characters per token
+  return Math.ceil(allContent.length / 4);
+};
+
+export const isConversationTooLong = (
+  conversation: ConversationContext, 
+  maxTokens: number = 8000
+): boolean => {
+  return estimateTokenCount(conversation) > maxTokens;
+};
+
+export const createConversationSummary = (conversation: ConversationContext): string => {
+  const userMessages = conversation.conversationHistory
+    .filter(m => m.role === 'user')
+    .map(m => m.content);
+  
+  return `Previous instructions included: ${userMessages.join('; ')}`;
+};
+
 // Helper functions
 const getSystemInstructionLetter = (): string => {
   return `
