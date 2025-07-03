@@ -45,6 +45,7 @@ export interface SavedAnalysis extends AnalysisResult {
   jobPosting: JobPosting;
   resume: Resume;
   coverLetter?: CoverLetter;  // Optional cover letter
+  conversationId?: string;  // Optional conversation ID
 }
 
 export interface ResumeEntry {

@@ -240,7 +240,7 @@ The application uses client-side storage with the following considerations:
 
 1. Write unit tests using Jest or Vitest for components and composables.
 
-2. Use Cypress for end-to-end testing.
+2. Use Playwright for end-to-end testing.
 
 3. Test edge cases for data fetching, state management, and API integration.
 
@@ -253,6 +253,8 @@ The application uses client-side storage with the following considerations:
 7. Mock external services appropriately.
 
 8. Implement integration tests for critical workflows and maintain a test coverage of at least 80% for critical business logic.
+
+9. Separate tests from code, and place tests into `tests\` folder. This can be subdivided for Playwright and other strategies.
 
 ## 13. Security
 

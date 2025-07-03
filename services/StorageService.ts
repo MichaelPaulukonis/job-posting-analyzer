@@ -1,4 +1,5 @@
-import type { AnalysisResult, SavedAnalysis, JobPosting, Resume, CoverLetter } from '../types';
+import type { AnalysisResult, SavedAnalysis, JobPosting, Resume, CoverLetter, ResumeEntry } from '../types';
+import type { CoverLetterConversation } from '../types/conversation';
 
 export class StorageService {
   private static getBaseUrl() {
@@ -17,7 +18,7 @@ export class StorageService {
       return window.location.origin;
     } else {
       // On the server, and NUXT_PUBLIC_API_BASE is not set.
-      if (import.meta.dev) {
+      if (process.env.NODE_ENV === 'development') {
         // In development mode on the server, attempt to construct a default base URL.
         // Nuxt/Nitro often sets NITRO_HOST and NITRO_PORT.
         const host = process.env.NITRO_HOST || 'localhost';
@@ -544,5 +545,174 @@ export class StorageService {
       return;
     }
     localStorage.removeItem(this.COVER_LETTER_SAMPLES_STORAGE_KEY);
+  }
+  
+  // ===== CONVERSATION MANAGEMENT =====
+  
+  private static readonly CONVERSATIONS_STORAGE_KEY = 'coverLetterConversations';
+
+  /**
+   * Save a conversation to storage
+   */
+  static async saveConversation(conversation: CoverLetterConversation): Promise<void> {
+    try {
+      const conversations = await this.getConversations();
+      const index = conversations.findIndex(c => c.id === conversation.id);
+      
+      if (index >= 0) {
+        conversations[index] = conversation;
+      } else {
+        conversations.push(conversation);
+      }
+      
+      // Try to save to server first
+      const response = await this.fetchWithBaseUrl('/api/storage/conversations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(conversations)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to save conversation: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error saving conversation to server, falling back to localStorage:', error);
+      // Fallback to localStorage
+      this.saveConversationToLocalStorage(conversation);
+    }
+  }
+
+  /**
+   * Get a conversation by ID
+   */
+  static async getConversation(id: string): Promise<CoverLetterConversation | null> {
+    try {
+      const conversations = await this.getConversations();
+      return conversations.find(c => c.id === id) || null;
+    } catch (error) {
+      console.error('Error getting conversation:', error);
+      return this.getConversationFromLocalStorage(id);
+    }
+  }
+
+  /**
+   * Get all conversations
+   */
+  static async getConversations(): Promise<CoverLetterConversation[]> {
+    try {
+      const response = await this.fetchWithBaseUrl('/api/storage/conversations');
+      if (response.ok) {
+        return await response.json();
+      } else {
+        console.warn('Server storage not available for conversations, falling back to localStorage');
+        return this.getConversationsFromLocalStorage();
+      }
+    } catch (error) {
+      console.error('Error getting conversations from server, falling back to localStorage:', error);
+      return this.getConversationsFromLocalStorage();
+    }
+  }
+
+  /**
+   * Delete a conversation
+   */
+  static async deleteConversation(id: string): Promise<void> {
+    try {
+      const conversations = await this.getConversations();
+      const filtered = conversations.filter(c => c.id !== id);
+      
+      const response = await this.fetchWithBaseUrl('/api/storage/conversations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(filtered)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to delete conversation: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Error deleting conversation from server, falling back to localStorage:', error);
+      this.deleteConversationFromLocalStorage(id);
+    }
+  }
+
+  /**
+   * Link a conversation to an analysis
+   */
+  static async linkConversationToAnalysis(analysisId: string, conversationId: string): Promise<void> {
+    try {
+      const analyses = await this.getAnalyses();
+      const analysis = analyses.find(a => a.id === analysisId);
+      
+      if (analysis) {
+        analysis.conversationId = conversationId;
+        
+        // Save the updated analysis
+        const response = await this.fetchWithBaseUrl('/api/storage', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(analyses)
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to link conversation to analysis: ${response.statusText}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error linking conversation to analysis:', error);
+      // Handle localStorage fallback if needed
+    }
+  }
+
+  // ===== CONVERSATION LOCALSTORAGE FALLBACK METHODS =====
+
+  private static saveConversationToLocalStorage(conversation: CoverLetterConversation): void {
+    if (typeof localStorage === 'undefined') {
+      console.warn('localStorage not available, cannot save conversation to localStorage fallback.');
+      return;
+    }
+    
+    const conversations = this.getConversationsFromLocalStorage();
+    const index = conversations.findIndex(c => c.id === conversation.id);
+    
+    if (index >= 0) {
+      conversations[index] = conversation;
+    } else {
+      conversations.push(conversation);
+    }
+    
+    localStorage.setItem(this.CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
+  }
+
+  private static getConversationFromLocalStorage(id: string): CoverLetterConversation | null {
+    const conversations = this.getConversationsFromLocalStorage();
+    return conversations.find(c => c.id === id) || null;
+  }
+
+  private static getConversationsFromLocalStorage(): CoverLetterConversation[] {
+    if (typeof localStorage === 'undefined') {
+      console.warn('localStorage not available, returning empty conversations array.');
+      return [];
+    }
+    
+    const data = localStorage.getItem(this.CONVERSATIONS_STORAGE_KEY);
+    return data ? JSON.parse(data) : [];
+  }
+
+  private static deleteConversationFromLocalStorage(id: string): void {
+    if (typeof localStorage === 'undefined') {
+      console.warn('localStorage not available, cannot delete conversation from localStorage fallback.');
+      return;
+    }
+    
+    const conversations = this.getConversationsFromLocalStorage();
+    const filtered = conversations.filter(c => c.id !== id);
+    localStorage.setItem(this.CONVERSATIONS_STORAGE_KEY, JSON.stringify(filtered));
   }
 }
