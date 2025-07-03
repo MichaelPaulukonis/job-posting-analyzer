@@ -4,12 +4,25 @@
 
 The Cover Letter Generation feature assists users in creating tailored cover letters based on their resume and a specific job description. It leverages AI services to analyze the input documents and generate a draft cover letter that highlights relevant skills and experiences, aligning them with the job requirements.
 
+## ✨ New: Conversation Context
+
+**Smart iterative refinement with memory!** The system now maintains conversation history during cover letter refinement, ensuring your feedback and preferences are preserved across multiple regeneration cycles.
+
+- **Context Preservation**: Never lose your previous instructions again
+- **Cumulative Improvements**: Each refinement builds on all previous feedback  
+- **Conversation History**: See your entire refinement journey in the sidebar
+- **Persistent Memory**: Conversations saved across browser sessions
+
+[📖 Learn more about Conversation Context](./conversation-context-user-guide.md)  
+[🔧 Technical Implementation Details](./conversation-context.md)
+
 ## Core Functionality
 
 - **Select Analysis**: Users choose from previously saved job analyses to use as context for the cover letter.
 - **Sample-Based Generation**: Users can select from predefined cover letter samples/templates to guide the generation process.
 - **AI-Powered Generation**: Utilizes selected AI services (OpenAI, Gemini, Claude, or Mock) to generate a cover letter.
 - **Review and Edit**: Users can review the generated cover letter, make manual edits, and regenerate with new instructions.
+- **Iterative Refinement**: Provide feedback and instructions that build on previous generations with full context preservation.
 - **Save and Manage**: Version and edits are saved. Eventually there will a way to view different versions of generated cover letters.
 
 ## Component Architecture
@@ -30,18 +43,32 @@ The Cover Letter Generation feature assists users in creating tailored cover let
 3.  **Cover Letter Sample Dialog (`/components/input/CoverLetterSampleDialog.vue`)**:
     *   Displays the content of a selected cover letter sample.
 
+4.  **Conversation History (`/components/analysis/ConversationHistory.vue`)**:
+    *   **NEW**: Displays the conversation flow between user and AI during refinement
+    *   Shows chronological message history with role indicators
+    *   Expandable/collapsible interface for long conversations
+    *   Timestamps and metadata for each interaction
+
 ### Server-Side API Endpoints
 
 1.  **Generate Cover Letter (`/server/api/cover-letter/generate.ts`)**:
-    *   Accepts job description, resume content, selected AI service, and an optional sample ID.
-    *   Orchestrates the call to the appropriate AI LLM service via `LLMServiceFactory`.
-    *   Returns the generated cover letter text.
+    *   **ENHANCED**: Now supports conversation context for iterative refinement
+    *   Accepts job description, resume content, selected AI service, optional sample ID, and conversation ID
+    *   Maintains conversation history across multiple generations
+    *   Orchestrates the call to the appropriate AI LLM service via `LLMServiceFactory`
+    *   Returns the generated cover letter text and updated conversation context
 
-2.  **List Cover Letter Samples (`/server/api/cover-letter-samples/index.ts`)**:
+2.  **Conversation Storage (`/server/api/storage/conversations.ts`)**:
+    *   **NEW**: Handles persistence of conversation history
+    *   GET: Retrieve all conversations for an analysis
+    *   POST: Save conversation data with validation
+    *   Provides fallback to localStorage for client-side storage
+
+3.  **List Cover Letter Samples (`/server/api/cover-letter-samples/index.ts`)**:
     *   Returns a list of available cover letter samples/templates.
     *   Uses `CoverLetterSampleRepository` to fetch sample metadata.
 
-3.  **Get Cover Letter Sample Content (`/server/api/cover-letter-samples/[id].ts`)**:
+4.  **Get Cover Letter Sample Content (`/server/api/cover-letter-samples/[id].ts`)**:
     *   Dynamic route that accepts a sample ID.
     *   Uses `CoverLetterSampleRepository` to fetch the content of a specific sample.
 
