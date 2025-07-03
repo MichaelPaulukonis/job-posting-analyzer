@@ -236,43 +236,87 @@ describe('StorageService Conversation Methods', () => {
     });
 
     it('should handle non-existent analysis gracefully', async () => {
-      jest.spyOn(StorageService, 'getSavedAnalyses').mockResolvedValue([]);
+      jest.spyOn(StorageService, 'getAnalyses').mockResolvedValue([]);
       
       await StorageService.linkConversationToAnalysis('non-existent-analysis', 'test-conv-123');
       
-      expect(StorageService.getSavedAnalyses).toHaveBeenCalled();
+      expect(StorageService.getAnalyses).toHaveBeenCalled();
       expect(StorageService.getConversation).not.toHaveBeenCalled();
-      expect(StorageService.saveAnalysis).not.toHaveBeenCalled();
     });
 
     it('should handle non-existent conversation', async () => {
-      jest.spyOn(StorageService, 'getConversation').mockResolvedValue(null);
+      const mockAnalysis: SavedAnalysis = {
+        id: 'test-analysis-456',
+        jobTitle: 'Software Engineer',
+        company: 'Test Company',
+        timestamp: new Date().toISOString(),
+        analysisResult: {
+          matches: [],
+          maybes: [],
+          gaps: [],
+          suggestions: []
+        },
+        jobPosting: {
+          title: 'Software Engineer',
+          company: 'Test Company',
+          description: 'Test description',
+          requirements: []
+        },
+        resume: {
+          name: 'Test Resume',
+          content: 'Test content'
+        },
+        matches: [],
+        maybes: [],
+        gaps: [],
+        suggestions: []
+      };
+      
+      jest.spyOn(StorageService, 'getAnalyses').mockResolvedValue([mockAnalysis]);
+      
+      // Mock the private fetchWithBaseUrl method
+      const fetchSpy = jest.spyOn(StorageService as never, 'fetchWithBaseUrl').mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+        status: 200,
+        statusText: 'OK'
+      } as Response);
       
       await StorageService.linkConversationToAnalysis('test-analysis-456', 'non-existent-conv');
       
-      expect(StorageService.saveAnalysis).toHaveBeenCalledWith({
-        ...mockAnalysis,
-        conversation: null
+      // Should still attempt to save the analysis with the conversation ID
+      expect(fetchSpy).toHaveBeenCalledWith('/api/storage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([{
+          ...mockAnalysis,
+          conversationId: 'non-existent-conv'
+        }])
       });
     });
   });
 
   describe('error handling', () => {
-    it('should handle localStorage setItem errors', async () => {
-      mockLocalStorage.getItem.mockReturnValue(null);
+    it('should handle localStorage setItem errors gracefully', async () => {
       mockLocalStorage.setItem.mockImplementation(() => {
         throw new Error('Storage quota exceeded');
       });
       
-      await expect(StorageService.saveConversation(mockConversation)).rejects.toThrow('Storage quota exceeded');
+      // Should not throw when localStorage fails, just log the error
+      await expect(StorageService.saveConversation(mockConversation)).resolves.toBeUndefined();
+      expect(mockLocalStorage.setItem).toHaveBeenCalled();
     });
 
-    it('should handle localStorage getItem errors', async () => {
+    it('should handle localStorage getItem errors gracefully', async () => {
       mockLocalStorage.getItem.mockImplementation(() => {
         throw new Error('Storage access denied');
       });
       
-      await expect(StorageService.getConversations()).rejects.toThrow('Storage access denied');
+      // Should return empty array when localStorage fails
+      const result = await StorageService.getConversations();
+      expect(result).toEqual([]);
     });
   });
 
@@ -312,16 +356,17 @@ describe('StorageService Conversation Methods', () => {
     it('should preserve metadata in messages', async () => {
       const conversationWithMetadata = {
         ...mockConversation,
-        messages: [        ...mockConversation.messages,
-        {
-          role: 'user' as const,
-          content: 'Instruction with metadata',
-          timestamp: '2025-01-01T00:03:00Z',
-          metadata: {
-            instructions: 'Make it more formal',
-            referenceContent: 'Previous version content'
+        messages: [
+          ...mockConversation.messages,
+          {
+            role: 'user' as const,
+            content: 'Instruction with metadata',
+            timestamp: '2025-01-01T00:03:00Z',
+            metadata: {
+              instructions: 'Make it more formal',
+              referenceContent: 'Previous version content'
+            }
           }
-        }
         ]
       };
       
