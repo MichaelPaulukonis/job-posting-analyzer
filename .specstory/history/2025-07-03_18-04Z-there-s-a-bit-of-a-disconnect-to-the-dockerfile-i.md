@@ -28,3 +28,129 @@ Based on the `engines` field in your `package.json`, the Dockerfile should be us
 
 ---
 
+_**User**_
+
+Thanks! 
+
+I'm trying to spin it up again, but I can't even. The resource is still in use?
+
+(base) ➜  job-posting-analyzer git:(main) ✗ npm run docker:stop
+
+> docker:stop
+> docker-compose down
+
+[+] Running 1/1
+ ! Network job-posting-analyzer_default  Resource is still in use  
+
+---
+
+_**Assistant**_
+
+It seems like a container is still attached to the `job-posting-analyzer_default` network, which is preventing it from being removed. You can check which containers are connected to that network with the following command:
+
+ It looks like the `job-posting-analyzer-job-analyzer-dev-1` container is still attached to the network. This is likely because it was started with `npm run docker:dev` (which uses `docker-compose.dev.yml`), but the `docker:stop` command uses the default `docker-compose.yml`.
+
+I'll stop the running container, and then you should be able to run the stop command successfully. It seems like you have a container still running that's attached to the network. I've stopped the container and re-ran the `docker:stop` command, which should have resolved the issue. You should be able to start your containers again now.
+
+---
+
+_**User**_
+
+What are the effective differences between the dev and non-dev (prod) versions of the docker-compose files? Prod contains a healthcheck property, that I'm not familiar with. I'm also not sure just what the target dev/production flag affects.
+
+---
+
+_**Assistant**_
+
+Of course. Let's break down the differences between your development and production Docker setups.
+
+First, I'll look at your `docker-compose.yml` file to compare it with the `docker-compose.dev.yml` you've provided. Of course. Let's break down the differences between your `docker-compose.dev.yml` and `docker-compose.yml` files.
+
+### Key Differences:
+
+| Feature | `docker-compose.dev.yml` (Development) | `docker-compose.yml` (Production) |
+| :--- | :--- | :--- |
+| **Build Target** | `target: dev` | `target: production` |
+| **Ports** | `3050:3000` | `3000:3000` |
+| **Volumes** | - `.:/app` (mounts current dir)<br>- `/app/node_modules` (anonymous volume) | `app-storage:/app/.data` (named volume) |
+| **Healthcheck** | Not present | Present |
+
+---
+
+### `target` flag (Build Stages)
+
+The `target` property in the `build` section of your `docker-compose` files refers to a specific stage in your multi-stage `Dockerfile`. This is a powerful feature that allows you to have different build configurations for different environments within a single `Dockerfile`.
+
+*   **`target: dev`**: This tells Docker to build up to the `dev` stage in your `Dockerfile`. This stage is designed for development. It installs all dependencies (including `devDependencies`) with `npm install` and is set up for things like hot-reloading.
+
+*   **`target: production`**: This tells Docker to build the final `production` stage. This stage is optimized for a production environment. It copies the built application from the `builder` stage and only includes the necessary production dependencies. This results in a smaller, more secure, and more efficient image.
+
+### `healthcheck` Property
+
+The `healthcheck` property in your production `docker-compose.yml` is a mechanism Docker uses to determine if the container is running and "healthy."
+
+Here's what the healthcheck in your `docker-compose.yml` does:
+
+*   **`test`**: This is the command Docker runs to check the container's health. In your case, it uses `wget` to make a request to `http://localhost:3000`. If it gets a successful response, the container is considered healthy.
+*   **`interval`**: This defines how often the health check is run (every 30 seconds).
+*   **`timeout`**: This is the maximum time the health check command is allowed to run (10 seconds).
+*   **`retries`**: If a health check fails, Docker will try again 3 more times before marking the container as "unhealthy."
+
+This is a best practice for production environments as it allows Docker to automatically restart a container that has become unresponsive.
+
+---
+
+_**User**_
+
+When I've made changes to the code, I need to run docker:build, docker:stop, docker:run for the appropriate environment, crorrect? There's no shortcut to deployment in dev?
+
+---
+
+_**Assistant**_
+
+That's a great question. For the development environment, there is indeed a shortcut that avoids rebuilding the image on every code change.
+
+The key is in your `docker-compose.dev.yml` file:
+
+```yaml
+volumes:
+  - .:/app
+  - /app/node_modules
+```
+
+This configuration mounts your local project directory (`.`) into the `/app` directory inside the container. Because of this, any changes you make to your code on your machine are instantly reflected inside the container.
+
+The Nuxt development server (`nuxt dev`) watches for file changes and automatically recompiles and hot-reloads the application in your browser.
+
+### Your Development Workflow
+
+1.  **Start the services once:** Run `npm run docker:dev`.
+2.  **Code:** Make changes to your code in your local editor.
+3.  **See changes instantly:** The running container will pick up the changes, and Nuxt will automatically reload the app.
+
+You only need to stop and rebuild the Docker image (`npm run docker:stop` followed by `npm run docker:build` and `npm run docker:dev`) when you:
+
+*   Change dependencies in `package.json`.
+*   Modify the `Dockerfile`.
+*   Change the `docker-compose.dev.yml` file itself.
+
+For the production environment (`docker:run`), you are correct. You would need to rebuild the image to include your latest code changes, as it copies the files into the image during the build process and does not use a volume mount for your source code.
+
+---
+
+_**User**_
+
+Please add this information to the main README.md file. IT should go at the end, after the heading `## Docker notes`
+
+---
+
+_**Assistant**_
+
+Of course. I will add the information about the Docker workflow to your `README.md` file. 
+````
+
+````
+I have updated the `README.md` file with the Docker information you requested.
+
+---
+
