@@ -79,7 +79,7 @@ describe('StorageService Conversation Methods', () => {
     it('should save new conversation to localStorage', async () => {
       mockLocalStorage.getItem.mockReturnValue(null);
       
-      await storageService.saveConversation(mockConversation);
+      await StorageService.saveConversation(mockConversation);
       
       expect(mockLocalStorage.getItem).toHaveBeenCalledWith('coverLetterConversations');
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
@@ -98,7 +98,7 @@ describe('StorageService Conversation Methods', () => {
         updatedAt: '2025-01-01T00:03:00Z'
       };
       
-      await storageService.saveConversation(updatedConversation);
+      await StorageService.saveConversation(updatedConversation);
       
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         'coverLetterConversations',
@@ -111,7 +111,7 @@ describe('StorageService Conversation Methods', () => {
       const existingConversations = [existingConversation];
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify(existingConversations));
       
-      await storageService.saveConversation(mockConversation);
+      await StorageService.saveConversation(mockConversation);
       
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         'coverLetterConversations',
@@ -125,7 +125,7 @@ describe('StorageService Conversation Methods', () => {
       const conversations = [mockConversation];
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify(conversations));
       
-      const result = await storageService.getConversation('test-conv-123');
+      const result = await StorageService.getConversation('test-conv-123');
       
       expect(result).toEqual(mockConversation);
       expect(mockLocalStorage.getItem).toHaveBeenCalledWith('coverLetterConversations');
@@ -134,7 +134,7 @@ describe('StorageService Conversation Methods', () => {
     it('should return null for non-existent conversation', async () => {
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify([]));
       
-      const result = await storageService.getConversation('non-existent-id');
+      const result = await StorageService.getConversation('non-existent-id');
       
       expect(result).toBeNull();
     });
@@ -142,7 +142,7 @@ describe('StorageService Conversation Methods', () => {
     it('should handle empty localStorage', async () => {
       mockLocalStorage.getItem.mockReturnValue(null);
       
-      const result = await storageService.getConversation('test-conv-123');
+      const result = await StorageService.getConversation('test-conv-123');
       
       expect(result).toBeNull();
     });
@@ -153,7 +153,7 @@ describe('StorageService Conversation Methods', () => {
       const conversations = [mockConversation];
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify(conversations));
       
-      const result = await storageService.getConversations();
+      const result = await StorageService.getConversations();
       
       expect(result).toEqual(conversations);
     });
@@ -161,7 +161,7 @@ describe('StorageService Conversation Methods', () => {
     it('should return empty array when no conversations exist', async () => {
       mockLocalStorage.getItem.mockReturnValue(null);
       
-      const result = await storageService.getConversations();
+      const result = await StorageService.getConversations();
       
       expect(result).toEqual([]);
     });
@@ -170,7 +170,7 @@ describe('StorageService Conversation Methods', () => {
       mockLocalStorage.getItem.mockReturnValue('invalid json');
       
       // Should throw or return empty array depending on implementation
-      await expect(storageService.getConversations()).rejects.toThrow();
+      await expect(StorageService.getConversations()).rejects.toThrow();
     });
   });
 
@@ -180,7 +180,7 @@ describe('StorageService Conversation Methods', () => {
       const conversations = [mockConversation, otherConversation];
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify(conversations));
       
-      await storageService.deleteConversation('test-conv-123');
+      await StorageService.deleteConversation('test-conv-123');
       
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         'coverLetterConversations',
@@ -192,7 +192,7 @@ describe('StorageService Conversation Methods', () => {
       const conversations = [mockConversation];
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify(conversations));
       
-      await storageService.deleteConversation('non-existent-id');
+      await StorageService.deleteConversation('non-existent-id');
       
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         'coverLetterConversations',
@@ -203,7 +203,7 @@ describe('StorageService Conversation Methods', () => {
     it('should handle empty conversation list', async () => {
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify([]));
       
-      await storageService.deleteConversation('test-conv-123');
+      await StorageService.deleteConversation('test-conv-123');
       
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         'coverLetterConversations',
@@ -214,39 +214,43 @@ describe('StorageService Conversation Methods', () => {
 
   describe('linkConversationToAnalysis', () => {
     beforeEach(() => {
-      // Mock the getSavedAnalyses and saveAnalysis methods
-      jest.spyOn(storageService, 'getSavedAnalyses').mockResolvedValue([mockAnalysis]);
-      jest.spyOn(storageService, 'saveAnalysis').mockResolvedValue();
-      jest.spyOn(storageService, 'getConversation').mockResolvedValue(mockConversation);
+      // Mock the getAnalyses and other methods
+      jest.spyOn(StorageService, 'getAnalyses').mockResolvedValue([mockAnalysis]);
+      jest.spyOn(StorageService, 'getConversation').mockResolvedValue(mockConversation);
+      // Mock fetchWithBaseUrl to simulate successful server operations
+      jest.spyOn(StorageService, 'fetchWithBaseUrl' as any).mockResolvedValue({
+        ok: true,
+        json: async () => ({})
+      });
     });
 
     it('should link conversation to existing analysis', async () => {
-      await storageService.linkConversationToAnalysis('test-analysis-456', 'test-conv-123');
+      await StorageService.linkConversationToAnalysis('test-analysis-456', 'test-conv-123');
       
-      expect(storageService.getSavedAnalyses).toHaveBeenCalled();
-      expect(storageService.getConversation).toHaveBeenCalledWith('test-conv-123');
-      expect(storageService.saveAnalysis).toHaveBeenCalledWith({
+      expect(StorageService.getAnalyses).toHaveBeenCalled();
+      expect(StorageService.getConversation).toHaveBeenCalledWith('test-conv-123');
+      expect(StorageService.saveAnalysis).toHaveBeenCalledWith({
         ...mockAnalysis,
         conversation: mockConversation
       });
     });
 
     it('should handle non-existent analysis gracefully', async () => {
-      jest.spyOn(storageService, 'getSavedAnalyses').mockResolvedValue([]);
+      jest.spyOn(StorageService, 'getSavedAnalyses').mockResolvedValue([]);
       
-      await storageService.linkConversationToAnalysis('non-existent-analysis', 'test-conv-123');
+      await StorageService.linkConversationToAnalysis('non-existent-analysis', 'test-conv-123');
       
-      expect(storageService.getSavedAnalyses).toHaveBeenCalled();
-      expect(storageService.getConversation).not.toHaveBeenCalled();
-      expect(storageService.saveAnalysis).not.toHaveBeenCalled();
+      expect(StorageService.getSavedAnalyses).toHaveBeenCalled();
+      expect(StorageService.getConversation).not.toHaveBeenCalled();
+      expect(StorageService.saveAnalysis).not.toHaveBeenCalled();
     });
 
     it('should handle non-existent conversation', async () => {
-      jest.spyOn(storageService, 'getConversation').mockResolvedValue(null);
+      jest.spyOn(StorageService, 'getConversation').mockResolvedValue(null);
       
-      await storageService.linkConversationToAnalysis('test-analysis-456', 'non-existent-conv');
+      await StorageService.linkConversationToAnalysis('test-analysis-456', 'non-existent-conv');
       
-      expect(storageService.saveAnalysis).toHaveBeenCalledWith({
+      expect(StorageService.saveAnalysis).toHaveBeenCalledWith({
         ...mockAnalysis,
         conversation: null
       });
@@ -260,7 +264,7 @@ describe('StorageService Conversation Methods', () => {
         throw new Error('Storage quota exceeded');
       });
       
-      await expect(storageService.saveConversation(mockConversation)).rejects.toThrow('Storage quota exceeded');
+      await expect(StorageService.saveConversation(mockConversation)).rejects.toThrow('Storage quota exceeded');
     });
 
     it('should handle localStorage getItem errors', async () => {
@@ -268,28 +272,37 @@ describe('StorageService Conversation Methods', () => {
         throw new Error('Storage access denied');
       });
       
-      await expect(storageService.getConversations()).rejects.toThrow('Storage access denied');
+      await expect(StorageService.getConversations()).rejects.toThrow('Storage access denied');
     });
   });
 
   describe('data integrity', () => {
+    beforeEach(() => {
+      // Reset mocks specifically for data integrity tests
+      jest.clearAllMocks();
+      mockLocalStorage.getItem.mockReturnValue(null);
+      mockLocalStorage.setItem.mockClear();
+      // Remove the error-throwing implementation
+      mockLocalStorage.setItem.mockImplementation(() => {});
+    });
+
     it('should preserve conversation message order', async () => {
       const conversationWithManyMessages = {
         ...mockConversation,
         messages: [
-          { role: 'system', content: 'System message', timestamp: '2025-01-01T00:00:00Z' },
-          { role: 'user', content: 'User message 1', timestamp: '2025-01-01T00:01:00Z' },
-          { role: 'assistant', content: 'Assistant response 1', timestamp: '2025-01-01T00:02:00Z' },
-          { role: 'user', content: 'User message 2', timestamp: '2025-01-01T00:03:00Z' },
-          { role: 'assistant', content: 'Assistant response 2', timestamp: '2025-01-01T00:04:00Z' }
+          { role: 'system' as const, content: 'System message', timestamp: '2025-01-01T00:00:00Z' },
+          { role: 'user' as const, content: 'User message 1', timestamp: '2025-01-01T00:01:00Z' },
+          { role: 'assistant' as const, content: 'Assistant response 1', timestamp: '2025-01-01T00:02:00Z' },
+          { role: 'user' as const, content: 'User message 2', timestamp: '2025-01-01T00:03:00Z' },
+          { role: 'assistant' as const, content: 'Assistant response 2', timestamp: '2025-01-01T00:04:00Z' }
         ]
       };
       
       mockLocalStorage.getItem.mockReturnValue(null);
-      await storageService.saveConversation(conversationWithManyMessages);
+      await StorageService.saveConversation(conversationWithManyMessages);
       
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify([conversationWithManyMessages]));
-      const retrieved = await storageService.getConversation(conversationWithManyMessages.id);
+      const retrieved = await StorageService.getConversation(conversationWithManyMessages.id);
       
       expect(retrieved?.messages).toHaveLength(5);
       expect(retrieved?.messages[0].content).toBe('System message');
@@ -299,25 +312,24 @@ describe('StorageService Conversation Methods', () => {
     it('should preserve metadata in messages', async () => {
       const conversationWithMetadata = {
         ...mockConversation,
-        messages: [
-          ...mockConversation.messages,
-          {
-            role: 'user',
-            content: 'Instruction with metadata',
-            timestamp: '2025-01-01T00:03:00Z',
-            metadata: {
-              instructions: 'Make it more formal',
-              referenceContent: 'Previous version content'
-            }
+        messages: [        ...mockConversation.messages,
+        {
+          role: 'user' as const,
+          content: 'Instruction with metadata',
+          timestamp: '2025-01-01T00:03:00Z',
+          metadata: {
+            instructions: 'Make it more formal',
+            referenceContent: 'Previous version content'
           }
+        }
         ]
       };
       
       mockLocalStorage.getItem.mockReturnValue(null);
-      await storageService.saveConversation(conversationWithMetadata);
+      await StorageService.saveConversation(conversationWithMetadata);
       
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify([conversationWithMetadata]));
-      const retrieved = await storageService.getConversation(conversationWithMetadata.id);
+      const retrieved = await StorageService.getConversation(conversationWithMetadata.id);
       
       const messageWithMetadata = retrieved?.messages.find(m => m.metadata);
       expect(messageWithMetadata?.metadata?.instructions).toBe('Make it more formal');
