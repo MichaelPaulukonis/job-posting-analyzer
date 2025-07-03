@@ -1,13 +1,29 @@
 import type { CoverLetterConversation } from '~/types/conversation';
+import conversationRepository from '../../repositories/ConversationRepository';
 
 export default defineEventHandler(async (event) => {
   const method = getMethod(event);
   
   switch (method) {
     case 'GET':
-      // For now, return empty array since we don't have persistent storage
-      // In a real app, this would query a database
-      return [];
+      try {
+        const query = getQuery(event);
+        const { analysisId } = query;
+        
+        if (analysisId && typeof analysisId === 'string') {
+          // Get conversations for a specific analysis
+          return conversationRepository.getByAnalysisId(analysisId);
+        } else {
+          // Get all conversations
+          return conversationRepository.getAll();
+        }
+      } catch (error) {
+        console.error('Error retrieving conversations:', error);
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to retrieve conversations'
+        });
+      }
       
     case 'POST':
       try {
@@ -17,13 +33,14 @@ export default defineEventHandler(async (event) => {
         if (!conversation.id || !conversation.analysisId) {
           throw createError({
             statusCode: 400,
-            statusMessage: 'Invalid conversation data'
+            statusMessage: 'Invalid conversation data - missing id or analysisId'
           });
         }
         
-        // For now, just return success since we don't have persistent storage
-        // In a real app, this would save to a database
-        console.log(`Conversation ${conversation.id} would be saved for analysis ${conversation.analysisId}`);
+        // Save conversation to file-based storage
+        conversationRepository.save(conversation);
+        
+        console.log(`Conversation ${conversation.id} saved for analysis ${conversation.analysisId}`);
         
         return { success: true, id: conversation.id };
       } catch (error) {
@@ -31,6 +48,30 @@ export default defineEventHandler(async (event) => {
         throw createError({
           statusCode: 500,
           statusMessage: 'Failed to save conversation'
+        });
+      }
+      
+    case 'DELETE':
+      try {
+        const query = getQuery(event);
+        const { id } = query;
+        
+        if (!id || typeof id !== 'string') {
+          throw createError({
+            statusCode: 400,
+            statusMessage: 'Missing conversation ID'
+          });
+        }
+        
+        conversationRepository.delete(id);
+        console.log(`Conversation ${id} deleted`);
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Error deleting conversation:', error);
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Failed to delete conversation'
         });
       }
       

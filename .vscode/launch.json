@@ -13,7 +13,8 @@
       "console": "integratedTerminal",
       "skipFiles": [
         "<node_internals>/**"
-      ]
+      ],
+      "runtimeVersion": "23"
     },
     {
       "type": "chrome",
@@ -40,7 +41,8 @@
       "console": "integratedTerminal",
       "env": {
         "NODE_OPTIONS": "--inspect"
-      }
+      },
+      "runtimeVersion": "23"
     },
     {
       "type": "node",
@@ -50,10 +52,10 @@
       "args": ["--runInBand"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "disableOptimisticBPs": true,
       "skipFiles": [
         "<node_internals>/**"
-      ]
+      ],
+      "runtimeVersion": "23"
     }
   ],
   "compounds": [
