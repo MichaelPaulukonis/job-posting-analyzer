@@ -62,3 +62,9 @@ The tool provides a structured way to:
 - Collapsible input sections
 - Clear error handling and validation
 - Loading indicators for analysis in progress
+
+## Versioning
+
+This project uses an automated versioning system with a `pre-commit` hook managed by **Husky**.
+
+When a commit is made to the `main` branch, the `pre-commit` hook automatically increments the patch version number in `package.json`. This ensures that every commit to `main` is associated with a unique version, which is then displayed in the admin panel.

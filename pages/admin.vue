@@ -98,10 +98,12 @@ const isLoading = ref(true);
 const error = ref<string | null>(null);
 const isCreatingSample = ref(false);
 const fetchResponse = ref<any>(null);
+const config = useRuntimeConfig();
 
 // Debug information
 const debugInfo = computed(() => {
   return {
+    appVersion: config.public.appVersion,
     storageFiles: storageFiles.value,
     isLoading: isLoading.value,
     error: error.value,
