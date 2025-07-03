@@ -124,6 +124,14 @@
             @delete="deleteSavedAnalysis"
           />
         </div>
+
+        <!-- Conversation History -->
+        <div class="bg-white shadow-md rounded-lg p-6">
+          <ConversationHistory 
+            :conversation="currentConversation || undefined"
+            :can-toggle="true"
+          />
+        </div>
       </div>
     </div>
 
@@ -185,6 +193,7 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { SavedAnalysis, CoverLetter, ServiceName } from '../../types';
+import type { CoverLetterConversation } from '../../types/conversation';
 import { StorageService } from '../../services/StorageService';
 import { CoverLetterService } from '../../services/CoverLetterService';
 import TextAreaInput from '../../components/input/TextAreaInput.vue';
@@ -193,6 +202,7 @@ import { diffWords } from 'diff';
 import CoverLetterSampleSelector from '../../components/input/CoverLetterSampleSelector.vue';
 import CoverLetterSampleDialog from '../../components/input/CoverLetterSampleDialog.vue';
 import AnalysisHistory from '../../components/analysis/AnalysisHistory.vue';
+import ConversationHistory from '../../components/analysis/ConversationHistory.vue';
 
 // Get analysis ID from route param
 const route = useRoute();
@@ -219,6 +229,7 @@ const showSampleDialog = ref(false);
 const selectedSampleId = ref('');
 const savedAnalyses = ref<SavedAnalysis[]>([]);
 const selectedService = ref<ServiceName>('gemini'); // Default service
+const currentConversation = ref<CoverLetterConversation | null>(null);
 
 // Track manual edits
 const hasManualEdits = computed(() => {
@@ -279,6 +290,18 @@ onMounted(async () => {
         coverLetter.editedSections = foundAnalysis.coverLetter.editedSections || [];
         originalContent.value = coverLetter.content;
       }
+      
+      // Try to load existing conversation for this analysis
+      try {
+        const conversations = await StorageService.getConversations();
+        const existingConversation = conversations.find(c => c.analysisId === analysisId);
+        if (existingConversation) {
+          currentConversation.value = existingConversation;
+        }
+      } catch (err) {
+        console.warn('Could not load conversation history:', err);
+        // Not a critical error, continue without conversation
+      }
     } else {
       error.value = 'Analysis not found';
     }
@@ -302,19 +325,24 @@ const generateCoverLetter = async () => {
   error.value = '';
   
   try {
-    const generated = await CoverLetterService.generateCoverLetter(
+    const result = await CoverLetterService.generateCoverLetterWithContext(
       analysis.value,
+      currentConversation.value?.id, // Use existing conversation if available
       sampleLetter.value,
       undefined, // No instructions for initial generation
       undefined, // No reference content for initial generation
-      selectedService.value // Pass the selected service
+      selectedService.value
     );
     
-    coverLetter.content = generated.content;
-    coverLetter.timestamp = generated.timestamp;
+    coverLetter.content = result.coverLetter.content;
+    coverLetter.timestamp = result.coverLetter.timestamp;
     coverLetter.sampleContent = sampleLetter.value;
     originalContent.value = coverLetter.content;
     coverLetter.editedSections = [];
+    
+    // Update conversation state
+    currentConversation.value = result.conversation;
+    
     await saveCoverLetter();
     
   } catch (err) {
@@ -341,28 +369,31 @@ const handleRegenerate = async () => {
   showRegenerateDialog.value = false;
   
   try {
-    const generated = await CoverLetterService.generateCoverLetter(
+    const result = await CoverLetterService.generateCoverLetterWithContext(
       analysis.value,
+      currentConversation.value?.id, // Use existing conversation
       sampleLetter.value,
       regenerateInstructions.value,
       referenceContent,
-      selectedService.value // Pass the selected service
+      selectedService.value
     );
     
-    coverLetter.content = generated.content;
-    coverLetter.timestamp = generated.timestamp;
-    coverLetter.instructions = regenerateInstructions.value;
+    coverLetter.content = result.coverLetter.content;
+    coverLetter.timestamp = result.coverLetter.timestamp;
     originalContent.value = coverLetter.content;
-    coverLetter.editedSections = [];
-    await saveCoverLetter();
     
-  } catch (err) {
-    console.error('Error generating cover letter:', err);
-    error.value = err instanceof Error ? err.message : 'Failed to generate cover letter';
-  } finally {
-    isGenerating.value = false;
+    // Update conversation state
+    currentConversation.value = result.conversation;
+    
+    await saveCoverLetter();
     regenerateInstructions.value = '';
     regenerateOption.value = 'keep';
+    
+  } catch (err) {
+    console.error('Error regenerating cover letter:', err);
+    error.value = err instanceof Error ? err.message : 'Failed to regenerate cover letter';
+  } finally {
+    isGenerating.value = false;
   }
 };
 

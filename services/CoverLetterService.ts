@@ -10,16 +10,23 @@ import {
 
 export class CoverLetterService {
   private static getBaseUrl() {
-    // In development, use the current origin
-    if (process.dev) {
+    // Check if we're in a browser environment
+    if (typeof window !== 'undefined') {
       return window.location.origin;
     }
-    // In production, use the configured base URL or fallback to current origin
-    return process.env.NUXT_PUBLIC_API_BASE || window.location.origin;
+    
+    // On server-side, try to get runtime config
+    try {
+      const config = useRuntimeConfig();
+      return config.public.baseUrl || 'http://localhost:3000';
+    } catch {
+      // Fallback for non-Nuxt environments (like tests)
+      return process.env.BASE_URL || 'http://localhost:3000';
+    }
   }
 
   private static async fetchWithBaseUrl(path: string, options?: RequestInit) {
-    const baseUrl = this.getBaseUrl();
+    const baseUrl = CoverLetterService.getBaseUrl();
     const url = `${baseUrl}${path}`;
     return fetch(url, options);
   }
@@ -36,7 +43,7 @@ export class CoverLetterService {
   ): Promise<CoverLetter> {
     try {
       // Call our server API endpoint
-      const response = await this.fetchWithBaseUrl('/api/cover-letter/generate', {
+      const response = await CoverLetterService.fetchWithBaseUrl('/api/cover-letter/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,11 +98,11 @@ export class CoverLetterService {
           conversation = existingConversation;
         } else {
           // Create new conversation if the provided ID doesn't exist
-          conversation = await this.createNewConversation(analysis.id, sampleLetter, instructions, referenceContent);
+          conversation = await CoverLetterService.createNewConversation(analysis.id, sampleLetter, instructions, referenceContent);
         }
       } else {
         // Create new conversation
-        conversation = await this.createNewConversation(analysis.id, sampleLetter, instructions, referenceContent);
+        conversation = await CoverLetterService.createNewConversation(analysis.id, sampleLetter, instructions, referenceContent);
       }
       
       // Add user request to conversation
@@ -122,7 +129,7 @@ export class CoverLetterService {
       );
       
       // Call API with conversation context
-      const response = await this.fetchWithBaseUrl('/api/cover-letter/generate', {
+      const response = await CoverLetterService.fetchWithBaseUrl('/api/cover-letter/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

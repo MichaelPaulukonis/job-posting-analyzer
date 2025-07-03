@@ -15,7 +15,8 @@ export default defineNuxtConfig({
       // We don't expose the actual API keys to the client
       geminiApiAvailable: !!process.env.GEMINI_API_KEY,
       anthropicApiAvailable: !!process.env.ANTHROPIC_API_KEY,
-      baseUrl: process.env.BASE_URL || 'http://localhost:3000' // Ensure scheme is present
+      baseUrl: process.env.BASE_URL || 'http://localhost:3000', // Ensure scheme is present
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || process.env.BASE_URL || 'http://localhost:3000'
     }
   },
 
