@@ -51,16 +51,9 @@ Make sure to install dependencies:
 ```bash
 # npm
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
+
+TODO: document API keys 
 
 ## Development Server
 
@@ -69,49 +62,66 @@ Start the development server on `http://localhost:3000`:
 ```bash
 # npm
 npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
 
-Build the application for production:
+## Docker notes
+
+This project is fully containerized using Docker and Docker Compose, providing a consistent environment for both development and production.
+
+### Development Environment
+
+The development environment is configured for hot-reloading, meaning any changes you make to the source code will be instantly reflected in the running container without needing to rebuild the image.
+
+**To start the development server:**
 
 ```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
+npm run docker:dev
 ```
 
-Locally preview production build:
+The application will be available at `http://localhost:3050`.
+
+**When to rebuild the development image:**
+
+You only need to rebuild the Docker image when you make changes to the underlying environment, such as:
+
+*   Adding or removing dependencies in `package.json`.
+*   Modifying the `Dockerfile`.
+*   Changing the `docker-compose.dev.yml` file.
+
+To rebuild, run:
 
 ```bash
-# npm
-npm run preview
+# Stop the running containers
+npm run docker:stop
 
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
+# Rebuild the image and start the containers
+npm run docker:dev
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+### Production Environment
+
+The production environment uses a multi-stage Docker build to create a lean, optimized image.
+
+**To build and run the production server:**
+
+```bash
+# Build the production image
+npm run docker:build
+
+# Start the production container
+npm run docker:run
+```
+
+The application will be available at `http://localhost:3000`.
+
+**Important:** Unlike the development setup, you **must** rebuild the image (`npm run docker:build`) every time you make code changes for them to be reflected in the production container.
+
+### Stopping Docker Containers
+
+To stop all running containers for this project (both dev and prod), run:
+
+```bash
+npm run docker:stop
+```
+
