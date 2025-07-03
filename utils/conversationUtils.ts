@@ -1,5 +1,5 @@
 import type { SavedAnalysis } from '../types';
-import type { ConversationMessage, ConversationContext } from '../types/conversation';
+import type { ConversationMessage, ConversationContext, CoverLetterConversation } from '../types/conversation';
 
 /**
  * Creates a conversation context for cover letter generation
@@ -198,4 +198,75 @@ ${sampleLetter}
   }
 
   return prompt;
+};
+
+/**
+ * Add a message to a CoverLetterConversation
+ */
+export const addMessageToConversation = (
+  conversation: CoverLetterConversation,
+  message: ConversationMessage
+): CoverLetterConversation => {
+  return {
+    ...conversation,
+    messages: [...conversation.messages, message],
+    updatedAt: new Date().toISOString()
+  };
+};
+
+/**
+ * Create a new CoverLetterConversation
+ */
+export const createCoverLetterConversation = (
+  analysisId: string,
+  systemMessage?: ConversationMessage
+): CoverLetterConversation => {
+  const conversation: CoverLetterConversation = {
+    id: `conv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    analysisId,
+    messages: [],
+    currentContent: '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (systemMessage) {
+    return addMessageToConversation(conversation, systemMessage);
+  }
+
+  return conversation;
+};
+
+/**
+ * Convert CoverLetterConversation to ConversationContext for AI processing
+ */
+export const conversationToContext = (
+  conversation: CoverLetterConversation,
+  analysis: SavedAnalysis,
+  sampleLetter?: string,
+  instructions?: string,
+  referenceContent?: string
+): ConversationContext => {
+  // Get the system message from conversation or create a default one
+  const systemMessage = conversation.messages.find(m => m.role === 'system') || {
+    role: 'system' as const,
+    content: 'You are a professional cover letter writer.',
+    timestamp: new Date().toISOString()
+  };
+
+  // Create analysis context message
+  const analysisContext: ConversationMessage = {
+    role: 'system' as const,
+    content: `Analysis for ${analysis.jobTitle}: Matches: ${analysis.matches.join(', ')}. Gaps: ${analysis.gaps.join(', ')}.`,
+    timestamp: new Date().toISOString()
+  };
+
+  // Get conversation history (excluding system messages)
+  const conversationHistory = conversation.messages.filter(m => m.role !== 'system');
+
+  return {
+    systemMessage,
+    analysisContext,
+    conversationHistory
+  };
 };

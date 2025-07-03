@@ -18,6 +18,7 @@ export interface AnalysisResult {
 export interface CoverLetter {
   content: string;
   timestamp: string;
+  conversationId?: string; // Optional conversation ID for context
   sampleContent?: string;  // Optional sample letter
   instructions?: string;   // Optional instructions for regeneration
   history: CoverLetterVersion[];  // History of previous versions
