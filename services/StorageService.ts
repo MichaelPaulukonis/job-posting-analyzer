@@ -556,22 +556,13 @@ export class StorageService {
    */
   static async saveConversation(conversation: CoverLetterConversation): Promise<void> {
     try {
-      const conversations = await this.getConversations();
-      const index = conversations.findIndex(c => c.id === conversation.id);
-      
-      if (index >= 0) {
-        conversations[index] = conversation;
-      } else {
-        conversations.push(conversation);
-      }
-      
       // Try to save to server first
-      const response = await this.fetchWithBaseUrl('/api/storage/conversations', {
+      const response = await StorageService.fetchWithBaseUrl('/api/storage/conversations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(conversations)
+        body: JSON.stringify(conversation)
       });
       
       if (!response.ok) {
@@ -580,7 +571,7 @@ export class StorageService {
     } catch (error) {
       console.error('Error saving conversation to server, falling back to localStorage:', error);
       // Fallback to localStorage
-      this.saveConversationToLocalStorage(conversation);
+      StorageService.saveConversationToLocalStorage(conversation);
     }
   }
 
@@ -589,11 +580,11 @@ export class StorageService {
    */
   static async getConversation(id: string): Promise<CoverLetterConversation | null> {
     try {
-      const conversations = await this.getConversations();
+      const conversations = await StorageService.getConversations();
       return conversations.find(c => c.id === id) || null;
     } catch (error) {
       console.error('Error getting conversation:', error);
-      return this.getConversationFromLocalStorage(id);
+      return StorageService.getConversationFromLocalStorage(id);
     }
   }
 
@@ -602,16 +593,16 @@ export class StorageService {
    */
   static async getConversations(): Promise<CoverLetterConversation[]> {
     try {
-      const response = await this.fetchWithBaseUrl('/api/storage/conversations');
+      const response = await StorageService.fetchWithBaseUrl('/api/storage/conversations');
       if (response.ok) {
         return await response.json();
       } else {
         console.warn('Server storage not available for conversations, falling back to localStorage');
-        return this.getConversationsFromLocalStorage();
+        return StorageService.getConversationsFromLocalStorage();
       }
     } catch (error) {
       console.error('Error getting conversations from server, falling back to localStorage:', error);
-      return this.getConversationsFromLocalStorage();
+      return StorageService.getConversationsFromLocalStorage();
     }
   }
 
@@ -620,10 +611,10 @@ export class StorageService {
    */
   static async deleteConversation(id: string): Promise<void> {
     try {
-      const conversations = await this.getConversations();
+      const conversations = await StorageService.getConversations();
       const filtered = conversations.filter(c => c.id !== id);
       
-      const response = await this.fetchWithBaseUrl('/api/storage/conversations', {
+      const response = await StorageService.fetchWithBaseUrl('/api/storage/conversations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -636,7 +627,7 @@ export class StorageService {
       }
     } catch (error) {
       console.error('Error deleting conversation from server, falling back to localStorage:', error);
-      this.deleteConversationFromLocalStorage(id);
+      StorageService.deleteConversationFromLocalStorage(id);
     }
   }
 
@@ -645,14 +636,14 @@ export class StorageService {
    */
   static async linkConversationToAnalysis(analysisId: string, conversationId: string): Promise<void> {
     try {
-      const analyses = await this.getAnalyses();
+      const analyses = await StorageService.getAnalyses();
       const analysis = analyses.find(a => a.id === analysisId);
       
       if (analysis) {
         analysis.conversationId = conversationId;
         
         // Save the updated analysis
-        const response = await this.fetchWithBaseUrl('/api/storage', {
+        const response = await StorageService.fetchWithBaseUrl('/api/storage', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -678,20 +669,25 @@ export class StorageService {
       return;
     }
     
-    const conversations = this.getConversationsFromLocalStorage();
-    const index = conversations.findIndex(c => c.id === conversation.id);
-    
-    if (index >= 0) {
-      conversations[index] = conversation;
-    } else {
-      conversations.push(conversation);
+    try {
+      const conversations = StorageService.getConversationsFromLocalStorage();
+      const index = conversations.findIndex(c => c.id === conversation.id);
+      
+      if (index >= 0) {
+        conversations[index] = conversation;
+      } else {
+        conversations.push(conversation);
+      }
+      
+      localStorage.setItem(StorageService.CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
+    } catch (error) {
+      console.error('Error saving conversation to localStorage:', error);
+      // Don't throw - gracefully handle localStorage errors
     }
-    
-    localStorage.setItem(this.CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));
   }
 
   private static getConversationFromLocalStorage(id: string): CoverLetterConversation | null {
-    const conversations = this.getConversationsFromLocalStorage();
+    const conversations = StorageService.getConversationsFromLocalStorage();
     return conversations.find(c => c.id === id) || null;
   }
 
@@ -701,8 +697,13 @@ export class StorageService {
       return [];
     }
     
-    const data = localStorage.getItem(this.CONVERSATIONS_STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    try {
+      const data = localStorage.getItem(StorageService.CONVERSATIONS_STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error reading conversations from localStorage:', error);
+      return [];
+    }
   }
 
   private static deleteConversationFromLocalStorage(id: string): void {
@@ -711,8 +712,13 @@ export class StorageService {
       return;
     }
     
-    const conversations = this.getConversationsFromLocalStorage();
-    const filtered = conversations.filter(c => c.id !== id);
-    localStorage.setItem(this.CONVERSATIONS_STORAGE_KEY, JSON.stringify(filtered));
+    try {
+      const conversations = StorageService.getConversationsFromLocalStorage();
+      const filtered = conversations.filter(c => c.id !== id);
+      localStorage.setItem(StorageService.CONVERSATIONS_STORAGE_KEY, JSON.stringify(filtered));
+    } catch (error) {
+      console.error('Error deleting conversation from localStorage:', error);
+      // Don't throw - gracefully handle localStorage errors
+    }
   }
 }
