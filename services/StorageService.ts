@@ -3,50 +3,47 @@ import type { CoverLetterConversation } from '../types/conversation';
 
 export class StorageService {
   private static getBaseUrl() {
-    // Priority 1: Explicitly configured public API base URL
-    // This is suitable for server-side environments and can also be used by the client if configured.
-    if (process.env.NUXT_PUBLIC_API_BASE) {
-      return process.env.NUXT_PUBLIC_API_BASE;
+    // Check if we're in a Nuxt environment and can access runtime config
+    try {
+      // Try to use Nuxt's runtime config first
+      const config = useRuntimeConfig();
+      if (config?.public?.apiBase) {
+        return config.public.apiBase;
+      }
+    } catch (error) {
+      // useRuntimeConfig not available, fall back to other methods
     }
 
     // Check if in a browser environment
     const isBrowser = typeof window !== 'undefined' && typeof window.location !== 'undefined';
 
     if (isBrowser) {
-      // In a browser environment, use the current origin if NUXT_PUBLIC_API_BASE is not set.
-      // This covers both development and production browser scenarios.
+      // In a browser environment, use the current origin as fallback
       return window.location.origin;
     } else {
-      // On the server, and NUXT_PUBLIC_API_BASE is not set.
+      // On the server, construct a default base URL for development
       if (process.env.NODE_ENV === 'development') {
-        // In development mode on the server, attempt to construct a default base URL.
-        // Nuxt/Nitro often sets NITRO_HOST and NITRO_PORT.
         const host = process.env.NITRO_HOST || 'localhost';
-        const port = process.env.NITRO_PORT || process.env.PORT || '3000'; // PORT is a common env var, 3000 is Nuxt's default.
-        const protocol = host === 'localhost' ? 'http' : 'http'; // Default to http for local; consider 'https' if host is not localhost, though NUXT_PUBLIC_API_BASE is better for this.
+        const port = process.env.NITRO_PORT || process.env.PORT || '3000';
+        const protocol = 'http';
 
         console.warn(
-          `StorageService: NUXT_PUBLIC_API_BASE is not set. Defaulting to ${protocol}://${host}:${port} ` +
-          `for server-side API calls in development. For production or specific configurations, ` +
-          `please set NUXT_PUBLIC_API_BASE.`
+          `StorageService: Using fallback base URL ${protocol}://${host}:${port} ` +
+          `for server-side API calls in development. Consider configuring runtime config properly.`
         );
         return `${protocol}://${host}:${port}`;
       } else {
-        // In a non-development (e.g., production) server environment,
-        // if NUXT_PUBLIC_API_BASE is not set, this is a critical configuration issue.
         console.error(
           'StorageService: Unable to determine API base URL for server-side calls. ' +
-          'NUXT_PUBLIC_API_BASE is not set, and not in a browser environment. ' +
-          'This is a critical configuration error for production server environments. ' +
-          'API calls will likely fail.'
+          'Runtime config not available and not in browser environment.'
         );
-        return ''; // Return an empty string, which will cause fetchWithBaseUrl to throw an error.
+        return '';
       }
     }
   }
 
   private static async fetchWithBaseUrl(path: string, options?: RequestInit) {
-    const baseUrl = this.getBaseUrl();
+    const baseUrl = StorageService.getBaseUrl();
     if (!baseUrl) {
       // getBaseUrl() already logs an error if it returns an empty string.
       throw new Error(`Cannot fetch from API: Base URL is not configured or could not be determined. Attempted path: ${path}`);
@@ -61,7 +58,7 @@ export class StorageService {
   static async saveAnalysis(result: AnalysisResult, jobPosting: JobPosting, resume: Resume): Promise<SavedAnalysis> {
     try {
       // Get current analyses
-      const savedAnalyses = await this.getAnalyses();
+      const savedAnalyses = await StorageService.getAnalyses();
       
       // Create new analysis object with complete job posting and resume
       const analysisToSave: SavedAnalysis = {
@@ -99,7 +96,7 @@ export class StorageService {
       console.error('Error saving analysis:', error);
       // Fallback to localStorage if server storage fails
       // If this also throws (e.g., on server where localStorage is undefined), the error will propagate.
-      return this.saveAnalysisToLocalStorage(result, jobPosting, resume);
+      return StorageService.saveAnalysisToLocalStorage(result, jobPosting, resume);
     }
   }
   
@@ -109,7 +106,7 @@ export class StorageService {
   static async saveCoverLetter(analysisId: string, coverLetter: CoverLetter): Promise<void> {
     try {
       // Get current analyses
-      const savedAnalyses = await this.getAnalyses();
+      const savedAnalyses = await StorageService.getAnalyses();
       
       // Find the analysis to update
       const analysisIndex = savedAnalyses.findIndex(a => a.id === analysisId);
@@ -154,7 +151,7 @@ export class StorageService {
       // Error logging is already handled if error.value was thrown
       // console.error('Error fetching analyses:', error); 
       // Fallback to localStorage if server fetch fails
-      return this.getAnalysesFromLocalStorage();
+      return StorageService.getAnalysesFromLocalStorage();
     }
   }
   
@@ -170,7 +167,7 @@ export class StorageService {
     } catch (error) {
       console.error('Error deleting analysis:', error);
       // Fallback to localStorage if server delete fails
-      this.deleteAnalysisFromLocalStorage(id);
+      StorageService.deleteAnalysisFromLocalStorage(id);
     }
   }
   
@@ -186,7 +183,7 @@ export class StorageService {
     } catch (error) {
       console.error('Error clearing analyses:', error);
       // Fallback to localStorage if server clear fails
-      this.clearAnalysesFromLocalStorage();
+      StorageService.clearAnalysesFromLocalStorage();
     }
   }
   
@@ -196,7 +193,7 @@ export class StorageService {
   static async saveResume(resume: ResumeEntry): Promise<string> {
     try {
       // Get current resumes
-      const savedResumes = await this.getResumes();
+      const savedResumes = await StorageService.getResumes();
       
       // Add to the beginning of the array
       savedResumes.unshift(resume);
@@ -217,7 +214,7 @@ export class StorageService {
     } catch (error) {
       console.error('Error saving resume:', error);
       // Fallback to localStorage if server storage fails
-      return this.saveResumeToLocalStorage(resume);
+      return StorageService.saveResumeToLocalStorage(resume);
     }
   }
 
@@ -238,7 +235,7 @@ export class StorageService {
     } catch (error) {
       // console.error('Error fetching resumes:', error);
       // Fallback to localStorage if server fetch fails
-      return this.getResumesFromLocalStorage();
+      return StorageService.getResumesFromLocalStorage();
     }
   }
 
@@ -254,7 +251,7 @@ export class StorageService {
     } catch (error) {
       console.error('Error deleting resume:', error);
       // Fallback to localStorage if server delete fails
-      this.deleteResumeFromLocalStorage(id);
+      StorageService.deleteResumeFromLocalStorage(id);
     }
   }
 
@@ -270,7 +267,7 @@ export class StorageService {
     } catch (error) {
       console.error('Error clearing resumes:', error);
       // Fallback to localStorage if server clear fails
-      this.clearResumesFromLocalStorage();
+      StorageService.clearResumesFromLocalStorage();
     }
   }
   
@@ -280,7 +277,7 @@ export class StorageService {
   static async saveCoverLetterSample(sample: { content: string; name: string; notes: string }): Promise<string> {
     try {
       // Get current samples
-      const savedSamples = await this.getCoverLetterSamples();
+      const savedSamples = await StorageService.getCoverLetterSamples();
       
       // Create new sample object
       const sampleToSave = {
@@ -307,7 +304,7 @@ export class StorageService {
     } catch (error) {
       console.error('Error saving cover letter sample:', error);
       // Fallback to localStorage if server storage fails
-      return this.saveCoverLetterSampleToLocalStorage(sample);
+      return StorageService.saveCoverLetterSampleToLocalStorage(sample);
     }
   }
 
@@ -328,7 +325,7 @@ export class StorageService {
     } catch (error) {
       // console.error('Error fetching cover letter samples:', error);
       // Fallback to localStorage if server fetch fails
-      return this.getCoverLetterSamplesFromLocalStorage();
+      return StorageService.getCoverLetterSamplesFromLocalStorage();
     }
   }
 
@@ -344,7 +341,7 @@ export class StorageService {
     } catch (error) {
       console.error('Error deleting cover letter sample:', error);
       // Fallback to localStorage if server delete fails
-      this.deleteCoverLetterSampleFromLocalStorage(id);
+      StorageService.deleteCoverLetterSampleFromLocalStorage(id);
     }
   }
 
@@ -360,7 +357,7 @@ export class StorageService {
     } catch (error) {
       console.error('Error clearing cover letter samples:', error);
       // Fallback to localStorage if server clear fails
-      this.clearCoverLetterSamplesFromLocalStorage();
+      StorageService.clearCoverLetterSamplesFromLocalStorage();
     }
   }
   
@@ -373,7 +370,7 @@ export class StorageService {
       console.warn('localStorage not available, cannot save analysis to localStorage fallback.');
       throw new Error('localStorage not available for fallback save of analysis.');
     }
-    const savedAnalyses = this.getAnalysesFromLocalStorage();
+    const savedAnalyses = StorageService.getAnalysesFromLocalStorage();
     
     const analysisToSave: SavedAnalysis = {
       ...result,
@@ -394,7 +391,7 @@ export class StorageService {
     
     // Keep only the latest 10 analyses
     const trimmedAnalyses = savedAnalyses.slice(0, 10);
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(trimmedAnalyses));
+    localStorage.setItem(StorageService.STORAGE_KEY, JSON.stringify(trimmedAnalyses));
     
     return analysisToSave;
   }
@@ -405,7 +402,7 @@ export class StorageService {
       // console.warn('localStorage not available, cannot get analyses from localStorage fallback.');
       return [];
     }
-    const data = localStorage.getItem(this.STORAGE_KEY);
+    const data = localStorage.getItem(StorageService.STORAGE_KEY);
     if (!data) return [];
     
     try {
@@ -421,9 +418,9 @@ export class StorageService {
       console.warn('localStorage not available, cannot delete analysis from localStorage fallback.');
       return;
     }
-    const savedAnalyses = this.getAnalysesFromLocalStorage();
+    const savedAnalyses = StorageService.getAnalysesFromLocalStorage();
     const updatedAnalyses = savedAnalyses.filter(analysis => analysis.id !== id);
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(updatedAnalyses));
+    localStorage.setItem(StorageService.STORAGE_KEY, JSON.stringify(updatedAnalyses));
   }
   
   private static clearAnalysesFromLocalStorage(): void {
@@ -431,7 +428,7 @@ export class StorageService {
       console.warn('localStorage not available, cannot clear analyses from localStorage fallback.');
       return;
     }
-    localStorage.removeItem(this.STORAGE_KEY);
+    localStorage.removeItem(StorageService.STORAGE_KEY);
   }
   
   // --- Fallback localStorage methods for resumes ---
@@ -443,13 +440,13 @@ export class StorageService {
       console.warn('localStorage not available, cannot save resume to localStorage fallback.');
       throw new Error('localStorage not available for fallback save of resume.');
     }
-    const savedResumes = this.getResumesFromLocalStorage();
+    const savedResumes = StorageService.getResumesFromLocalStorage();
     
     savedResumes.unshift(resume);
     
     // Keep only the latest 10 resumes
     const trimmedResumes = savedResumes.slice(0, 10);
-    localStorage.setItem(this.RESUMES_STORAGE_KEY, JSON.stringify(trimmedResumes));
+    localStorage.setItem(StorageService.RESUMES_STORAGE_KEY, JSON.stringify(trimmedResumes));
     
     return resume.id;
   }
@@ -459,7 +456,7 @@ export class StorageService {
       // console.warn('localStorage not available, cannot get resumes from localStorage fallback.');
       return [];
     }
-    const data = localStorage.getItem(this.RESUMES_STORAGE_KEY);
+    const data = localStorage.getItem(StorageService.RESUMES_STORAGE_KEY);
     if (!data) return [];
     
     try {
@@ -475,9 +472,9 @@ export class StorageService {
       console.warn('localStorage not available, cannot delete resume from localStorage fallback.');
       return;
     }
-    const savedResumes = this.getResumesFromLocalStorage();
+    const savedResumes = StorageService.getResumesFromLocalStorage();
     const updatedResumes = savedResumes.filter(resume => resume.id !== id);
-    localStorage.setItem(this.RESUMES_STORAGE_KEY, JSON.stringify(updatedResumes));
+    localStorage.setItem(StorageService.RESUMES_STORAGE_KEY, JSON.stringify(updatedResumes));
   }
   
   private static clearResumesFromLocalStorage(): void {
@@ -485,7 +482,7 @@ export class StorageService {
       console.warn('localStorage not available, cannot clear resumes from localStorage fallback.');
       return;
     }
-    localStorage.removeItem(this.RESUMES_STORAGE_KEY);
+    localStorage.removeItem(StorageService.RESUMES_STORAGE_KEY);
   }
 
   // --- Fallback localStorage methods for cover letter samples ---
@@ -497,7 +494,7 @@ export class StorageService {
       console.warn('localStorage not available, cannot save cover letter sample to localStorage fallback.');
       throw new Error('localStorage not available for fallback save of cover letter sample.');
     }
-    const savedSamples = this.getCoverLetterSamplesFromLocalStorage();
+    const savedSamples = StorageService.getCoverLetterSamplesFromLocalStorage();
     
     const sampleToSave = {
       id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
@@ -508,7 +505,7 @@ export class StorageService {
     };
     
     savedSamples.unshift(sampleToSave);
-    localStorage.setItem(this.COVER_LETTER_SAMPLES_STORAGE_KEY, JSON.stringify(savedSamples));
+    localStorage.setItem(StorageService.COVER_LETTER_SAMPLES_STORAGE_KEY, JSON.stringify(savedSamples));
     
     return sampleToSave.id;
   }
@@ -518,7 +515,7 @@ export class StorageService {
       // console.warn('localStorage not available, cannot get cover letter samples from localStorage fallback.');
       return [];
     }
-    const data = localStorage.getItem(this.COVER_LETTER_SAMPLES_STORAGE_KEY);
+    const data = localStorage.getItem(StorageService.COVER_LETTER_SAMPLES_STORAGE_KEY);
     if (!data) return [];
     
     try {
@@ -534,9 +531,9 @@ export class StorageService {
       console.warn('localStorage not available, cannot delete cover letter sample from localStorage fallback.');
       return;
     }
-    const savedSamples = this.getCoverLetterSamplesFromLocalStorage();
+    const savedSamples = StorageService.getCoverLetterSamplesFromLocalStorage();
     const updatedSamples = savedSamples.filter(sample => sample.id !== id);
-    localStorage.setItem(this.COVER_LETTER_SAMPLES_STORAGE_KEY, JSON.stringify(updatedSamples));
+    localStorage.setItem(StorageService.COVER_LETTER_SAMPLES_STORAGE_KEY, JSON.stringify(updatedSamples));
   }
   
   private static clearCoverLetterSamplesFromLocalStorage(): void {
@@ -544,7 +541,7 @@ export class StorageService {
       console.warn('localStorage not available, cannot clear cover letter samples from localStorage fallback.');
       return;
     }
-    localStorage.removeItem(this.COVER_LETTER_SAMPLES_STORAGE_KEY);
+    localStorage.removeItem(StorageService.COVER_LETTER_SAMPLES_STORAGE_KEY);
   }
   
   // ===== CONVERSATION MANAGEMENT =====
