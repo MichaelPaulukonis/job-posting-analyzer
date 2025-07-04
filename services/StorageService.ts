@@ -3,47 +3,50 @@ import type { CoverLetterConversation } from '../types/conversation';
 
 export class StorageService {
   private static getBaseUrl() {
-    // Check if we're in a Nuxt environment and can access runtime config
-    try {
-      // Try to use Nuxt's runtime config first
-      const config = useRuntimeConfig();
-      if (config?.public?.apiBase) {
-        return config.public.apiBase;
-      }
-    } catch (error) {
-      // useRuntimeConfig not available, fall back to other methods
+    // Priority 1: Explicitly configured public API base URL
+    // This is suitable for server-side environments and can also be used by the client if configured.
+    if (process.env.NUXT_PUBLIC_API_BASE) {
+      return process.env.NUXT_PUBLIC_API_BASE;
     }
 
     // Check if in a browser environment
     const isBrowser = typeof window !== 'undefined' && typeof window.location !== 'undefined';
 
     if (isBrowser) {
-      // In a browser environment, use the current origin as fallback
+      // In a browser environment, use the current origin if NUXT_PUBLIC_API_BASE is not set.
+      // This covers both development and production browser scenarios.
       return window.location.origin;
     } else {
-      // On the server, construct a default base URL for development
-      if (process.env.NODE_ENV === 'development') {
+      // On the server, and NUXT_PUBLIC_API_BASE is not set.
+      if (import.meta.dev) {
+        // In development mode on the server, attempt to construct a default base URL.
+        // Nuxt/Nitro often sets NITRO_HOST and NITRO_PORT.
         const host = process.env.NITRO_HOST || 'localhost';
-        const port = process.env.NITRO_PORT || process.env.PORT || '3000';
-        const protocol = 'http';
+        const port = process.env.NITRO_PORT || process.env.PORT || '3000'; // PORT is a common env var, 3000 is Nuxt's default.
+        const protocol = host === 'localhost' ? 'http' : 'http'; // Default to http for local; consider 'https' if host is not localhost, though NUXT_PUBLIC_API_BASE is better for this.
 
         console.warn(
-          `StorageService: Using fallback base URL ${protocol}://${host}:${port} ` +
-          `for server-side API calls in development. Consider configuring runtime config properly.`
+          `StorageService: NUXT_PUBLIC_API_BASE is not set. Defaulting to ${protocol}://${host}:${port} ` +
+          `for server-side API calls in development. For production or specific configurations, ` +
+          `please set NUXT_PUBLIC_API_BASE.`
         );
         return `${protocol}://${host}:${port}`;
       } else {
+        // In a non-development (e.g., production) server environment,
+        // if NUXT_PUBLIC_API_BASE is not set, this is a critical configuration issue.
         console.error(
           'StorageService: Unable to determine API base URL for server-side calls. ' +
-          'Runtime config not available and not in browser environment.'
+          'NUXT_PUBLIC_API_BASE is not set, and not in a browser environment. ' +
+          'This is a critical configuration error for production server environments. ' +
+          'API calls will likely fail.'
         );
-        return '';
+        return ''; // Return an empty string, which will cause fetchWithBaseUrl to throw an error.
       }
     }
   }
 
   private static async fetchWithBaseUrl(path: string, options?: RequestInit) {
-    const baseUrl = StorageService.getBaseUrl();
+    const baseUrl = this.getBaseUrl();
     if (!baseUrl) {
       // getBaseUrl() already logs an error if it returns an empty string.
       throw new Error(`Cannot fetch from API: Base URL is not configured or could not be determined. Attempted path: ${path}`);
@@ -58,17 +61,17 @@ export class StorageService {
   static async saveAnalysis(result: AnalysisResult, jobPosting: JobPosting, resume: Resume): Promise<SavedAnalysis> {
     try {
       // Get current analyses
-      const savedAnalyses = await StorageService.getAnalyses();
+      const savedAnalyses = await this.getAnalyses();
       
       // Create new analysis object with complete job posting and resume
       const analysisToSave: SavedAnalysis = {
         ...result,
         id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-        jobTitle: jobPosting.title || undefined,
+        jobTitle: jobPosting.name || undefined,
         resumeSnippet: resume.content.substring(0, 100) + (resume.content.length > 100 ? '...' : ''),
         // Store the complete job posting and resume
         jobPosting: {
-          title: jobPosting.title,
+          name: jobPosting.name,
           content: jobPosting.content
         },
         resume: {
@@ -96,7 +99,7 @@ export class StorageService {
       console.error('Error saving analysis:', error);
       // Fallback to localStorage if server storage fails
       // If this also throws (e.g., on server where localStorage is undefined), the error will propagate.
-      return StorageService.saveAnalysisToLocalStorage(result, jobPosting, resume);
+      return this.saveAnalysisToLocalStorage(result, jobPosting, resume);
     }
   }
   
@@ -106,7 +109,7 @@ export class StorageService {
   static async saveCoverLetter(analysisId: string, coverLetter: CoverLetter): Promise<void> {
     try {
       // Get current analyses
-      const savedAnalyses = await StorageService.getAnalyses();
+      const savedAnalyses = await this.getAnalyses();
       
       // Find the analysis to update
       const analysisIndex = savedAnalyses.findIndex(a => a.id === analysisId);
@@ -151,7 +154,7 @@ export class StorageService {
       // Error logging is already handled if error.value was thrown
       // console.error('Error fetching analyses:', error); 
       // Fallback to localStorage if server fetch fails
-      return StorageService.getAnalysesFromLocalStorage();
+      return this.getAnalysesFromLocalStorage();
     }
   }
   
@@ -167,7 +170,7 @@ export class StorageService {
     } catch (error) {
       console.error('Error deleting analysis:', error);
       // Fallback to localStorage if server delete fails
-      StorageService.deleteAnalysisFromLocalStorage(id);
+      this.deleteAnalysisFromLocalStorage(id);
     }
   }
   
@@ -183,7 +186,7 @@ export class StorageService {
     } catch (error) {
       console.error('Error clearing analyses:', error);
       // Fallback to localStorage if server clear fails
-      StorageService.clearAnalysesFromLocalStorage();
+      this.clearAnalysesFromLocalStorage();
     }
   }
   
@@ -271,96 +274,6 @@ export class StorageService {
     }
   }
   
-  /**
-   * Save a cover letter sample
-   */
-  static async saveCoverLetterSample(sample: { content: string; name: string; notes: string }): Promise<string> {
-    try {
-      // Get current samples
-      const savedSamples = await StorageService.getCoverLetterSamples();
-      
-      // Create new sample object
-      const sampleToSave = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-        name: sample.name,
-        content: sample.content,
-        notes: sample.notes,
-        timestamp: new Date().toISOString()
-      };
-      
-      // Add to the beginning of the array
-      savedSamples.unshift(sampleToSave);
-      
-      // Save to server
-      await useAPIFetch('/api/cover-letter-samples', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(savedSamples)
-      });
-      
-      return sampleToSave.id;
-    } catch (error) {
-      console.error('Error saving cover letter sample:', error);
-      // Fallback to localStorage if server storage fails
-      return StorageService.saveCoverLetterSampleToLocalStorage(sample);
-    }
-  }
-
-  /**
-   * Get all saved cover letter samples
-   */
-  static async getCoverLetterSamples(): Promise<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>> {
-    try {
-      // Fetch from server
-      const asyncData = await useAPIFetch<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>>('/api/cover-letter-samples');
-      
-      if (asyncData.error.value) {
-        console.error('Error fetching cover letter samples (useAPIFetch):', asyncData.error.value);
-        throw asyncData.error.value; // Re-throw to be caught by the outer catch block
-      }
-      // data.value can be T | null. Return an empty array if null.
-      return asyncData.data.value || [];
-    } catch (error) {
-      // console.error('Error fetching cover letter samples:', error);
-      // Fallback to localStorage if server fetch fails
-      return StorageService.getCoverLetterSamplesFromLocalStorage();
-    }
-  }
-
-  /**
-   * Delete a specific cover letter sample
-   */
-  static async deleteCoverLetterSample(id: string): Promise<void> {
-    try {
-      // Delete from server
-      await useAPIFetch(`/api/cover-letter-samples/${id}`, {
-        method: 'DELETE'
-      });
-    } catch (error) {
-      console.error('Error deleting cover letter sample:', error);
-      // Fallback to localStorage if server delete fails
-      StorageService.deleteCoverLetterSampleFromLocalStorage(id);
-    }
-  }
-
-  /**
-   * Clear all saved cover letter samples
-   */
-  static async clearCoverLetterSamples(): Promise<void> {
-    try {
-      // Clear from server
-      await useAPIFetch('/api/cover-letter-samples', {
-        method: 'DELETE'
-      });
-    } catch (error) {
-      console.error('Error clearing cover letter samples:', error);
-      // Fallback to localStorage if server clear fails
-      StorageService.clearCoverLetterSamplesFromLocalStorage();
-    }
-  }
-  
   // --- Fallback localStorage methods ---
   
   private static STORAGE_KEY = 'job-analysis-history';
@@ -391,7 +304,7 @@ export class StorageService {
     
     // Keep only the latest 10 analyses
     const trimmedAnalyses = savedAnalyses.slice(0, 10);
-    localStorage.setItem(StorageService.STORAGE_KEY, JSON.stringify(trimmedAnalyses));
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(trimmedAnalyses));
     
     return analysisToSave;
   }
@@ -402,7 +315,7 @@ export class StorageService {
       // console.warn('localStorage not available, cannot get analyses from localStorage fallback.');
       return [];
     }
-    const data = localStorage.getItem(StorageService.STORAGE_KEY);
+    const data = localStorage.getItem(this.STORAGE_KEY);
     if (!data) return [];
     
     try {
@@ -418,9 +331,9 @@ export class StorageService {
       console.warn('localStorage not available, cannot delete analysis from localStorage fallback.');
       return;
     }
-    const savedAnalyses = StorageService.getAnalysesFromLocalStorage();
+    const savedAnalyses = this.getAnalysesFromLocalStorage();
     const updatedAnalyses = savedAnalyses.filter(analysis => analysis.id !== id);
-    localStorage.setItem(StorageService.STORAGE_KEY, JSON.stringify(updatedAnalyses));
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(updatedAnalyses));
   }
   
   private static clearAnalysesFromLocalStorage(): void {
@@ -428,7 +341,7 @@ export class StorageService {
       console.warn('localStorage not available, cannot clear analyses from localStorage fallback.');
       return;
     }
-    localStorage.removeItem(StorageService.STORAGE_KEY);
+    localStorage.removeItem(this.STORAGE_KEY);
   }
   
   // --- Fallback localStorage methods for resumes ---
@@ -484,7 +397,7 @@ export class StorageService {
     }
     localStorage.removeItem(StorageService.RESUMES_STORAGE_KEY);
   }
-
+  
   // --- Fallback localStorage methods for cover letter samples ---
   
   private static COVER_LETTER_SAMPLES_STORAGE_KEY = 'saved-cover-letter-samples';
@@ -494,7 +407,7 @@ export class StorageService {
       console.warn('localStorage not available, cannot save cover letter sample to localStorage fallback.');
       throw new Error('localStorage not available for fallback save of cover letter sample.');
     }
-    const savedSamples = StorageService.getCoverLetterSamplesFromLocalStorage();
+    const savedSamples = this.getCoverLetterSamplesFromLocalStorage();
     
     const sampleToSave = {
       id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
@@ -505,7 +418,7 @@ export class StorageService {
     };
     
     savedSamples.unshift(sampleToSave);
-    localStorage.setItem(StorageService.COVER_LETTER_SAMPLES_STORAGE_KEY, JSON.stringify(savedSamples));
+    localStorage.setItem(this.COVER_LETTER_SAMPLES_STORAGE_KEY, JSON.stringify(savedSamples));
     
     return sampleToSave.id;
   }
@@ -515,7 +428,7 @@ export class StorageService {
       // console.warn('localStorage not available, cannot get cover letter samples from localStorage fallback.');
       return [];
     }
-    const data = localStorage.getItem(StorageService.COVER_LETTER_SAMPLES_STORAGE_KEY);
+    const data = localStorage.getItem(this.COVER_LETTER_SAMPLES_STORAGE_KEY);
     if (!data) return [];
     
     try {
@@ -531,9 +444,9 @@ export class StorageService {
       console.warn('localStorage not available, cannot delete cover letter sample from localStorage fallback.');
       return;
     }
-    const savedSamples = StorageService.getCoverLetterSamplesFromLocalStorage();
+    const savedSamples = this.getCoverLetterSamplesFromLocalStorage();
     const updatedSamples = savedSamples.filter(sample => sample.id !== id);
-    localStorage.setItem(StorageService.COVER_LETTER_SAMPLES_STORAGE_KEY, JSON.stringify(updatedSamples));
+    localStorage.setItem(this.COVER_LETTER_SAMPLES_STORAGE_KEY, JSON.stringify(updatedSamples));
   }
   
   private static clearCoverLetterSamplesFromLocalStorage(): void {
