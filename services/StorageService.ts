@@ -67,11 +67,11 @@ export class StorageService {
       const analysisToSave: SavedAnalysis = {
         ...result,
         id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-        jobTitle: jobPosting.name || undefined,
+        jobTitle: jobPosting.title || undefined,
         resumeSnippet: resume.content.substring(0, 100) + (resume.content.length > 100 ? '...' : ''),
         // Store the complete job posting and resume
         jobPosting: {
-          name: jobPosting.name,
+          title: jobPosting.title,
           content: jobPosting.content
         },
         resume: {
@@ -271,6 +271,40 @@ export class StorageService {
       console.error('Error clearing resumes:', error);
       // Fallback to localStorage if server clear fails
       StorageService.clearResumesFromLocalStorage();
+    }
+  }
+
+  /**
+   * Get all saved cover letter samples
+   */
+  static async getCoverLetterSamples(): Promise<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>> {
+    try {
+      // Fetch from server
+      const asyncData = await useAPIFetch<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>>('/api/cover-letter-samples');
+
+      if (asyncData.error.value) {
+        console.error('Error fetching cover letter samples (useAPIFetch):', asyncData.error.value);
+        throw asyncData.error.value;
+      }
+      return asyncData.data.value || [];
+    } catch (error) {
+      return StorageService.getCoverLetterSamplesFromLocalStorage();
+    }
+  }
+
+  /**
+   * Delete a specific cover letter sample
+   */
+  static async deleteCoverLetterSample(id: string): Promise<void> {
+    try {
+      // Delete from server
+      await useAPIFetch(`/api/cover-letter-samples/${id}`, {
+        method: 'DELETE'
+      });
+    } catch (error) {
+      console.error('Error deleting cover letter sample:', error);
+      // Fallback to localStorage if server delete fails
+      StorageService.deleteCoverLetterSampleFromLocalStorage(id);
     }
   }
   
