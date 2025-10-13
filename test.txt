@@ -1,0 +1,77 @@
+# CLAUDE.md Creation Notes
+
+## What Was Done
+
+Created a comprehensive CLAUDE.md file for the job-posting-analyzer repository to provide guidance to future Claude Code instances.
+
+## Analysis Process
+
+1. Read key documentation files:
+   - README.md - Project overview, setup, and Docker instructions
+   - package.json - Available scripts and dependencies
+   - .github/copilot-instructions.md - Project structure and coding standards
+   - .github/changelog-management.md - Git commit workflow
+
+2. Explored project structure:
+   - Directory tree (excluding node_modules)
+   - Vue components (24 .vue files)
+   - Server API routes and repositories
+   - Service layer architecture
+   - Type definitions
+
+3. Analyzed key architectural files:
+   - services/LLMServiceInterface.ts - Service abstraction layer
+   - services/StorageService.ts - Hybrid storage implementation
+   - types/index.ts - Core data structures
+   - nuxt.config.ts - Application configuration
+   - jest.config.js & playwright.config.ts - Testing setup
+
+## Key Architectural Insights Documented
+
+1. **Multi-Provider LLM Pattern**
+   - Factory pattern for switching between Gemini, Claude, and mock services
+   - Shared interface (LLMServiceInterface) implemented by all providers
+   - User selection persisted in localStorage
+
+2. **Hybrid Storage Architecture**
+   - Server-first approach with localStorage fallback
+   - Repository pattern on server side
+   - FileStorageService for JSON persistence
+   - Handles SSR scenarios gracefully
+
+3. **Data Flow**
+   - Analysis flow: Input → Service selection → LLM processing → Storage
+   - Cover letter flow: Analysis → Sample selection → Streaming generation → Conversation tracking
+
+4. **Component Organization**
+   - Atomic design with subdirectories (input/, analysis/, admin/, common/, layout/)
+
+5. **Git Workflow**
+   - Mandatory changelog check before commits
+   - Conventional Commits format
+   - Semantic versioning rules
+
+## What Was NOT Included (Intentionally)
+
+- Exhaustive file/directory listings (easily discovered with tools)
+- Generic development practices (obvious instructions)
+- Repetitive information already clear from code
+- Made-up sections like "Common Development Tasks" not in source docs
+
+## Document Structure
+
+1. Overview
+2. Development Commands (install, dev, test, build, docker)
+3. Environment Configuration
+4. Architecture (LLM services, storage, data flow, components, server API, types)
+5. Git Workflow (commit process, message format, versioning)
+6. Important Patterns & Conventions (services, storage, components, API routes, TypeScript)
+7. Docker Development
+8. Pre-commit Hooks
+9. File Parsing Support
+
+## Files Created
+
+- /Users/michaelpaulukonis/projects/job-posting-analyzer/CLAUDE.md
+
+Total: 1 file (approximately 200 lines)
