@@ -18,11 +18,11 @@ export class StorageService {
       return window.location.origin;
     } else {
       // On the server, and NUXT_PUBLIC_API_BASE is not set.
-      if (import.meta.dev) {
+      if (process.env.NODE_ENV !== 'production') {
         // In development mode on the server, attempt to construct a default base URL.
         // Nuxt/Nitro often sets NITRO_HOST and NITRO_PORT.
         const host = process.env.NITRO_HOST || 'localhost';
-        const port = process.env.NITRO_PORT || process.env.PORT || '3000'; // PORT is a common env var, 3000 is Nuxt's default.
+        const port = process.env.NITRO_PORT || process.env.PORT || '3001'; // PORT is a common env var, 3001 is Nuxt's default.
         const protocol = host === 'localhost' ? 'http' : 'http'; // Default to http for local; consider 'https' if host is not localhost, though NUXT_PUBLIC_API_BASE is better for this.
 
         console.warn(
@@ -226,6 +226,7 @@ export class StorageService {
    */
  static async getResumes(): Promise<ResumeEntry[]> {
     try {
+      console.log('StorageService.getResumes: Attempting to fetch from server...');
       // Fetch from server
       const asyncData = await useAPIFetch<ResumeEntry[]>('/api/resumes');
 
@@ -234,11 +235,16 @@ export class StorageService {
         throw asyncData.error.value; // Re-throw to be caught by the outer catch block
       }
       // data.value can be T | null. Return an empty array if null.
-      return asyncData.data.value || [];
+      const serverResumes = asyncData.data.value || [];
+      console.log('StorageService.getResumes: Server returned', serverResumes.length, 'resumes');
+      return serverResumes;
     } catch (error) {
+      console.log('StorageService.getResumes: Server fetch failed, falling back to localStorage...');
       // console.error('Error fetching resumes:', error);
       // Fallback to localStorage if server fetch fails
-      return StorageService.getResumesFromLocalStorage();
+      const localResumes = StorageService.getResumesFromLocalStorage();
+      console.log('StorageService.getResumes: localStorage returned', localResumes.length, 'resumes');
+      return localResumes;
     }
   }
 

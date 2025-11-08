@@ -18,18 +18,22 @@ export default defineNuxtConfig({
       // We don't expose the actual API keys to the client
       geminiApiAvailable: !!process.env.GEMINI_API_KEY,
       anthropicApiAvailable: !!process.env.ANTHROPIC_API_KEY,
-      baseUrl: process.env.BASE_URL || 'http://localhost:3000', // Ensure scheme is present
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || process.env.BASE_URL || 'http://localhost:3000'
+      baseUrl: process.env.BASE_URL || 'http://localhost:3001', // Updated default port
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || process.env.BASE_URL || 'http://localhost:3001' // Updated default port
     }
   },
 
   // Configure Nitro to ignore specific directories
   nitro: {
-    host: process.env.HOST || '0.0.0.0', // Important for Docker
-    port: process.env.PORT || 3000,
     ignore: [
       'notes/**', // Ignore the entire notes directory and its contents
     ]
+  },
+
+  // Dev server configuration
+  devServer: {
+    port: process.env.PORT ? parseInt(process.env.PORT) : 3001,
+    host: process.env.HOST || '0.0.0.0'
   },
 
   compatibilityDate: '2025-05-01'
