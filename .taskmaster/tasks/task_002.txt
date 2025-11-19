@@ -1,6 +1,6 @@
 # Task ID: 2
 # Title: Implement API Rate Limiting and Abuse Prevention Middleware
-# Status: pending
+# Status: deferred
 # Dependencies: 1
 # Priority: high
 # Description: Develop and implement a rate limiting system with per-IP request limits, appropriate headers, and protection mechanisms against brute force attacks to ensure fair usage of API and AI services.

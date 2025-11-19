@@ -1,0 +1,43 @@
+# Task ID: 16
+# Title: Job Suitability Analysis Implementation
+# Status: done
+# Dependencies: 15
+# Priority: medium
+# Description: Develop functionality to analyze job descriptions and provide detailed suitability assessments, integrating with the existing Nuxt architecture.
+# Details:
+Implemented job suitability analysis by creating a new API endpoint (`server/api/upwork/analyze.ts`) and corresponding page component. Reused existing Claude integration patterns from `server/api/analyze.ts` and UI patterns from job analysis pages. The analysis extracts required and nice-to-have skills from job descriptions, detects red flags in budget, timeline, and client history, and matches skills against experience from MCP. Generated a detailed go/no-go recommendation with supporting reasoning. Used the existing prompt template from `docs/prompts/upwork_proposal_analysis.txt` as a starting point, adapting it to the existing Claude integration architecture. The implementation includes comprehensive analysis covering requirements, skill matching, competitive position, concerns, and recommendations, with an option to integrate with MCP memory when the 'use memory' checkbox is selected.
+
+# Test Strategy:
+Tested the new API endpoint with sample job descriptions. Verified correct integration with existing form validation and Claude API handling. Confirmed that the analysis logic properly identifies technical skills and detects red flags. Validated that the UI correctly displays analysis results using existing components. Ensured the feature integrates seamlessly with the overall application flow. All testing has been completed successfully with proper error handling and Claude API integration following existing patterns.
+
+# Subtasks:
+## 1. Create API Endpoint for Job Analysis [done]
+### Dependencies: None
+### Description: Implement the server/api/upwork/analyze.ts endpoint following established patterns from existing server/api/analyze.ts implementation. Handle request validation, Claude API interaction, and error handling consistently with existing patterns.
+### Details:
+
+
+## 2. Implement Job Suitability Analysis Logic [done]
+### Dependencies: None
+### Description: Add specific logic for Upwork job suitability including red flag detection (budget, timeline, client history) and skill matching against MCP data. Adapt the existing prompt template to work with the current Claude integration.
+### Details:
+
+
+## 3. Create Page Component for Results [done]
+### Dependencies: None
+### Description: Build page component for job suitability analysis, reusing existing input forms and result display components. Ensure consistent UI experience with the rest of the application.
+### Details:
+
+
+## 4. Integrate with MCP Memory [done]
+### Dependencies: None
+### Description: Connect analysis with MCP memory data to enable personalized skill assessment and job matching. Use existing patterns for accessing and utilizing memory data.
+### Details:
+
+
+## 5. Add Route and Navigation [done]
+### Dependencies: None
+### Description: Configure Nuxt routing for the new job suitability analysis page and add navigation links to make the feature accessible within the application.
+### Details:
+
+

@@ -1,0 +1,43 @@
+# Task ID: 12
+# Title: Project Setup with Express.js and Docker
+# Status: done
+# Dependencies: None
+# Priority: high
+# Description: Integrate the Upwork Proposal Generator functionality into the existing Nuxt 3 application.
+# Details:
+Instead of creating a separate Express.js application, integrate the Upwork proposal generator into the existing Nuxt 3 application that already has Docker setup, Claude API integration, and web interface. Add new pages and API routes to the existing app: create a `/upwork` page for proposal generation and `/api/upwork/` API routes. Reuse existing Claude integration, Docker setup, and UI patterns. Focus specifically on implementing the new MCP memory integration and proposal generation logic within the current Nuxt application structure.
+
+# Test Strategy:
+Verify the new `/upwork` page loads correctly in the existing application. Ensure the new API routes respond appropriately to requests. Test the integration with the existing Docker setup to confirm proper functionality. Validate that the MCP memory integration works as expected within the existing application context.
+
+# Subtasks:
+## 1. undefined [done]
+### Dependencies: None
+### Description: Create `/upwork` page in the Nuxt 3 application for proposal generation
+### Details:
+
+
+## 2. undefined [done]
+### Dependencies: None
+### Description: Implement `/api/upwork/` API routes in the existing Nuxt server middleware
+### Details:
+
+
+## 3. undefined [done]
+### Dependencies: None
+### Description: Integrate MCP memory functionality with the existing Claude integration
+### Details:
+
+
+## 4. undefined [done]
+### Dependencies: None
+### Description: Configure environment variables for MCP memory access
+### Details:
+
+
+## 5. undefined [done]
+### Dependencies: None
+### Description: Ensure compatibility with existing Docker setup
+### Details:
+
+

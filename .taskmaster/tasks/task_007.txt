@@ -1,6 +1,6 @@
 # Task ID: 7
 # Title: Create Comprehensive End-User Documentation and Guides
-# Status: pending
+# Status: deferred
 # Dependencies: 3, 4, 5
 # Priority: medium
 # Description: Develop detailed user documentation including step-by-step onboarding guides with screenshots, video tutorials for key workflows, FAQs, and best practices for resume optimization and cover letter generation.
