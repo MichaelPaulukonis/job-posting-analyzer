@@ -1,0 +1,295 @@
+# Task ID: 5
+# Title: Implement End-to-End Testing Framework with Playwright for Critical User Journeys
+# Status: pending
+# Dependencies: 1, 3
+# Priority: high
+# Description: Expand test coverage by implementing comprehensive Playwright-based E2E tests for critical user workflows including job analysis, resume management, cover letter generation, and service provider switching with error scenario validation.
+# Details:
+## Implementation Steps
+
+### 1. Set Up Playwright Testing Environment
+- Install Playwright and configure it for the project:
+  ```bash
+  npm install --save-dev @playwright/test
+  npx playwright install
+  ```
+- Create a Playwright configuration file:
+  ```typescript
+  // playwright.config.ts
+  import { PlaywrightTestConfig } from '@playwright/test';
+
+  const config: PlaywrightTestConfig = {
+    testDir: './tests/e2e',
+    timeout: 30000,
+    retries: 2,
+    workers: process.env.CI ? 1 : undefined,
+    use: {
+      baseURL: process.env.TEST_URL || 'http://localhost:3000',
+      trace: 'on-first-retry',
+      screenshot: 'only-on-failure',
+      video: 'on-first-retry',
+    },
+    projects: [
+      {
+        name: 'Chrome',
+        use: { browserName: 'chromium' },
+      },
+      {
+        name: 'Firefox',
+        use: { browserName: 'firefox' },
+      },
+      {
+        name: 'Safari',
+        use: { browserName: 'webkit' },
+      },
+      {
+        name: 'Mobile Chrome',
+        use: { 
+          browserName: 'chromium',
+          viewport: { width: 390, height: 844 },
+          deviceScaleFactor: 3,
+          isMobile: true,
+        },
+      },
+    ],
+    reporter: [
+      ['html', { outputFolder: 'playwright-report' }],
+      ['json', { outputFile: 'playwright-report/test-results.json' }]
+    ],
+  };
+
+  export default config;
+  ```
+
+### 2. Create Page Object Models
+- Implement the Page Object pattern to abstract UI interactions:
+  ```typescript
+  // tests/e2e/pages/login.page.ts
+  import { Page, Locator } from '@playwright/test';
+
+  export class LoginPage {
+    readonly page: Page;
+    readonly emailInput: Locator;
+    readonly passwordInput: Locator;
+    readonly loginButton: Locator;
+    readonly errorMessage: Locator;
+
+    constructor(page: Page) {
+      this.page = page;
+      this.emailInput = page.locator('#email');
+      this.passwordInput = page.locator('#password');
+      this.loginButton = page.locator('button[type="submit"]');
+      this.errorMessage = page.locator('.error-message');
+    }
+
+    async navigateTo() {
+      await this.page.goto('/login');
+    }
+
+    async login(email: string, password: string) {
+      await this.emailInput.fill(email);
+      await this.passwordInput.fill(password);
+      await this.loginButton.click();
+    }
+  }
+  ```
+
+### 3. Implement Test Fixtures and Utilities
+- Create test fixtures for common operations:
+  ```typescript
+  // tests/e2e/fixtures/auth.fixture.ts
+  import { test as base } from '@playwright/test';
+  import { LoginPage } from '../pages/login.page';
+
+  type AuthFixtures = {
+    authenticatedPage: Page;
+  };
+
+  export const test = base.extend<AuthFixtures>({
+    authenticatedPage: async ({ browser }, use) => {
+      const page = await browser.newPage();
+      const loginPage = new LoginPage(page);
+      await loginPage.navigateTo();
+      await loginPage.login('test@example.com', 'password123');
+      // Verify login was successful
+      await page.waitForURL('/dashboard');
+      await use(page);
+      await page.close();
+    },
+  });
+
+  export { expect } from '@playwright/test';
+  ```
+
+### 4. Implement E2E Tests for Critical User Journeys
+
+#### 4.1 Job Analysis Workflow
+- Create comprehensive tests for job description analysis:
+  ```typescript
+  // tests/e2e/job-analysis.spec.ts
+  import { test, expect } from './fixtures/auth.fixture';
+  import { JobAnalysisPage } from './pages/job-analysis.page';
+  import { generateJobDescription } from './utils/test-data';
+
+  test.describe('Job Analysis Workflow', () => {
+    test('should analyze job description and show skills match', async ({ authenticatedPage: page }) => {
+      const jobAnalysisPage = new JobAnalysisPage(page);
+      await jobAnalysisPage.navigateTo();
+      
+      // Analyze a job description
+      const jobDescription = generateJobDescription();
+      await jobAnalysisPage.analyzeJobDescription(jobDescription);
+      
+      // Verify analysis results
+      await expect(jobAnalysisPage.skillsMatchSection).toBeVisible();
+      await expect(jobAnalysisPage.skillsMatchSection).toContainText('React');
+      await expect(jobAnalysisPage.skillsMatchSection).toContainText('Node.js');
+    });
+  }
+  ```
+
+#### 4.2 Resume Management Workflow
+- Test resume upload, parsing, and management functionality
+
+#### 4.3 Cover Letter Generation Workflow
+- Validate AI-powered cover letter generation based on job and resume
+
+#### 4.4 Service Provider Switching Workflow
+- Test switching between different AI providers and ensure functionality
+
+### 5. Implement Error Scenario Testing 
+- Create specific tests for error handling:
+  ```typescript
+  // tests/e2e/error-scenarios.spec.ts
+  import { test, expect } from '@playwright/test';
+  import { JobAnalysisPage } from './pages/job-analysis.page';
+
+  test.describe('Error Handling Scenarios', () => {
+    test('should handle network failures gracefully', async ({ page }) => {
+      // Login and navigate to job analysis
+      // ...
+      
+      // Mock a network failure
+      await page.route('**/api/job-analysis', route => route.abort('failed'));
+      
+      // Try to analyze a job
+      await jobAnalysisPage.jobDescriptionInput.fill('Software Developer');
+      await jobAnalysisPage.analyzeButton.click();
+      
+      // Verify error handling
+      await expect(page.locator('.network-error')).toBeVisible();
+      await expect(page.locator('.retry-button')).toBeVisible();
+    });
+  });
+  ```
+
+### 6. Implement Cross-Browser Compatibility Tests
+- Create specific tests that verify functionality across browsers
+- Implement visual comparison tests for critical UI components
+
+### 7. Set Up CI/CD Integration
+- Create GitHub Actions workflow for Playwright tests:
+  ```yaml
+  # .github/workflows/e2e-tests.yml
+  name: E2E Tests
+  
+  on:
+    push:
+      branches: [ main, develop ]
+    pull_request:
+      branches: [ main, develop ]
+  
+  jobs:
+    e2e-tests:
+      runs-on: ubuntu-latest
+      
+      steps:
+        - uses: actions/checkout@v3
+        - name: Setup Node.js
+          uses: actions/setup-node@v3
+          with:
+            node-version: '18'
+        - name: Install dependencies
+          run: npm ci
+        - name: Install Playwright browsers
+          run: npx playwright install --with-deps
+        - name: Start application in background
+          run: npm run start:test &
+        - name: Run Playwright tests
+          run: npx playwright test
+        - name: Upload test results
+          if: always()
+          uses: actions/upload-artifact@v3
+          with:
+            name: playwright-report
+            path: playwright-report/
+  ```
+
+### 8. Create Dashboard for Test Coverage Visualization
+- Implement reporting tools to track E2E test coverage over time
+- Create visualizations for test reliability and execution time trends
+
+# Test Strategy:
+## Testing Strategy
+
+### 1. Coverage Planning and Prioritization
+- Identify critical user journeys that require E2E coverage:
+  - Complete job application analysis workflow
+  - Resume upload, parsing, and management
+  - Cover letter generation and customization
+  - Service provider switching
+  - Authentication and account management
+- Create a test coverage matrix mapping features to test cases
+- Prioritize tests based on business impact and technical risk
+
+### 2. Page Object Model Architecture
+- Implement a robust Page Object pattern to abstract UI interactions
+- Create dedicated page classes for each major section of the application
+- Design reusable components for common UI elements 
+- Ensure selectors are maintainable and resistant to UI changes
+
+### 3. Test Data Management
+- Create factories and fixtures for generating realistic test data
+- Implement database seeding and cleanup procedures
+- Use a combination of static test data and dynamically generated content
+- Isolate test runs to prevent cross-contamination
+
+### 4. Cross-Browser Testing Approach
+- Run tests against Chrome, Firefox, and Safari
+- Include mobile viewport testing for critical workflows
+- Implement visual comparison tests for critical UI components
+- Create browser-specific test variations where needed
+
+### 5. Error Scenario Coverage
+- Use request interception to simulate various error conditions:
+  - Network failures and timeouts
+  - API errors (4xx/5xx responses)
+  - Rate limiting and throttling
+- Verify that error messages are user-friendly and actionable
+- Test recovery paths after encountering errors
+
+### 6. Performance and Reliability
+- Implement test retries for potentially flaky scenarios
+- Add video recording and tracing for test failure investigation
+- Monitor test execution time and optimize slow tests
+- Implement parallel test execution where possible
+
+### 7. CI/CD Integration
+- Run full test suite on pull requests to critical branches
+- Run smoke tests on every commit to development branches
+- Schedule comprehensive test runs daily
+- Implement notifications for test failures
+
+### 8. Maintenance Strategy
+- Schedule regular reviews of E2E test coverage and performance
+- Monitor test flakiness and address root causes
+- Update tests proactively when features change
+- Document patterns for writing maintainable tests
+
+# Subtasks:
+## 1. Configure Playwright Testing Environment [pending]
+### Dependencies: None
+### Description: 
+### Details:
+
+

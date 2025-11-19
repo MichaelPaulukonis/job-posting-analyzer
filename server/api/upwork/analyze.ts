@@ -104,24 +104,12 @@ Provide a thorough analysis including:
 Be realistic and honest - it's better to identify a poor fit early than waste time on unsuitable applications.`;
 
     console.log('Calling Claude API for job suitability analysis...');
-    console.log('Config anthropicModel:', config.anthropicModel);
-    console.log('Config anthropicApiKey exists:', !!config.anthropicApiKey);
-    console.log('Using model:', config.anthropicModel || 'claude-3-sonnet-20240229');
     const startTime = Date.now();
     
     // Ensure the environment variable is set for the anthropic client
     if (config.anthropicApiKey && !process.env.ANTHROPIC_API_KEY) {
       process.env.ANTHROPIC_API_KEY = config.anthropicApiKey;
-      console.log('Set ANTHROPIC_API_KEY environment variable from config');
     }
-    
-    // Check environment variables vs config
-    console.log('Environment ANTHROPIC_API_KEY exists:', !!process.env.ANTHROPIC_API_KEY);
-    console.log('Config anthropicApiKey exists:', !!config.anthropicApiKey);
-    console.log('Using model fallback:', config.anthropicModel || 'claude-3-haiku-20240307');
-    
-    const claudeModel = anthropic(config.anthropicModel || 'claude-3-haiku-20240307');
-    console.log('Claude model created successfully');
     
     const response = await generateText({
       model: anthropic('claude-3-haiku-20240307'),
@@ -141,12 +129,6 @@ Be realistic and honest - it's better to identify a poor fit early than waste ti
     
   } catch (error: any) {
     console.error('Error in analyzeJobSuitability:', error);
-    console.error('Error details:', {
-      message: error.message,
-      statusCode: error.statusCode,
-      cause: error.cause,
-      stack: error.stack
-    });
     throw error;
   }
 }

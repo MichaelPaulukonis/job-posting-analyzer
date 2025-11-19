@@ -1,0 +1,341 @@
+# Task ID: 6
+# Title: Create OpenAPI Documentation and Swagger UI Integration
+# Status: pending
+# Dependencies: 1, 3
+# Priority: high
+# Description: Create comprehensive API documentation using OpenAPI specification and implement interactive documentation with Swagger UI, including request/response schemas, authentication requirements, error codes, and usage examples.
+# Details:
+## Implementation Steps
+
+### 1. Set Up OpenAPI Tooling
+- Install required packages: `npm install swagger-jsdoc swagger-ui-express`
+- For TypeScript projects, also install: `npm install @types/swagger-jsdoc @types/swagger-ui-express`
+- Create a central OpenAPI configuration file:
+  ```typescript
+  // config/openapi.ts
+  export const openapiConfig = {
+    definition: {
+      openapi: '3.0.0',
+      info: {
+        title: 'API Documentation',
+        version: '1.0.0',
+        description: 'API for job application analysis and resume management'
+      },
+      servers: [
+        {
+          url: 'http://localhost:3000/api',
+          description: 'Development server'
+        },
+        {
+          url: 'https://api.example.com',
+          description: 'Production server'
+        }
+      ],
+      components: {
+        securitySchemes: {
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT'
+          }
+        }
+      }
+    },
+    apis: ['./src/routes/*.ts', './src/controllers/*.ts']
+  };
+  ```
+
+### 2. Document Request and Response Schemas
+- Convert Zod schemas to OpenAPI schemas using utility functions:
+  ```typescript
+  // utils/openapi.ts
+  import { z } from 'zod';
+  import { zodToJsonSchema } from 'zod-to-json-schema';
+  
+  export function generateOpenAPISchema(zodSchema: z.ZodType) {
+    return zodToJsonSchema(zodSchema, 'openApi');
+  }
+  ```
+- Create schema definitions for all API models, reusing validation schemas from Task 1
+
+### 3. Document API Endpoints
+- Use JSDoc annotations to document endpoints:
+  ```typescript
+  /**
+   * @openapi
+   * /jobs:
+   *   get:
+   *     summary: Get all job postings
+   *     description: Retrieves a list of job postings with pagination
+   *     parameters:
+   *       - in: query
+   *         name: page
+   *         schema:
+   *           type: integer
+   *           default: 1
+   *     responses:
+   *       200:
+   *         description: List of job postings
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/JobListResponse'
+   *       401:
+   *         $ref: '#/components/responses/Unauthorized'
+   */
+  router.get('/jobs', jobController.getAll);
+  ```
+
+### 4. Document Authentication Requirements
+- Add security requirements for protected endpoints using the security scheme defined earlier
+- Document token acquisition flows and authentication processes
+
+### 5. Document Error Responses
+- Create reusable error response components based on Task 3 standardized errors:
+  ```typescript
+  // In OpenAPI config components section
+  responses: {
+    ValidationError: {
+      description: 'The request contains invalid parameters',
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              status: { type: 'number', example: 400 },
+              code: { type: 'string', example: 'VALIDATION_ERROR' },
+              message: { type: 'string' },
+              details: { type: 'array', items: { /* ... */ } },
+              timestamp: { type: 'string' },
+              traceId: { type: 'string' }
+            }
+          }
+        }
+      }
+    }
+    // Add all other standard error responses
+  }
+  ```
+
+### 6. Add Usage Examples
+- Include request and response examples for all major endpoints
+- Ensure examples represent realistic use cases and data
+
+### 7. Integrate Swagger UI
+- Set up an express route to serve Swagger UI:
+  ```typescript
+  // app.ts
+  import swaggerJsDoc from 'swagger-jsdoc';
+  import swaggerUi from 'swagger-ui-express';
+  import { openapiConfig } from './config/openapi';
+
+  const specs = swaggerJsDoc(openapiConfig);
+
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
+    explorer: true,
+    customSiteTitle: "API Documentation"
+  }));
+  ```
+
+### 8. Make Documentation Accessible to Developers
+- Add environment-specific configuration to control documentation access
+- Implement basic authentication for documentation in production environments
+- Create a downloadable version of the OpenAPI specification
+
+### 9. Automate Documentation Generation
+- Set up scripts to generate static documentation
+- Integrate with CI/CD pipeline to ensure documentation stays current
+  ```bash
+  # package.json
+  "scripts": {
+    "generate-docs": "node scripts/generate-api-docs.js"
+  }
+  ```
+
+### 10. Support Versioning
+- Implement versioning strategy for API documentation
+- Ensure backwards compatibility information is included
+- Document deprecation notices and migration paths
+
+# Test Strategy:
+## Testing Strategy
+
+### 1. OpenAPI Specification Validation
+- Validate generated OpenAPI document against the specification:
+  ```typescript
+  // tests/documentation/openapi-validation.test.ts
+  import SwaggerParser from '@apidevtools/swagger-parser';
+  import { openapiConfig } from '../../config/openapi';
+  import swaggerJsDoc from 'swagger-jsdoc';
+  
+  describe('OpenAPI Specification', () => {
+    it('should be valid according to OpenAPI 3.0 specification', async () => {
+      const specs = swaggerJsDoc(openapiConfig);
+      await expect(SwaggerParser.validate(specs)).resolves.not.toThrow();
+    });
+  });
+  ```
+
+### 2. Documentation Completeness Check
+- Create tests to verify all endpoints are documented:
+  ```typescript
+  // tests/documentation/coverage.test.ts
+  describe('API Documentation Coverage', () => {
+    it('should document all API endpoints', async () => {
+      const specs = swaggerJsDoc(openapiConfig);
+      const documentedPaths = Object.keys(specs.paths);
+      
+      // Use route discovery to get all actual API routes
+      const routes = discoverAppRoutes(app);
+      
+      for (const route of routes) {
+        if (route.path.startsWith('/api/')) {
+          const normalizedPath = route.path.replace('/api', '');
+          expect(documentedPaths).toContain(normalizedPath);
+        }
+      }
+    });
+  });
+  ```
+
+### 3. Schema Consistency Tests
+- Verify that API documentation schemas match actual validation schemas:
+  ```typescript
+  // tests/documentation/schema-consistency.test.ts
+  describe('Schema Consistency', () => {
+    it('should have OpenAPI schemas that match validation schemas', () => {
+      const specs = swaggerJsDoc(openapiConfig);
+      
+      // Convert Zod schema to JSON schema
+      const generatedSchema = zodToJsonSchema(jobPostingSchema, 'openApi');
+      
+      // Get schema from OpenAPI specs
+      const openapiSchema = specs.components.schemas.JobPosting;
+      
+      // Compare properties to ensure consistency
+      expect(openapiSchema.properties).toMatchObject(generatedSchema.properties);
+      expect(openapiSchema.required).toEqual(expect.arrayContaining(generatedSchema.required || []));
+    });
+  });
+  ```
+
+### 4. Error Response Documentation Tests
+- Verify that all error codes from Task 3 are properly documented:
+  ```typescript
+  describe('Error Documentation', () => {
+    it('should document all standard error responses', () => {
+      const specs = swaggerJsDoc(openapiConfig);
+      const documentedErrors = Object.keys(specs.components.responses);
+      
+      // Get all error types defined in the error handling system
+      const errorTypes = getAllErrorTypes();
+      
+      // Check that each error type has corresponding documentation
+      for (const errorType of errorTypes) {
+        expect(documentedErrors).toContain(errorType);
+      }
+    });
+  });
+  ```
+
+### 5. Swagger UI Functionality Tests
+- Create E2E tests to verify documentation accessibility and functionality:
+  ```typescript
+  // tests/e2e/api-docs.test.ts
+  import { test, expect } from '@playwright/test';
+  
+  test('API documentation is accessible and loads correctly', async ({ page }) => {
+    await page.goto('/api-docs');
+    
+    // Check page title and content
+    expect(await page.title()).toContain('API Documentation');
+    await page.waitForSelector('.swagger-ui .information-container');
+    
+    // Test expanding an endpoint
+    await page.click('.opblock-tag:has-text("Jobs")');
+    await page.click('.opblock-summary:has-text("Get all job postings")');
+    
+    // Verify operation details are displayed
+    const responseSection = await page.waitForSelector('.responses-wrapper');
+    expect(await responseSection.textContent()).toContain('200');
+  });
+  ```
+
+### 6. API Contract Testing
+- Implement contract tests to verify API behavior matches documentation:
+  ```typescript
+  // tests/api/contract.test.ts
+  describe('API Contract Testing', () => {
+    it('GET /api/jobs should match documented response schema', async () => {
+      // Get expected response schema from OpenAPI spec
+      const responseSchema = specs.paths['/jobs'].get.responses['200'].content['application/json'].schema;
+      const validate = ajv.compile(responseSchema);
+      
+      // Make actual API request
+      const response = await request(app)
+        .get('/api/jobs')
+        .set('Authorization', `Bearer ${testToken}`);
+      
+      // Validate response against documented schema
+      expect(response.status).toBe(200);
+      expect(validate(response.body)).toBe(true);
+    });
+  });
+  ```
+
+### 7. Developer Experience Testing
+- Conduct usability sessions with developers to evaluate documentation:
+  - Create specific tasks for developers to complete using only the documentation
+  - Gather feedback on clarity, completeness, and usability
+  - Identify areas for improvement
+
+### 8. Documentation Update Tests
+- Create CI checks to detect when API implementation changes without documentation updates:
+  ```typescript
+  // In CI pipeline script
+  function checkDocumentationSync() {
+    // Generate fresh OpenAPI spec from current codebase
+    const currentSpec = generateOpenAPISpec();
+    
+    // Compare with previously committed spec
+    const committedSpec = loadCommittedSpec();
+    
+    const differences = compareSpecs(currentSpec, committedSpec);
+    if (differences.length > 0) {
+      console.warn('API documentation needs updating:', differences);
+      process.exit(1); // Fail the build
+    }
+  }
+  ```
+
+# Subtasks:
+## 1. Set up OpenAPI tooling and Swagger UI integration [pending]
+### Dependencies: None
+### Description: Install required packages and configure basic OpenAPI specification with Swagger UI
+### Details:
+Install swagger-jsdoc and swagger-ui-express packages, create central OpenAPI configuration file with basic info, servers, and security schemes, set up express route to serve Swagger UI at /api-docs endpoint with explorer enabled and custom site title
+
+## 2. Document request/response schemas and error models [pending]
+### Dependencies: 6.1
+### Description: Convert validation schemas to OpenAPI format and define error response structures
+### Details:
+Create utility functions to convert Zod schemas to OpenAPI schemas using zod-to-json-schema, define all API model schemas by reusing validation schemas from Task 1, create reusable error response components based on standardized errors including validation, authentication, and server error responses
+
+## 3. Document API endpoints with authentication and examples [pending]
+### Dependencies: 6.2
+### Description: Annotate all API endpoints with JSDoc, including parameters, responses, security requirements, and usage examples
+### Details:
+Use JSDoc annotations to document each endpoint with summary, description, parameters, responses, and security requirements; add bearer authentication to protected endpoints; include realistic request/response examples for major endpoints representing common use cases
+
+## 4. Implement documentation access control and security [pending]
+### Dependencies: 6.3
+### Description: Configure environment-specific documentation access and implement authentication for production documentation
+### Details:
+Add environment checks to control documentation visibility (enabled in development/staging, restricted in production), implement basic authentication for production documentation using middleware, create endpoint for downloadable OpenAPI specification (JSON/YAML)
+
+## 5. Automate documentation generation and implement versioning [pending]
+### Dependencies: 6.4
+### Description: Set up scripts for documentation generation and implement versioning strategy for API documentation
+### Details:
+Create scripts to generate static documentation for CI/CD integration, implement versioning strategy with multiple API versions supported, include backwards compatibility information, document deprecation notices with migration paths, and integrate documentation generation into build pipeline
+

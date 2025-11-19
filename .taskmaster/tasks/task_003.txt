@@ -1,0 +1,442 @@
+# Task ID: 3
+# Title: Standardize Error Handling and Implement Structured Logging
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Create a unified error handling system with standardized error responses for API endpoints, structured logging with appropriate severity levels, user-friendly messages, secure error reporting, and graceful handling of service failures.
+# Details:
+## Implementation Steps
+
+### 1. Design Error Response Format
+- Create a standardized error response structure in TypeScript:
+  ```typescript
+  // types/errors.ts
+  export interface ErrorResponse {
+    status: number;       // HTTP status code
+    code: string;         // Application-specific error code
+    message: string;      // User-friendly message
+    details?: any;        // Optional additional details
+    traceId?: string;     // For correlating logs with requests
+    timestamp: string;    // ISO timestamp of when error occurred
+  }
+  ```
+
+### 2. Implement Base Error Classes
+- Create a hierarchy of error classes:
+  ```typescript
+  // utils/errors.ts
+  export class AppError extends Error {
+    status: number;
+    code: string;
+    details?: any;
+    isOperational: boolean;
+    
+    constructor(message: string, status = 500, code = 'INTERNAL_ERROR', isOperational = true, details?: any) {
+      super(message);
+      this.name = this.constructor.name;
+      this.status = status;
+      this.code = code;
+      this.isOperational = isOperational;
+      this.details = details;
+      
+      Error.captureStackTrace(this, this.constructor);
+    }
+  }
+  
+  // Domain-specific errors
+  export class ValidationError extends AppError {
+    constructor(message: string, details?: any) {
+      super(message, 400, 'VALIDATION_ERROR', true, details);
+    }
+  }
+  
+  export class AuthenticationError extends AppError {
+    constructor(message = 'Authentication required') {
+      super(message, 401, 'AUTHENTICATION_REQUIRED', true);
+    }
+  }
+  ```
+
+### 3. Set up Structured Logging
+- Install a structured logging library: `npm install winston`
+- Configure the logger with appropriate transports and levels:
+  ```typescript
+  // utils/logger.ts
+  import winston from 'winston';
+  
+  const logger = winston.createLogger({
+    level: process.env.LOG_LEVEL || 'info',
+    format: winston.format.combine(
+      winston.format.timestamp(),
+      winston.format.json()
+    ),
+    defaultMeta: { service: 'api-service' },
+    transports: [
+      new winston.transports.Console({
+        format: winston.format.combine(
+          winston.format.colorize(),
+          winston.format.printf(({ timestamp, level, message, ...meta }) => {
+            return `${timestamp} [${level}]: ${message} ${Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''}`;
+          })
+        ),
+      }),
+    ],
+  });
+  
+  // In production, add additional transports
+  if (process.env.NODE_ENV === 'production') {
+    logger.add(new winston.transports.File({ filename: 'error.log', level: 'error' }));
+    logger.add(new winston.transports.File({ filename: 'combined.log' }));
+  }
+  
+  export default logger;
+  ```
+
+### 4. Implement Global Error Handling Middleware
+- Create middleware to catch and process errors:
+  ```typescript
+  // middleware/errorHandler.ts
+  import { Request, Response, NextFunction } from 'express';
+  import { v4 as uuidv4 } from 'uuid';
+  import { AppError } from '../utils/errors';
+  import logger from '../utils/logger';
+  
+  export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
+    // Generate a trace ID for this request if not already present
+    const traceId = req.headers['x-trace-id'] as string || uuidv4();
+    
+    // Default error information
+    let status = 500;
+    let code = 'INTERNAL_ERROR';
+    let message = 'An unexpected error occurred';
+    let details = undefined;
+    let logLevel = 'error';
+    
+    // Process different error types
+    if (err instanceof AppError) {
+      status = err.status;
+      code = err.code;
+      message = err.message;
+      details = err.details;
+      
+      // Operational errors can be logged with lower severity
+      logLevel = err.isOperational ? 'warn' : 'error';
+    } else if (err.name === 'ZodError') {
+      // Handle Zod validation errors
+      status = 400;
+      code = 'VALIDATION_ERROR';
+      message = 'Invalid request data';
+      details = err;
+      logLevel = 'warn';
+    }
+    
+    // Log the error with appropriate level
+    logger[logLevel](`${code}: ${message}`, {
+      traceId,
+      path: req.path,
+      method: req.method,
+      status,
+      stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
+      details
+    });
+    
+    // Send standardized error response
+    res.status(status).json({
+      status,
+      code,
+      message,
+      details: process.env.NODE_ENV !== 'production' ? details : undefined,
+      traceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+  ```
+
+### 5. Set up Error Boundary for Unhandled Exceptions
+- Create handlers for unhandled promise rejections and exceptions:
+  ```typescript
+  // server.ts
+  import logger from './utils/logger';
+  
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (error) => {
+    logger.error('UNCAUGHT EXCEPTION', { error: error.stack || error });
+    // Give logs time to write before exiting
+    setTimeout(() => process.exit(1), 1000);
+  });
+  
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error('UNHANDLED REJECTION', { reason, promise });
+  });
+  ```
+
+### 6. Implement AI Service Error Handling and Fallbacks
+- Create a wrapper for AI service calls with retry logic and fallbacks:
+  ```typescript
+  // services/aiService.ts
+  import { ServiceUnavailableError } from '../utils/errors';
+  import logger from '../utils/logger';
+  
+  export async function callAIService<T>(serviceFn: () => Promise<T>, fallbackValue?: T, retries = 3): Promise<T> {
+    let lastError: Error;
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        return await serviceFn();
+      } catch (error) {
+        lastError = error;
+        
+        // Log the retry attempt
+        logger.warn('AI service call failed, retrying', {
+          attempt,
+          maxRetries: retries,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+        
+        // Wait before retrying, with exponential backoff
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, 2 ** attempt * 100));
+        }
+      }
+    }
+    
+    // If we reach here, all retries failed
+    logger.error('AI service unavailable after retries', { error: lastError });
+    
+    // If a fallback is provided, return that instead of throwing
+    if (fallbackValue !== undefined) {
+      return fallbackValue;
+    }
+    
+    // Otherwise throw a standardized error
+    throw new ServiceUnavailableError('AI');
+  }
+  ```
+
+### 7. Register Error Handling Components
+- Register the error handler middleware in your Express app:
+  ```typescript
+  // app.ts
+  import express from 'express';
+  import { errorHandler } from './middleware/errorHandler';
+  
+  const app = express();
+  
+  // ... other middleware and route registrations
+  
+  // Error handler should be registered last
+  app.use(errorHandler);
+  
+  export default app;
+  ```
+
+# Test Strategy:
+## Testing Strategy
+
+### 1. Unit Tests for Error Classes
+- Create unit tests for each error class to verify they have the correct properties:
+  ```typescript
+  // tests/utils/errors.test.ts
+  import { ValidationError, ResourceNotFoundError, AuthenticationError } from '../../utils/errors';
+  
+  describe('Error Classes', () => {
+    test('ValidationError has correct properties', () => {
+      const error = new ValidationError('Invalid email', { field: 'email' });
+      expect(error.status).toBe(400);
+      expect(error.code).toBe('VALIDATION_ERROR');
+      expect(error.message).toBe('Invalid email');
+      expect(error.details).toEqual({ field: 'email' });
+      expect(error.isOperational).toBe(true);
+    });
+    
+    // Additional tests for other error classes
+  });
+  ```
+
+### 2. Integration Tests for Error Middleware
+- Create tests that trigger different error scenarios and verify the response format:
+  ```typescript
+  // tests/middleware/errorHandler.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  import { ResourceNotFoundError } from '../../utils/errors';
+  
+  // Mock route that throws different errors
+  app.get('/test/error/:type', (req, res, next) => {
+    switch (req.params.type) {
+      case 'not-found':
+        next(new ResourceNotFoundError('TestResource', '123'));
+        break;
+      case 'validation':
+        next(new ValidationError('Test validation error'));
+        break;
+      case 'unexpected':
+        throw new Error('Unexpected error');
+      default:
+        res.status(200).send('No error');
+    }
+  });
+  
+  describe('Error Handler Middleware', () => {
+    test('Returns correct format for known error types', async () => {
+      const response = await request(app).get('/test/error/not-found');
+      
+      expect(response.status).toBe(404);
+      expect(response.body).toHaveProperty('status', 404);
+      expect(response.body).toHaveProperty('code', 'RESOURCE_NOT_FOUND');
+      expect(response.body).toHaveProperty('traceId');
+      expect(response.body).toHaveProperty('timestamp');
+    });
+    
+    test('Sanitizes sensitive information in production', async () => {
+      // Mock production environment
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+      
+      const response = await request(app).get('/test/error/unexpected');
+      
+      expect(response.status).toBe(500);
+      expect(response.body).not.toHaveProperty('details');
+      
+      // Restore environment
+      process.env.NODE_ENV = originalEnv;
+    });
+  });
+  ```
+
+### 3. Tests for AI Service Error Handling
+- Create tests for the AI service wrapper with mocked service calls:
+  ```typescript
+  // tests/services/aiService.test.ts
+  import { callAIService } from '../../services/aiService';
+  
+  describe('AI Service Error Handling', () => {
+    test('Retries failed service calls', async () => {
+      // Mock implementation to fail twice then succeed
+      let attempts = 0;
+      const mockServiceFn = jest.fn().mockImplementation(() => {
+        attempts++;
+        if (attempts < 3) {
+          return Promise.reject(new Error('Service temporarily unavailable'));
+        }
+        return Promise.resolve('success');
+      });
+      
+      const result = await callAIService(mockServiceFn);
+      
+      expect(mockServiceFn).toHaveBeenCalledTimes(3);
+      expect(result).toBe('success');
+    });
+    
+    test('Uses fallback when all retries fail', async () => {
+      const mockServiceFn = jest.fn().mockRejectedValue(new Error('Service down'));
+      const fallback = 'fallback value';
+      
+      const result = await callAIService(mockServiceFn, fallback);
+      
+      expect(result).toBe(fallback);
+    });
+  });
+  ```
+
+### 4. Logging Tests
+- Create tests to verify that the logger correctly formats and outputs logs:
+  ```typescript
+  // tests/utils/logger.test.ts
+  import logger from '../../utils/logger';
+  
+  // Capture console output
+  let consoleOutput = [];
+  const originalConsoleLog = console.log;
+  
+  beforeEach(() => {
+    consoleOutput = [];
+    console.log = jest.fn(output => {
+      consoleOutput.push(output);
+    });
+  });
+  
+  afterEach(() => {
+    console.log = originalConsoleLog;
+  });
+  
+  describe('Logger', () => {
+    test('Logs messages with correct format and level', () => {
+      const testMessage = 'Test log message';
+      logger.info(testMessage, { userId: '123' });
+      
+      expect(consoleOutput.length).toBe(1);
+      const logOutput = consoleOutput[0];
+      
+      expect(logOutput).toContain(testMessage);
+      expect(logOutput).toContain('info');
+      expect(logOutput).toContain('userId');
+      expect(logOutput).toContain('123');
+    });
+  });
+  ```
+
+### 5. End-to-End Tests for Error Scenarios
+- Create tests that verify the complete error handling flow in realistic scenarios:
+  ```typescript
+  // tests/e2e/errorHandling.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  
+  describe('Error Handling E2E', () => {
+    test('Invalid JSON in request body returns appropriate error', async () => {
+      const response = await request(app)
+        .post('/api/users')
+        .set('Content-Type', 'application/json')
+        .send('{invalid json}');
+      
+      expect(response.status).toBe(400);
+      expect(response.body.code).toBe('INVALID_JSON');
+    });
+    
+    test('Validation errors return user-friendly messages', async () => {
+      const response = await request(app)
+        .post('/api/users')
+        .send({
+          email: 'not-an-email'
+        });
+      
+      expect(response.status).toBe(400);
+      expect(response.body.code).toBe('VALIDATION_ERROR');
+      expect(response.body.message).toContain('Invalid');
+    });
+  });
+  ```
+
+# Subtasks:
+## 1. Design standardized error response format and base error class hierarchy [pending]
+### Dependencies: None
+### Description: Create TypeScript interfaces for error responses and implement a hierarchy of error classes for consistent error handling across the application
+### Details:
+Define ErrorResponse interface with status, code, message, details, traceId, and timestamp fields. Implement AppError base class with status, code, and operational flag. Create domain-specific error classes like ValidationError (400), AuthenticationError (401), and ServiceUnavailableError (503) that extend AppError with appropriate defaults.
+
+## 2. Configure structured logging system with Winston [pending]
+### Dependencies: 3.1
+### Description: Set up Winston logger with appropriate transports, formats, and environment-specific configurations for consistent application logging
+### Details:
+Install Winston package and configure logger with JSON format, timestamp, and service metadata. Implement console transport with colorization for development. Add file transports for error and combined logs in production environment. Ensure logs include traceId for request correlation and appropriate severity levels (error, warn, info).
+
+## 3. Implement global error handling middleware for Express [pending]
+### Dependencies: 3.1, 3.2
+### Description: Create middleware to catch and process errors, generating standardized responses and appropriate logging with trace ID correlation
+### Details:
+Develop errorHandler middleware that processes different error types (AppError, ZodError), determines appropriate log severity, and generates standardized ErrorResponse objects. Include trace ID generation for request correlation. Ensure production environments don't leak sensitive error details while development provides detailed debugging information.
+
+## 4. Set up error boundaries for unhandled exceptions and promise rejections [pending]
+### Dependencies: 3.2
+### Description: Implement process-level handlers for uncaught exceptions and unhandled promise rejections to prevent application crashes
+### Details:
+Configure process.on('uncaughtException') and process.on('unhandledRejection') handlers to log errors with stack traces. Implement graceful shutdown procedures that allow time for logs to flush before exiting. Ensure these handlers work across all application environments without exposing sensitive information.
+
+## 5. Implement AI service error handling with retry logic and fallback mechanisms [pending]
+### Dependencies: 3.1, 3.2, 3.3
+### Description: Create wrapper functions for AI service calls with exponential backoff retry strategy and fallback values for graceful degradation
+### Details:
+Develop callAIService function that implements retry logic with exponential backoff (2^attempt * 100ms). Include detailed retry attempt logging, trace ID correlation, and fallback value support. Throw standardized ServiceUnavailableError when all retries fail and no fallback is provided. Ensure proper error classification for operational vs critical failures.
+

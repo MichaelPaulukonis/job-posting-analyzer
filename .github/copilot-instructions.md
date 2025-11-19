@@ -36,6 +36,8 @@ When suggesting code, please use the following technologies:
    - **services/**: AI service providers and other external integrations
      - Organize with a base interface and provider-specific implementations
    - **tests/**: Unit, component, and integration tests
+   - **`docs/`**: Project documentation, including overviews and plans.
+
 
 3. Maintain clear folder hierarchies and avoid deeply nested structures unless absolutely necessary.
 4. Ensure consistent relative imports, using `~/` alias for project root. Keep related files close to where they're used when possible.
@@ -52,7 +54,7 @@ When suggesting code, please use the following technologies:
    - Variables and functions: camelCase
    - Constants: UPPER_SNAKE_CASE
 
-4. Use async/await over promises for asynchronous operations.
+4. Use async/await over promises for asynchronous operations, except when needed for parallelization, succinctness, or when composing asynchronous behaviors in pipelines.
 
 5. Structure of Single-File Components (SFCs): Always follow this structure for consistency and readability:
    1. Script Section: Place the `<script setup>` block at the top of the file, with `lang="ts"` if using TypeScript.
@@ -78,15 +80,32 @@ When suggesting code, please use the following technologies:
    </style>
    ```
 
-6. Always utilize the latest JavaScript and TypeScript features in strict mode. Prefer semantic HTML elements over generic divs and ensure compliance with W3C standards and WCAG 2.1 AA guidelines.
+6. Always use the latest JavaScript and TypeScript features in strict mode. Prefer semantic HTML elements over generic divs and ensure compliance with W3C standards and WCAG 2.1 AA guidelines.
 
-## 3. Prettier Formatter Configuration
+###. Prettier Formatter Configuration
 
 1. Semicolons: Always end statements with a semicolon (;) to improve clarity and prevent potential issues caused by automatic semicolon insertion.
 2. Indentation: Use 2 spaces per indentation level to ensure clean and concise code formatting.
 3. Quotations: Use single quotes (') for strings instead of double quotes, except in cases where escaping single quotes would make the string less readable.
 4. Line Length: Limit each line of code to a maximum of 100 characters. Break long lines logically to improve readability while adhering to this limit.
 5. Trailing Commas: Avoid trailing commas in object and array literals, function arguments, and other contexts where they might appear.
+
+## 3. Mandatory Planning Process
+
+**CRITICAL**: All development work must follow this planning process before any code implementation.
+
+### Plan-File Requirement
+
+1.  **Before Any Code Changes**: ALL feature requests, architectural changes, or significant modifications must begin with creating—or reusing—an appropriate plan-file in `docs/plans/`.
+2.  **User Confirmation Protocol**: When a user requests changes, first inspect `docs/plans/` for a relevant file. If one exists, ask the user to update it, create a new one, or proceed without one. If none exists, ask the user to create one or proceed without one. Honor the user's choice.
+3.  **Plan-File Naming Convention**: `NN.semantic-name.md` (e.g., `01.user-comments.md`).
+4.  **Required Plan Contents**: Problem Statement, Requirements, Technical Approach, Implementation Steps, Testing Strategy, Risks & Mitigation, Dependencies.
+4.1 **Use Taskmaster MCP**: Unless directed otherwise, use taskmaster MCP server to parse the plan file (as prd) to create discrete tasks
+4.2 **Taskmaster append**: Taskmaster should append new tasks, and not delete existing tasks.
+4.3 **Taskmaster generate*:: Use `taskmaster generate` to generate individual task files from tasks.json
+5. **Completed Plans**: When all tasks in a plan have been completed the file will be internally annotated and moved to `docs/plans/completed/`.
+5.  **Exceptions**: This process is not required for Product Requirement Document creation, documentation updates or minor, single-line bug fixes.
+
 
 ## 4. Nuxt-Specific Best Practices
 
@@ -270,18 +289,15 @@ Apply OWASP Top 10 protections in all application components:
 ## 14. Documentation
 
 1. Document critical components, composables, and APIs using JSDoc.
-
-2. Maintain a README.md file with:
+2.  **Architecture Documentation**: Maintain high-level architecture documents in the `/docs` directory.
+3.  **Plan Files**: All major changes must be documented in a plan file in `docs/plans/` as per the planning process.
+4. Maintain a README.md file with:
    - Project setup instructions
    - Dependencies
    - Code structure overview
    - Deployment guidelines
-
-3. Keep the codebase self-documenting by using clear variable and function names.
-
-4. Write clear comments for complex logic.
-
-5. Use semantic naming for variables and functions.
+5. Keep the codebase self-documenting by using semantic naming for variables and functions.
+6. Write clear comments for complex logic.
 
 ## 15. Git Commits 
 
@@ -312,11 +328,8 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org/) specific
 ## 16. Deployment
 
 1. Use Static Site Generation (SSG) for projects that don't require dynamic content.
-
 2. For dynamic projects, prefer server-side rendering (SSR) with edge or server hosting.
-
 3. Set up CI/CD pipelines to automate build, testing, and deployment processes.
-
 4. Monitor deployments and runtime performance using tools like Vercel, Netlify, or custom monitoring solutions.
 
 By following these guidelines, we can ensure that this Nuxt 3 job posting analyzer project remains efficient, scalable, and maintainable, while providing clear context for AI assistance in development tasks.

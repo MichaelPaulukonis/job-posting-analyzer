@@ -1,0 +1,500 @@
+# Task ID: 10
+# Title: Implement Comprehensive Runtime Validation with Zod
+# Status: pending
+# Dependencies: 1, 3
+# Priority: high
+# Description: Extend the validation framework to include runtime validation for AI service responses, complex user inputs, and configuration data using Zod schemas. Create unified validation utilities that work consistently across both client and server environments.
+# Details:
+## Implementation Steps
+
+### 1. Extend Validation Schema Architecture
+- Build upon existing Zod implementation to create specialized schema directories:
+  ```
+  /schemas
+    /aiServices     # AI response validation schemas
+    /configuration  # App config validation schemas
+    /userInputs     # Complex user input validation
+    /shared         # Reusable schema components
+  ```
+- Create schema versioning strategy to handle evolving AI response formats
+
+### 2. Implement Isomorphic Validation Utilities
+- Create environment-agnostic validation helpers:
+  ```typescript
+  // utils/validation.ts
+  import { z } from 'zod';
+  
+  export function validateOrThrow<T>(data: unknown, schema: z.ZodType<T>): T {
+    return schema.parse(data);
+  }
+  
+  export function validateOrDefault<T>(data: unknown, schema: z.ZodType<T>, defaultValue: T): T {
+    try {
+      return schema.parse(data);
+    } catch (error) {
+      return defaultValue;
+    }
+  }
+  
+  export function validateWithResult<T>(data: unknown, schema: z.ZodType<T>): {
+    success: boolean;
+    data?: T;
+    error?: z.ZodError;
+  } {
+    const result = schema.safeParse(data);
+    return result;
+  }
+  ```
+- Ensure bundler compatibility with tree-shaking support
+
+### 3. Create AI Service Response Validation
+- Implement schemas for each AI service endpoint:
+  ```typescript
+  // schemas/aiServices/completionResponse.ts
+  import { z } from 'zod';
+  
+  export const completionResponseSchema = z.object({
+    id: z.string(),
+    choices: z.array(z.object({
+      text: z.string(),
+      index: z.number(),
+      finish_reason: z.enum(['stop', 'length', 'content_filter']).nullable()
+    })).min(1),
+    usage: z.object({
+      prompt_tokens: z.number(),
+      completion_tokens: z.number(),
+      total_tokens: z.number()
+    }).optional()
+  });
+  ```
+- Add fallback strategies for dealing with unexpected AI response formats:
+  ```typescript
+  // utils/aiResponseValidation.ts
+  import { completionResponseSchema } from '../schemas/aiServices/completionResponse';
+  
+  export function validateAICompletion(response: unknown) {
+    const result = completionResponseSchema.safeParse(response);
+    if (!result.success) {
+      // Log detailed validation failure for debugging
+      console.error('AI response validation failed:', result.error);
+      
+      // Attempt to extract usable data despite schema mismatch
+      const fallbackData = extractFallbackCompletion(response);
+      return fallbackData;
+    }
+    return result.data;
+  }
+  ```
+
+### 4. Implement Configuration Validation
+- Create schemas for all configuration objects:
+  ```typescript
+  // schemas/configuration/appConfig.ts
+  import { z } from 'zod';
+  
+  export const apiConfigSchema = z.object({
+    baseUrl: z.string().url(),
+    timeout: z.number().int().positive().default(30000),
+    retryAttempts: z.number().int().min(0).max(5).default(3)
+  });
+  
+  export const aiServiceConfigSchema = z.object({
+    provider: z.enum(['openai', 'anthropic', 'cohere']),
+    apiKey: z.string().min(1),
+    defaultModel: z.string().min(1),
+    maxTokens: z.number().int().positive().default(1000)
+  });
+  
+  export const appConfigSchema = z.object({
+    environment: z.enum(['development', 'test', 'production']),
+    api: apiConfigSchema,
+    aiService: aiServiceConfigSchema,
+    features: z.record(z.string(), z.boolean()).default({})
+  });
+  ```
+- Add validation at application startup:
+  ```typescript
+  // config/index.ts
+  import { appConfigSchema } from '../schemas/configuration/appConfig';
+  import { validateOrThrow } from '../utils/validation';
+  
+  const rawConfig = {
+    // Configuration values from environment or defaults
+  };
+  
+  export const appConfig = validateOrThrow(rawConfig, appConfigSchema);
+  ```
+
+### 5. Create Form Input Validation Helpers
+- Develop client-side form validation utilities:
+  ```typescript
+  // utils/formValidation.ts
+  import { z } from 'zod';
+  
+  export function createFormValidator<T>(schema: z.ZodType<T>) {
+    return (formData: unknown) => {
+      const result = schema.safeParse(formData);
+      if (!result.success) {
+        // Transform Zod errors into user-friendly format
+        return {
+          valid: false,
+          errors: formatZodErrors(result.error),
+          data: null
+        };
+      }
+      return {
+        valid: true,
+        errors: null,
+        data: result.data
+      };
+    };
+  }
+  
+  function formatZodErrors(error: z.ZodError) {
+    const errors: Record<string, string> = {};
+    for (const issue of error.issues) {
+      const path = issue.path.join('.');
+      errors[path] = issue.message;
+    }
+    return errors;
+  }
+  ```
+
+### 6. Add Performance Optimizations
+- Implement validation result caching:
+  ```typescript
+  // utils/validationCache.ts
+  import { z } from 'zod';
+  
+  const cache = new WeakMap();
+  
+  export function cachedValidation<T>(data: object, schema: z.ZodType<T>): T {
+    // Only use caching for object data types
+    if (typeof data !== 'object' || data === null) {
+      return schema.parse(data);
+    }
+    
+    // Check if we've validated this exact object with this schema before
+    const schemaCache = cache.get(data) || new Map();
+    if (schemaCache.has(schema)) {
+      return schemaCache.get(schema);
+    }
+    
+    // Perform validation and cache result
+    const result = schema.parse(data);
+    schemaCache.set(schema, result);
+    cache.set(data, schemaCache);
+    
+    return result;
+  }
+  ```
+
+### 7. Integrate with Error Handling System
+- Extend existing error handling to support validation errors:
+  ```typescript
+  // utils/errors.ts
+  import { ZodError } from 'zod';
+  import { BaseError } from './baseError'; // From task #3
+  
+  export class ValidationError extends BaseError {
+    constructor(zodError: ZodError, message = 'Validation failed') {
+      super({
+        message,
+        statusCode: 400,
+        code: 'VALIDATION_ERROR',
+        details: formatZodErrorDetails(zodError)
+      });
+    }
+  }
+  
+  function formatZodErrorDetails(error: ZodError) {
+    return error.issues.map(issue => ({
+      path: issue.path,
+      message: issue.message,
+      code: issue.code
+    }));
+  }
+  ```
+
+# Test Strategy:
+## Testing Strategy
+
+### 1. Unit Tests for Schema Definitions
+- Test all schema definitions with valid and invalid data:
+  ```typescript
+  // tests/schemas/aiServices/completionResponse.test.ts
+  import { completionResponseSchema } from '../../../schemas/aiServices/completionResponse';
+  
+  describe('AI Completion Response Schema', () => {
+    it('should validate valid completion responses', () => {
+      const validResponse = {
+        id: 'cmpl-123',
+        choices: [{
+          text: 'This is a test response',
+          index: 0,
+          finish_reason: 'stop'
+        }],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 8,
+          total_tokens: 18
+        }
+      };
+      
+      const result = completionResponseSchema.safeParse(validResponse);
+      expect(result.success).toBe(true);
+    });
+    
+    it('should reject invalid completion responses', () => {
+      const invalidResponse = {
+        // Missing required 'id' field
+        choices: [{
+          // Missing required 'text' field
+          index: 0,
+          finish_reason: 'invalid_reason' // Invalid enum value
+        }]
+      };
+      
+      const result = completionResponseSchema.safeParse(invalidResponse);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        // Verify specific error information
+        const errors = result.error.format();
+        expect(errors.id?._errors).toBeDefined();
+        expect(errors.choices?.[0]?.text?._errors).toBeDefined();
+        expect(errors.choices?.[0]?.finish_reason?._errors).toBeDefined();
+      }
+    });
+  });
+  ```
+
+### 2. Unit Tests for Validation Utilities
+- Test all validation utilities:
+  ```typescript
+  // tests/utils/validation.test.ts
+  import { validateOrThrow, validateOrDefault, validateWithResult } from '../../utils/validation';
+  import { z } from 'zod';
+  
+  describe('Validation Utilities', () => {
+    const testSchema = z.object({
+      name: z.string(),
+      age: z.number().int().positive()
+    });
+    
+    it('should throw on invalid data with validateOrThrow', () => {
+      const validData = { name: 'Test', age: 25 };
+      const invalidData = { name: 'Test', age: -5 };
+      
+      expect(() => validateOrThrow(validData, testSchema)).not.toThrow();
+      expect(() => validateOrThrow(invalidData, testSchema)).toThrow();
+    });
+    
+    it('should return default value on invalid data with validateOrDefault', () => {
+      const validData = { name: 'Test', age: 25 };
+      const invalidData = { name: 'Test', age: -5 };
+      const defaultValue = { name: 'Default', age: 30 };
+      
+      expect(validateOrDefault(validData, testSchema, defaultValue)).toEqual(validData);
+      expect(validateOrDefault(invalidData, testSchema, defaultValue)).toEqual(defaultValue);
+    });
+    
+    it('should return result object with validateWithResult', () => {
+      const validData = { name: 'Test', age: 25 };
+      const invalidData = { name: 'Test', age: -5 };
+      
+      const validResult = validateWithResult(validData, testSchema);
+      expect(validResult.success).toBe(true);
+      expect(validResult.data).toEqual(validData);
+      
+      const invalidResult = validateWithResult(invalidData, testSchema);
+      expect(invalidResult.success).toBe(false);
+      expect(invalidResult.error).toBeDefined();
+    });
+  });
+  ```
+
+### 3. Cross-Environment Validation Testing
+- Create tests that verify validation works identically in both Node.js and browser environments:
+  ```typescript
+  // tests/cross-env/validation.test.ts
+  import { validateWithResult } from '../../utils/validation';
+  import { userProfileSchema } from '../../schemas/userInputs/userProfile';
+  
+  // These tests should be run in both Node.js and browser environments
+  describe('Cross-Environment Validation', () => {
+    it('should validate consistently across environments', () => {
+      const testData = {
+        username: 'testuser',
+        email: 'test@example.com',
+        preferences: {
+          theme: 'dark',
+          notifications: true
+        }
+      };
+      
+      const result = validateWithResult(testData, userProfileSchema);
+      expect(result.success).toBe(true);
+      
+      // Verify object structure after validation is consistent
+      expect(result.data).toHaveProperty('username');
+      expect(result.data).toHaveProperty('email');
+      expect(result.data).toHaveProperty('preferences.theme');
+    });
+    
+    // Add more cross-environment tests...
+  });
+  ```
+
+### 4. AI Response Validation Testing
+- Test AI response validation with real-world examples:
+  ```typescript
+  // tests/integration/aiResponseValidation.test.ts
+  import { validateAICompletion } from '../../utils/aiResponseValidation';
+  import sampleResponses from '../fixtures/ai-responses.json';
+  
+  describe('AI Response Validation', () => {
+    it('should validate typical AI responses', () => {
+      // Test with multiple real-world sample responses
+      sampleResponses.valid.forEach(response => {
+        expect(() => validateAICompletion(response)).not.toThrow();
+      });
+    });
+    
+    it('should handle malformed AI responses gracefully', () => {
+      // Test with samples of malformed responses
+      sampleResponses.malformed.forEach(response => {
+        // Should not throw but return fallback data
+        const result = validateAICompletion(response);
+        expect(result).toBeDefined();
+        // Verify critical fields are present in fallback data
+        expect(result.choices).toBeInstanceOf(Array);
+        expect(result.choices.length).toBeGreaterThan(0);
+      });
+    });
+  });
+  ```
+
+### 5. Configuration Validation Testing
+- Test configuration validation:
+  ```typescript
+  // tests/config/validation.test.ts
+  import { appConfigSchema } from '../../schemas/configuration/appConfig';
+  
+  describe('Configuration Validation', () => {
+    it('should validate correct configuration', () => {
+      const validConfig = {
+        environment: 'development',
+        api: {
+          baseUrl: 'https://api.example.com',
+          timeout: 5000,
+          retryAttempts: 3
+        },
+        aiService: {
+          provider: 'openai',
+          apiKey: 'sk-test-key',
+          defaultModel: 'gpt-3.5-turbo',
+          maxTokens: 500
+        }
+      };
+      
+      const result = appConfigSchema.safeParse(validConfig);
+      expect(result.success).toBe(true);
+    });
+    
+    it('should apply default values correctly', () => {
+      const minimalConfig = {
+        environment: 'development',
+        api: {
+          baseUrl: 'https://api.example.com'
+          // Missing optional fields that should get defaults
+        },
+        aiService: {
+          provider: 'openai',
+          apiKey: 'sk-test-key',
+          defaultModel: 'gpt-3.5-turbo'
+          // Missing maxTokens
+        }
+      };
+      
+      const result = appConfigSchema.safeParse(minimalConfig);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.api.timeout).toBe(30000); // Default value
+        expect(result.data.api.retryAttempts).toBe(3); // Default value
+        expect(result.data.aiService.maxTokens).toBe(1000); // Default value
+      }
+    });
+  });
+  ```
+
+### 6. Performance Testing
+- Test validation performance:
+  ```typescript
+  // tests/performance/validation.test.ts
+  import { validateWithResult } from '../../utils/validation';
+  import { cachedValidation } from '../../utils/validationCache';
+  import { largeObjectSchema } from '../../schemas/test/largeObject';
+  import { generateLargeTestObject } from '../utils/testDataGenerator';
+  
+  describe('Validation Performance', () => {
+    it('should validate within acceptable time limits', () => {
+      const testObject = generateLargeTestObject(1000); // Object with 1000 properties
+      
+      const startTime = performance.now();
+      validateWithResult(testObject, largeObjectSchema);
+      const duration = performance.now() - startTime;
+      
+      // Validation should complete in under 50ms
+      expect(duration).toBeLessThan(50);
+    });
+    
+    it('should improve performance with cached validation', () => {
+      const testObject = generateLargeTestObject(1000);
+      
+      // First validation - uncached
+      const startTime1 = performance.now();
+      cachedValidation(testObject, largeObjectSchema);
+      const duration1 = performance.now() - startTime1;
+      
+      // Second validation - should use cache
+      const startTime2 = performance.now();
+      cachedValidation(testObject, largeObjectSchema);
+      const duration2 = performance.now() - startTime2;
+      
+      // Cached validation should be significantly faster
+      expect(duration2).toBeLessThan(duration1 * 0.1); // At least 10x faster
+    });
+  });
+  ```
+
+# Subtasks:
+## 1. Set Up Schema Architecture and Versioning Strategy [pending]
+### Dependencies: None
+### Description: Create the directory structure for Zod schemas and implement a versioning strategy for evolving schemas
+### Details:
+Create the /schemas directory structure with subdirectories for aiServices, configuration, userInputs, and shared components. Implement schema versioning using semantic versioning principles to handle changes in AI response formats over time, including version metadata in schema definitions.
+
+## 2. Implement Isomorphic Validation Utility Functions [pending]
+### Dependencies: 10.1
+### Description: Create environment-agnostic validation helpers that work consistently across client and server environments
+### Details:
+Implement validateOrThrow, validateOrDefault, and validateWithResult functions that accept any Zod schema and data to validate. Ensure proper TypeScript typing, tree-shaking compatibility, and consistent error handling across different execution environments.
+
+## 3. Develop AI Service Response Validation Schemas [pending]
+### Dependencies: 10.1, 10.2
+### Description: Create and implement Zod schemas for validating AI service responses with fallback strategies
+### Details:
+Implement schemas for all AI service endpoints in the /schemas/aiServices directory. Create validation functions with fallback strategies to handle unexpected response formats while logging validation failures and attempting to extract usable data from malformed responses.
+
+## 4. Implement Configuration and User Input Validation [pending]
+### Dependencies: 10.1, 10.2, 10.3
+### Description: Create schemas for application configuration and complex user inputs with validation at startup and form submission
+### Details:
+Develop schemas for all configuration objects in /schemas/configuration and form inputs in /schemas/userInputs. Implement validation at application startup and create form validation helpers for client-side use with user-friendly error formatting for UI display.
+
+## 5. Integrate Validation with Error Handling and Performance Optimization [pending]
+### Dependencies: 10.1, 10.2, 10.3, 10.4
+### Description: Connect validation system with error handling framework and implement performance optimizations
+### Details:
+Extend error handling system to support validation errors with proper formatting and error codes. Implement validation result caching using WeakMap for performance optimization. Ensure proper error propagation through the application layers with consistent error structures.
+

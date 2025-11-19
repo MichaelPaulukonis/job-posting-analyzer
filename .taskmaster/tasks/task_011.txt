@@ -1,0 +1,137 @@
+# Task ID: 11
+# Title: Implement Upwork Proposal Generation Workflow
+# Status: pending
+# Dependencies: 1, 3, 10
+# Priority: high
+# Description: Develop a feature that generates customized Upwork proposals based on job descriptions and resume data, with a multi-step workflow including analysis, diagnosis, hook generation, and full proposal drafting with user confirmation at each stage.
+# Details:
+## Implementation Steps
+
+### 1. Architecture Design
+- Create a workflow service architecture to handle the multi-step proposal generation process
+- Design data flow between frontend, backend, and AI services
+- Define data models for Upwork job descriptions and proposals using TypeScript interfaces
+- Map out state transitions between workflow steps
+
+### 2. Backend Implementation
+- Create new API endpoints for each workflow step:
+  - `/api/proposals/analyze` - Initial job analysis
+  - `/api/proposals/diagnose` - Deep diagnosis
+  - `/api/proposals/hooks` - Opening hook generation
+  - `/api/proposals/draft` - Full proposal draft
+- Integrate with the prompt template in `docs/prompts/upwork_proposal_analysis.txt`
+- Create a service for extracting and formatting relevant resume data
+- Implement storage for in-progress proposals with appropriate status tracking
+
+### 3. Integration with AI Service
+- Extend the existing AI service to handle specialized prompts for each workflow stage
+- Create optimized prompt templates for each step (analysis, diagnosis, hooks, full draft)
+- Implement caching strategy for AI responses to improve performance and reduce costs
+- Add telemetry to track AI service performance and response quality
+
+### 4. Frontend Implementation
+- Create a dedicated proposal wizard UI component with multi-step navigation
+- Implement job description input form with validation and formatting assistance
+- Design preview interfaces for each phase of proposal generation
+- Add confirmation dialogs between workflow steps
+- Implement proposal editing interface with formatting tools
+- Build history view for saved and submitted proposals
+
+### 5. User Experience Refinements
+- Add loading indicators and progress tracking for long-running AI operations
+- Implement intelligent error recovery that preserves user progress
+- Create helpful tooltips and guidance for optimizing job descriptions
+- Add example templates for different Upwork categories
+- Implement session persistence to prevent data loss during the workflow
+
+# Test Strategy:
+## Testing Strategy
+
+### 1. Unit Testing
+- Create unit tests for each workflow step service:
+  ```typescript
+  // tests/services/proposals/analysisService.test.ts
+  import { analyzeJobDescription } from '../../../services/proposals/analysisService';
+  
+  describe('Job Description Analysis', () => {
+    test('should extract key requirements from job description', async () => {
+      const jobDescription = '...';
+      const result = await analyzeJobDescription(jobDescription);
+      expect(result.requirements).toBeArray();
+      expect(result.requirements.length).toBeGreaterThan(0);
+    });
+  });
+  ```
+- Test validation schemas for job descriptions and proposals
+- Verify AI service integration with mock responses
+
+### 2. Integration Testing
+- Test the complete workflow from job description input to final proposal generation
+- Verify data consistency between workflow steps
+- Test resume data integration with proposal generation
+- Validate the prompt construction with different inputs
+
+### 3. UI Testing
+- Use React Testing Library to test UI components:
+  ```typescript
+  // tests/components/ProposalWizard.test.tsx
+  import { render, screen, fireEvent } from '@testing-library/react';
+  import ProposalWizard from '../../components/ProposalWizard';
+  
+  describe('Proposal Wizard', () => {
+    test('should advance to next step when confirmation is clicked', () => {
+      render(<ProposalWizard />);
+      fireEvent.change(screen.getByLabelText(/job description/i), {
+        target: { value: 'Test job description' },
+      });
+      fireEvent.click(screen.getByText(/analyze/i));
+      expect(screen.getByText(/analysis results/i)).toBeInTheDocument();
+    });
+  });
+  ```
+- Test error state handling and recovery in the UI
+- Verify accessibility compliance for all new UI components
+
+### 4. Quality Assurance
+- Conduct manual testing with various real Upwork job descriptions
+- Perform A/B testing of different prompt strategies to optimize proposal quality
+- Create a feedback loop for monitoring proposal effectiveness
+- Test with edge cases like very short or extremely detailed job descriptions
+
+# Subtasks:
+## 1. Design workflow service architecture for proposal generation [pending]
+### Dependencies: None
+### Description: Create the foundational architecture for the multi-step proposal generation process
+### Details:
+Define TypeScript interfaces for job descriptions and proposals, map state transitions between workflow steps, and design data flow between frontend, backend, and AI services with appropriate error handling mechanisms
+
+## 2. Create API endpoints for proposal generation workflow [pending]
+### Dependencies: 11.1
+### Description: Implement REST API endpoints for each stage of the proposal generation process
+### Details:
+Create endpoints at /api/proposals/analyze, /api/proposals/diagnose, /api/proposals/hooks, and /api/proposals/draft with proper request/response validation using Zod schemas from Task 10 implementation
+
+## 3. Implement AI service integration for proposal stages [pending]
+### Dependencies: 11.1, 11.2
+### Description: Extend AI service to handle specialized prompts for each workflow stage with caching
+### Details:
+Create optimized prompt templates for analysis, diagnosis, hooks, and full draft stages; implement caching strategy using Redis; add telemetry for performance tracking and integrate with prompt template in docs/prompts/upwork_proposal_analysis.txt
+
+## 4. Build resume data extraction and formatting service [pending]
+### Dependencies: 11.1, 11.2
+### Description: Create service that processes user resume data for proposal generation
+### Details:
+Implement logic to extract relevant skills, experience, and achievements from user resumes; format data for AI prompt integration; handle various resume formats while maintaining data privacy standards
+
+## 5. Develop multi-step proposal wizard UI component [pending]
+### Dependencies: 11.2
+### Description: Create the user interface for the proposal generation workflow with navigation
+### Details:
+Implement a wizard component with navigation between workflow steps, job description input form with validation, preview interfaces for each phase, confirmation dialogs between steps, and proposal editing interface with formatting tools
+
+## 6. Implement user experience refinements for proposal workflow [pending]
+### Dependencies: 11.5
+### Description: Add features to improve user experience during proposal creation process
+### Details:
+Add loading indicators for AI operations, implement intelligent error recovery that preserves user progress, create helpful tooltips, add example templates for different Upwork categories, and implement session persistence using localStorage
+

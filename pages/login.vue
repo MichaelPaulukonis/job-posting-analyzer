@@ -25,5 +25,22 @@
 </template>
 
 <script setup lang="ts">
-// Placeholder for future authentication logic
+import { ref } from 'vue';
+import { useAuth } from '~/composables/useAuth';
+import { navigateTo } from '#imports';
+
+const email = ref('');
+const password = ref('');
+const { signInWithEmail, isAuthenticated } = useAuth();
+
+async function submit() {
+  try {
+    await signInWithEmail(email.value, password.value);
+    if (isAuthenticated.value) {
+      navigateTo('/');
+    }
+  } catch (err) {
+    console.error('Login failed', err);
+  }
+}
 </script>
