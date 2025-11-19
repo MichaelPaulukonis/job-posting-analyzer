@@ -36,6 +36,9 @@ describe('StorageService Conversation Methods', () => {
   beforeEach(() => {
     // Reset all mocks
     jest.clearAllMocks();
+    jest.restoreAllMocks();
+    // Ensure default fetch behavior for tests (server unavailable) so fallback branches are exercised
+    (global.fetch as any) = jest.fn(async () => ({ ok: false, status: 503, statusText: 'Service Unavailable' }));
     
     mockConversation = {
       id: 'test-conv-123',
@@ -169,8 +172,9 @@ describe('StorageService Conversation Methods', () => {
     it('should handle malformed JSON gracefully', async () => {
       mockLocalStorage.getItem.mockReturnValue('invalid json');
       
-      // Should throw or return empty array depending on implementation
-      await expect(StorageService.getConversations()).rejects.toThrow();
+      // We fallback to localStorage handling which returns an empty array on parse errors
+      const result = await StorageService.getConversations();
+      expect(result).toEqual([]);
     });
   });
 
@@ -228,20 +232,22 @@ describe('StorageService Conversation Methods', () => {
       await StorageService.linkConversationToAnalysis('test-analysis-456', 'test-conv-123');
       
       expect(StorageService.getAnalyses).toHaveBeenCalled();
-      expect(StorageService.getConversation).toHaveBeenCalledWith('test-conv-123');
-      expect(StorageService.saveAnalysis).toHaveBeenCalledWith({
-        ...mockAnalysis,
-        conversation: mockConversation
-      });
+      expect((StorageService as any).fetchWithBaseUrl).toHaveBeenCalledWith('/api/storage', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify([{ ...mockAnalysis, conversationId: 'test-conv-123' }])
+      }));
     });
 
     it('should handle non-existent analysis gracefully', async () => {
+      jest.clearAllMocks();
+      jest.restoreAllMocks();
       jest.spyOn(StorageService, 'getAnalyses').mockResolvedValue([]);
+      const spyGetConversation = jest.spyOn(StorageService, 'getConversation');
       
       await StorageService.linkConversationToAnalysis('non-existent-analysis', 'test-conv-123');
       
       expect(StorageService.getAnalyses).toHaveBeenCalled();
-      expect(StorageService.getConversation).not.toHaveBeenCalled();
+      expect(spyGetConversation).not.toHaveBeenCalled();
     });
 
     it('should handle non-existent conversation', async () => {
