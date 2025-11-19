@@ -137,7 +137,7 @@ async function analyzeWithAnthropic(jobPosting: any, resume: any, config: any) {
   } catch (error: any) {
     // Log detailed error information to backend console
     console.error('Error in analyzeWithAnthropic function:');
-    console.error(error); // Logs the full error object
+    console.error(error, error.message); // Logs the full error object
     
     if (error.stack) {
       console.error('Stack trace:');

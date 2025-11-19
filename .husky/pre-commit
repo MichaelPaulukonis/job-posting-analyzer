@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Check if the current branch is main
 if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
   # Bump the version without creating a git tag or running git commands

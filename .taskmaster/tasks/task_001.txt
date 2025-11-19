@@ -1,0 +1,538 @@
+# Task ID: 1
+# Title: Implement Input Validation and Sanitization Framework
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Create a comprehensive validation and sanitization system using Zod schemas for all API inputs and implement HTML sanitization to prevent XSS attacks, with consistent error handling middleware.
+# Details:
+## Implementation Steps
+
+### 1. Set up Zod for Schema Validation
+- Install Zod: `npm install zod` or `yarn add zod`
+- Set up TypeScript configuration to work optimally with Zod
+- Create a centralized schema directory structure:
+  ```
+  /schemas
+    /users
+    /jobs
+    /resumes
+    /common
+  ```
+
+### 2. Create Base Schema Templates
+- Implement reusable schema components for common data types:
+  ```typescript
+  // schemas/common/index.ts
+  import { z } from 'zod';
+  
+  export const emailSchema = z.string().email('Invalid email format');
+  export const phoneSchema = z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number');
+  export const urlSchema = z.string().url('Invalid URL format');
+  // Add more common validations
+  ```
+
+### 3. Implement Domain-Specific Schemas
+- Create schema validation for job postings:
+  ```typescript
+  // schemas/jobs/jobPosting.ts
+  import { z } from 'zod';
+  import { emailSchema, urlSchema } from '../common';
+  
+  export const jobPostingSchema = z.object({
+    title: z.string().min(5, 'Job title must be at least 5 characters').max(100),
+    company: z.string().min(2, 'Company name required'),
+    description: z.string().min(20, 'Please provide a detailed description'),
+    requirements: z.array(z.string()).min(1, 'At least one requirement is needed'),
+    location: z.string().optional(),
+    salary: z.object({
+      min: z.number().optional(),
+      max: z.number().optional(),
+      currency: z.string().default('USD')
+    }).optional(),
+    contactEmail: emailSchema,
+    applicationUrl: urlSchema.optional(),
+    remote: z.boolean().default(false),
+    postedDate: z.date().default(() => new Date()),
+    // Add more job-specific validations
+  });
+  
+  export type JobPosting = z.infer<typeof jobPostingSchema>;
+  ```
+
+- Create schema validation for resumes:
+  ```typescript
+  // schemas/resumes/resume.ts
+  import { z } from 'zod';
+  import { emailSchema, phoneSchema } from '../common';
+  
+  export const resumeSchema = z.object({
+    candidate: z.object({
+      firstName: z.string().min(1, 'First name is required'),
+      lastName: z.string().min(1, 'Last name is required'),
+      email: emailSchema,
+      phone: phoneSchema.optional(),
+    }),
+    experience: z.array(z.object({
+      company: z.string().min(1, 'Company name is required'),
+      position: z.string().min(1, 'Position is required'),
+      startDate: z.date(),
+      endDate: z.date().nullable(),
+      description: z.string().optional()
+    })).optional(),
+    education: z.array(z.object({
+      institution: z.string().min(1, 'Institution name is required'),
+      degree: z.string().optional(),
+      fieldOfStudy: z.string().optional(),
+      startDate: z.date(),
+      endDate: z.date().nullable()
+    })).optional(),
+    skills: z.array(z.string()).optional(),
+    // Add more resume-specific validations
+  });
+  
+  export type Resume = z.infer<typeof resumeSchema>;
+  ```
+
+### 4. Implement HTML Sanitization
+- Install sanitization library: `npm install sanitize-html` or `yarn add sanitize-html`
+- Create a sanitization utility:
+  ```typescript
+  // utils/sanitizer.ts
+  import sanitizeHtml from 'sanitize-html';
+  
+  const DEFAULT_OPTIONS = {
+    allowedTags: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'ul', 'ol', 
+                 'li', 'strong', 'em', 'a', 'span', 'div'],
+    allowedAttributes: {
+      'a': ['href', 'target', 'rel'],
+      'div': ['class'],
+      'span': ['class'],
+    },
+    selfClosing: ['br'],
+    allowedSchemes: ['http', 'https', 'mailto'],
+    disallowedTagsMode: 'discard',
+  };
+  
+  export function sanitizeUserHtml(dirty: string, options = {}): string {
+    const mergedOptions = {
+      ...DEFAULT_OPTIONS,
+      ...options,
+    };
+    return sanitizeHtml(dirty, mergedOptions);
+  }
+  
+  export function sanitizeObject<T>(obj: T): T {
+    if (obj === null || obj === undefined) return obj;
+    
+    if (typeof obj !== 'object') {
+      return typeof obj === 'string' ? sanitizeUserHtml(obj) as unknown as T : obj;
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => sanitizeObject(item)) as unknown as T;
+    }
+    
+    const result: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = sanitizeObject(value);
+    }
+    
+    return result as T;
+  }
+  ```
+
+### 5. Create Validation Middleware
+- Implement a generic validation middleware:
+  ```typescript
+  // middleware/validation.ts
+  import { Request, Response, NextFunction } from 'express';
+  import { AnyZodObject, ZodError } from 'zod';
+  import { sanitizeObject } from '../utils/sanitizer';
+  
+  export const validate = (schema: AnyZodObject, source: 'body' | 'query' | 'params' = 'body') => 
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        // First sanitize the input
+        const sanitizedData = sanitizeObject(req[source]);
+        req[source] = sanitizedData;
+        
+        // Then validate against the schema
+        const validatedData = await schema.parseAsync(sanitizedData);
+        req[source] = validatedData;
+        return next();
+      } catch (error) {
+        if (error instanceof ZodError) {
+          return res.status(400).json({
+            status: 'error',
+            message: 'Validation failed',
+            errors: error.errors.map(err => ({
+              field: err.path.join('.'),
+              message: err.message
+            }))
+          });
+        }
+        return res.status(500).json({
+          status: 'error',
+          message: 'Internal server error during validation',
+        });
+      }
+    };
+  ```
+
+### 6. Implement in Routes
+- Apply the validation middleware to routes:
+  ```typescript
+  // routes/jobs.ts
+  import express from 'express';
+  import { jobPostingSchema } from '../schemas/jobs/jobPosting';
+  import { validate } from '../middleware/validation';
+  import { createJob, updateJob } from '../controllers/jobs';
+  
+  const router = express.Router();
+  
+  router.post('/jobs', validate(jobPostingSchema), createJob);
+  router.put('/jobs/:id', validate(jobPostingSchema), updateJob);
+  
+  export default router;
+  ```
+
+### 7. Create Error Handling Middleware
+- Implement a global error handling middleware:
+  ```typescript
+  // middleware/errorHandler.ts
+  import { Request, Response, NextFunction } from 'express';
+  
+  export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+    const status = err.status || 500;
+    const message = err.message || 'Something went wrong';
+    
+    console.error(`[Error] ${status} - ${message}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.error(err.stack);
+    }
+    
+    res.status(status).json({
+      status: 'error',
+      message,
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    });
+  };
+  ```
+
+### 8. Configure Content Security Policy
+- Add CSP headers as an additional security layer:
+  ```typescript
+  // middleware/securityHeaders.ts
+  import { Request, Response, NextFunction } from 'express';
+  
+  export const securityHeaders = (req: Request, res: Response, next: NextFunction) => {
+    // Content Security Policy
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self'; frame-ancestors 'none';"
+    );
+    
+    // Other security headers
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    
+    next();
+  };
+  ```
+
+### 9. Documentation & Developer Guidelines
+- Create documentation for using the validation system
+- Establish guidelines for creating new validation schemas
+- Document security best practices for handling user input
+
+# Test Strategy:
+## Testing Strategy
+
+### 1. Unit Tests for Schema Validation
+- Create unit tests for each schema to verify validation logic:
+  ```typescript
+  // tests/schemas/jobPosting.test.ts
+  import { jobPostingSchema } from '../../schemas/jobs/jobPosting';
+  
+  describe('Job Posting Schema Validation', () => {
+    test('validates a valid job posting', () => {
+      const validPosting = {
+        title: 'Senior Developer',
+        company: 'Tech Corp',
+        description: 'We are looking for an experienced developer...',
+        requirements: ['5+ years experience', 'JavaScript proficiency'],
+        contactEmail: 'jobs@techcorp.com',
+      };
+      
+      const result = jobPostingSchema.safeParse(validPosting);
+      expect(result.success).toBe(true);
+    });
+    
+    test('rejects job posting with missing required fields', () => {
+      const invalidPosting = {
+        title: 'Dev',
+        company: 'TC',
+        // missing description and requirements
+        contactEmail: 'invalid-email',
+      };
+      
+      const result = jobPostingSchema.safeParse(invalidPosting);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        // Test specific error messages
+        const formattedErrors = result.error.format();
+        expect(formattedErrors.title?._errors).toBeDefined();
+        expect(formattedErrors.description?._errors).toBeDefined();
+        expect(formattedErrors.requirements?._errors).toBeDefined();
+        expect(formattedErrors.contactEmail?._errors).toBeDefined();
+      }
+    });
+    
+    // Add more test cases for edge cases
+  });
+  ```
+
+### 2. Unit Tests for Sanitization
+- Test HTML sanitization utility:
+  ```typescript
+  // tests/utils/sanitizer.test.ts
+  import { sanitizeUserHtml, sanitizeObject } from '../../utils/sanitizer';
+  
+  describe('HTML Sanitization', () => {
+    test('removes disallowed tags', () => {
+      const dirty = '<script>alert("XSS")</script><p>Hello</p>';
+      const clean = sanitizeUserHtml(dirty);
+      expect(clean).toBe('<p>Hello</p>');
+    });
+    
+    test('removes disallowed attributes', () => {
+      const dirty = '<a href="javascript:alert(1)" onclick="alert(2)">Link</a>';
+      const clean = sanitizeUserHtml(dirty);
+      expect(clean).not.toContain('javascript:');
+      expect(clean).not.toContain('onclick');
+    });
+    
+    test('sanitizes nested objects', () => {
+      const dirtyObject = {
+        name: 'Test',
+        description: '<script>alert(1)</script><p>Description</p>',
+        items: [
+          { text: '<img src="x" onerror="alert(1)">' },
+          { text: 'Safe text' }
+        ],
+        meta: {
+          html: '<script>bad</script>'
+        }
+      };
+      
+      const cleanObject = sanitizeObject(dirtyObject);
+      expect(cleanObject.description).toBe('<p>Description</p>');
+      expect(cleanObject.items[0].text).not.toContain('onerror');
+      expect(cleanObject.meta.html).toBe('');
+    });
+  });
+  ```
+
+### 3. Integration Tests for Validation Middleware
+- Test validation middleware in the context of API routes:
+  ```typescript
+  // tests/integration/validation.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  
+  describe('Validation Middleware', () => {
+    test('rejects invalid job posting with appropriate errors', async () => {
+      const invalidPosting = {
+        title: 'Dev', // too short
+        // missing company
+        description: 'Short', // too short
+        // missing requirements
+        contactEmail: 'invalid-email',
+      };
+      
+      const response = await request(app)
+        .post('/api/jobs')
+        .send(invalidPosting)
+        .expect(400);
+      
+      expect(response.body.status).toBe('error');
+      expect(response.body.errors).toBeInstanceOf(Array);
+      expect(response.body.errors.length).toBeGreaterThan(0);
+      
+      // Check specific error fields
+      const fields = response.body.errors.map((e: any) => e.field);
+      expect(fields).toContain('title');
+      expect(fields).toContain('company');
+      expect(fields).toContain('description');
+      expect(fields).toContain('requirements');
+      expect(fields).toContain('contactEmail');
+    });
+    
+    test('accepts valid resume data', async () => {
+      const validResume = {
+        candidate: {
+          firstName: 'John',
+          lastName: 'Doe',
+          email: 'john.doe@example.com',
+          phone: '+1234567890'
+        },
+        experience: [
+          {
+            company: 'Previous Corp',
+            position: 'Developer',
+            startDate: '2018-01-01',
+            endDate: '2021-12-31',
+            description: 'Worked on various projects'
+          }
+        ]
+      };
+      
+      const response = await request(app)
+        .post('/api/resumes')
+        .send(validResume)
+        .expect(201);
+      
+      expect(response.body.status).toBe('success');
+    });
+  });
+  ```
+
+### 4. Security Testing
+- Test for XSS vulnerabilities:
+  ```typescript
+  // tests/security/xss.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  
+  describe('XSS Protection', () => {
+    test('sanitizes HTML in job description', async () => {
+      const xssPayload = {
+        title: 'Senior Developer',
+        company: 'Tech Corp',
+        description: '<p>Valid HTML</p><script>alert("XSS")</script>',
+        requirements: ['<img src="x" onerror="alert(1)">'],
+        contactEmail: 'jobs@techcorp.com',
+      };
+      
+      const response = await request(app)
+        .post('/api/jobs')
+        .send(xssPayload)
+        .expect(201);
+      
+      // Retrieve the saved job to verify sanitization
+      const jobId = response.body.data.id;
+      const getResponse = await request(app)
+        .get(`/api/jobs/${jobId}`)
+        .expect(200);
+      
+      // Verify script and dangerous attributes were removed
+      expect(getResponse.body.data.description).toContain('<p>Valid HTML</p>');
+      expect(getResponse.body.data.description).not.toContain('<script>');
+      expect(getResponse.body.data.requirements[0]).not.toContain('onerror');
+    });
+  });
+  ```
+
+### 5. Edge Case Testing
+- Test boundary conditions for validation:
+  ```typescript
+  // tests/schemas/edgeCases.test.ts
+  import { jobPostingSchema } from '../../schemas/jobs/jobPosting';
+  import { resumeSchema } from '../../schemas/resumes/resume';
+  
+  describe('Schema Edge Cases', () => {
+    test('handles empty strings properly', () => {
+      const result = jobPostingSchema.safeParse({
+        title: '',
+        company: '',
+        description: '',
+        requirements: [],
+        contactEmail: '',
+      });
+      
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        // All fields should have validation errors
+        const fields = Object.keys(result.error.format()).filter(
+          key => key !== '_errors'
+        );
+        expect(fields).toHaveLength(5);
+      }
+    });
+    
+    test('handles extremely long inputs', () => {
+      const longString = 'a'.repeat(10000);
+      const result = resumeSchema.safeParse({
+        candidate: {
+          firstName: longString,
+          lastName: longString,
+          email: `a@${'a'.repeat(253)}.com`, // Technically valid but extremely long
+        }
+      });
+      
+      // Schema should either accept or reject consistently
+      // This test is to verify it doesn't crash with long inputs
+      expect(typeof result.success).toBe('boolean');
+    });
+  });
+  ```
+
+### 6. Performance Testing
+- Test validation performance with large inputs:
+  ```typescript
+  // tests/performance/validation.test.ts
+  import { jobPostingSchema } from '../../schemas/jobs/jobPosting';
+  
+  describe('Validation Performance', () => {
+    test('handles large job posting in reasonable time', () => {
+      const largeJobPosting = {
+        title: 'Senior Developer',
+        company: 'Tech Corp',
+        description: 'a'.repeat(10000), // Very large description
+        requirements: Array(100).fill('Requirement'), // Many requirements
+        contactEmail: 'jobs@techcorp.com',
+      };
+      
+      const startTime = Date.now();
+      const result = jobPostingSchema.safeParse(largeJobPosting);
+      const endTime = Date.now();
+      
+      // Should validate within a reasonable time (e.g., < 100ms)
+      expect(endTime - startTime).toBeLessThan(100);
+      expect(result.success).toBe(true);
+    });
+  });
+  ```
+
+# Subtasks:
+## 1. Set up Zod validation library and directory structure [pending]
+### Dependencies: None
+### Description: Install Zod, configure TypeScript, and establish the schema directory structure for the validation framework
+### Details:
+Install Zod using npm/yarn, configure TypeScript for optimal Zod integration, create the centralized schema directory structure with users, jobs, resumes, and common subdirectories as specified in the implementation steps
+
+## 2. Develop reusable common schema components [pending]
+### Dependencies: 1.1
+### Description: Create standardized schema components for frequently used data types like email, phone, and URL validation
+### Details:
+Implement emailSchema, phoneSchema, urlSchema, and other common validation patterns in the /schemas/common directory for reuse across domain-specific schemas with appropriate error messages and validation rules
+
+## 3. Implement domain-specific validation schemas [pending]
+### Dependencies: 1.1, 1.2
+### Description: Create Zod schemas for job postings, resumes, and other domain entities with appropriate validation rules
+### Details:
+Develop jobPostingSchema with validation for title, company, description, requirements, etc. and resumeSchema with validation for candidate information, experience, education, and skills as specified in the implementation examples
+
+## 4. Implement HTML sanitization utility [pending]
+### Dependencies: None
+### Description: Create a robust HTML sanitization system to prevent XSS attacks using sanitize-html library
+### Details:
+Install sanitize-html, create sanitizer utility with default configuration, implement sanitizeUserHtml and sanitizeObject functions for sanitizing strings and nested objects with proper configuration for allowed tags, attributes, and schemes
+
+## 5. Develop validation middleware and error handling [pending]
+### Dependencies: 1.1, 1.2, 1.3, 1.4
+### Description: Create middleware for schema validation, integrate with sanitization, and implement consistent error responses
+### Details:
+Implement validate middleware function that sanitizes input, validates against schema, and handles errors; create error handling middleware; integrate with routes; configure security headers including CSP, X-XSS-Protection, and other security measures
+

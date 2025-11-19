@@ -7,18 +7,25 @@
         </svg>
         Back to Home
       </NuxtLink>
-      <h1 class="text-2xl font-bold">🔐 Login</h1>
+      <h1 class="text-2xl font-bold">🔐 Sign up</h1>
     </div>
 
     <div class="bg-white shadow-md rounded-lg p-6 max-w-md mx-auto">
-      <h2 class="text-xl font-semibold mb-4">Login Page</h2>
-      <p class="text-gray-600 mb-4">This is a placeholder for the login functionality.</p>
-      
-      <!-- Placeholder content - to be implemented later -->
+      <h2 class="text-xl font-semibold mb-4">Create account</h2>
+      <p class="text-gray-600 mb-4">Create a new account using email and password.</p>
+
       <div class="space-y-4">
-        <div class="bg-gray-50 p-4 rounded-md text-center">
-          <p>Login functionality will be implemented in the future.</p>
-        </div>
+        <label class="block">
+          <span class="text-sm">Email</span>
+          <input v-model="email" type="email" class="form-input mt-1 block w-full" />
+        </label>
+
+        <label class="block">
+          <span class="text-sm">Password</span>
+          <input v-model="password" type="password" class="form-input mt-1 block w-full" />
+        </label>
+
+        <button class="btn" @click="submit">Create account</button>
       </div>
     </div>
   </div>
@@ -31,16 +38,16 @@ import { navigateTo } from '#imports';
 
 const email = ref('');
 const password = ref('');
-const { signInWithEmail, isAuthenticated } = useAuth();
+const { signUpWithEmail, isAuthenticated } = useAuth();
 
 async function submit() {
   try {
-    await signInWithEmail(email.value, password.value);
+    await signUpWithEmail(email.value, password.value);
     if (isAuthenticated.value) {
       navigateTo('/');
     }
   } catch (err) {
-    console.error('Login failed', err);
+    console.error('Sign up failed', err);
   }
 }
 </script>

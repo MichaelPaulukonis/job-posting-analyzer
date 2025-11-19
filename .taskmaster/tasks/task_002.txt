@@ -1,0 +1,376 @@
+# Task ID: 2
+# Title: Implement API Rate Limiting and Abuse Prevention Middleware
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Develop and implement a rate limiting system with per-IP request limits, appropriate headers, and protection mechanisms against brute force attacks to ensure fair usage of API and AI services.
+# Details:
+## Implementation Steps
+
+### 1. Select and Install Rate Limiting Library
+- Install the rate limiting library: `npm install express-rate-limit` or `npm install rate-limiter-flexible`
+- For distributed systems, also install Redis client: `npm install redis`
+
+### 2. Create Rate Limiting Configuration Module
+- Create a centralized configuration file for rate limiting settings:
+  ```typescript
+  // config/rateLimit.ts
+  import rateLimit from 'express-rate-limit';
+  import RedisStore from 'rate-limit-redis';
+  import redis from 'redis';
+
+  // Create Redis client if using distributed system
+  const redisClient = redis.createClient({
+    host: process.env.REDIS_HOST,
+    port: Number(process.env.REDIS_PORT),
+    password: process.env.REDIS_PASSWORD,
+  });
+
+  // General API rate limiting
+  export const apiLimiter = rateLimit({
+    store: new RedisStore({ client: redisClient }), // Use Redis for distributed systems
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // 100 requests per windowMs
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    message: {
+      status: 429,
+      message: 'Too many requests, please try again later.',
+    }
+  });
+
+  // Stricter limits for authentication endpoints to prevent brute force
+  export const authLimiter = rateLimit({
+    store: new RedisStore({ client: redisClient }),
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 5, // 5 login attempts per hour
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      status: 429,
+      message: 'Too many login attempts, please try again later.',
+    }
+  });
+
+  // Special limits for AI service endpoints
+  export const aiServiceLimiter = rateLimit({
+    store: new RedisStore({ client: redisClient }),
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 20, // 20 AI requests per hour
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      status: 429,
+      message: 'AI service usage limit reached, please try again later.',
+    }
+  });
+  ```
+
+### 3. Apply Rate Limiting Middleware to Routes
+- Apply the general rate limiter to all API routes:
+  ```typescript
+  // app.ts or server.ts
+  import express from 'express';
+  import { apiLimiter, authLimiter, aiServiceLimiter } from './config/rateLimit';
+
+  const app = express();
+
+  // Apply general rate limiting to all API routes
+  app.use('/api/', apiLimiter);
+
+  // Apply stricter limiting to authentication endpoints
+  app.use('/api/auth/', authLimiter);
+  app.use('/api/login', authLimiter);
+  app.use('/api/reset-password', authLimiter);
+
+  // Apply special limits to AI service endpoints
+  app.use('/api/ai/', aiServiceLimiter);
+  ```
+
+### 4. Implement Advanced IP-based Blocking for Suspicious Activity
+- Create middleware to detect and block suspicious activity:
+  ```typescript
+  // middleware/securityMiddleware.ts
+  import { Request, Response, NextFunction } from 'express';
+  import redis from 'redis';
+
+  const redisClient = redis.createClient({
+    host: process.env.REDIS_HOST,
+    port: Number(process.env.REDIS_PORT),
+    password: process.env.REDIS_PASSWORD,
+  });
+
+  // Track failed login attempts
+  export const trackFailedLogins = async (req: Request, res: Response, next: NextFunction) => {
+    const ip = req.ip;
+    const key = `failed_login:${ip}`;
+
+    try {
+      const attempts = await redisClient.incr(key);
+      
+      // Set key expiry if it's a new key
+      if (attempts === 1) {
+        await redisClient.expire(key, 60 * 60); // 1 hour
+      }
+      
+      // Block IP if too many failed attempts
+      if (attempts > 10) {
+        await redisClient.set(`blocked:${ip}`, '1', 'EX', 24 * 60 * 60); // Block for 24 hours
+        return res.status(403).json({
+          status: 403,
+          message: 'Access blocked due to suspicious activity'
+        });
+      }
+      
+      next();
+    } catch (error) {
+      console.error('Error tracking failed logins:', error);
+      next();
+    }
+  };
+  ```
+
+### 5. Add Custom Headers and Client Feedback
+- Implement middleware to add custom rate limit headers and improve client feedback:
+  ```typescript
+  // middleware/rateLimitFeedback.ts
+  import { Request, Response, NextFunction } from 'express';
+
+  export const rateLimitFeedback = (req: Request, res: Response, next: NextFunction) => {
+    // Add custom retry-after header if rate limited
+    res.on('finish', () => {
+      if (res.statusCode === 429) {
+        // Add retry-after header if not already set
+        if (!res.get('Retry-After')) {
+          res.set('Retry-After', '60'); // Suggest client to retry after 60 seconds
+        }
+      }
+    });
+    
+    next();
+  };
+  ```
+
+### 6. Configure Tiered Rate Limiting Based on User Roles
+- Implement dynamic rate limits based on user roles or subscription levels:
+  ```typescript
+  // middleware/dynamicRateLimiter.ts
+  import { Request, Response, NextFunction } from 'express';
+  import { RateLimiterRedis } from 'rate-limiter-flexible';
+  import redis from 'redis';
+
+  const redisClient = redis.createClient({
+    host: process.env.REDIS_HOST,
+    port: Number(process.env.REDIS_PORT),
+    password: process.env.REDIS_PASSWORD,
+  });
+
+  const baseLimiter = new RateLimiterRedis({
+    storeClient: redisClient,
+    keyPrefix: 'ratelimit',
+    points: 10, // Default number of points
+    duration: 1, // Per 1 second
+  });
+
+  export const dynamicRateLimiter = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Determine points based on user role/subscription
+      let points = 1; // Default cost per request
+      let pointsToConsume = points;
+      
+      // If user is authenticated, adjust based on role
+      if (req.user) {
+        switch (req.user.role) {
+          case 'premium':
+            pointsToConsume = points * 0.5; // 50% of regular rate
+            break;
+          case 'enterprise':
+            pointsToConsume = points * 0.2; // 20% of regular rate
+            break;
+          default:
+            pointsToConsume = points;
+        }
+      }
+
+      // Consume points from the rate limiter
+      const key = req.user ? req.user.id : req.ip;
+      await baseLimiter.consume(key, pointsToConsume);
+      next();
+    } catch (rejRes) {
+      // If rate limit is exceeded
+      const secs = Math.round(rejRes.msBeforeNext / 1000) || 1;
+      res.set('Retry-After', String(secs));
+      res.status(429).json({
+        status: 429,
+        message: 'Too many requests',
+        retryAfter: secs
+      });
+    }
+  };
+  ```
+
+# Test Strategy:
+## Testing Strategy
+
+### 1. Unit Tests for Rate Limiting Configuration
+- Create unit tests for the rate limiting configuration:
+  ```typescript
+  // tests/middleware/rateLimit.test.ts
+  import { apiLimiter, authLimiter, aiServiceLimiter } from '../../config/rateLimit';
+  
+  describe('Rate Limiting Configuration', () => {
+    test('API limiter should have correct window and max settings', () => {
+      expect(apiLimiter.windowMs).toBe(15 * 60 * 1000);
+      expect(apiLimiter.max).toBe(100);
+    });
+    
+    test('Auth limiter should be stricter than API limiter', () => {
+      expect(authLimiter.max).toBeLessThan(apiLimiter.max);
+    });
+  });
+  ```
+
+### 2. Integration Tests for Rate Limiting Middleware
+- Create integration tests to verify middleware behavior:
+  ```typescript
+  // tests/integration/rateLimit.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  
+  describe('Rate Limiting Integration Tests', () => {
+    test('Should allow requests below the limit', async () => {
+      // Make multiple requests below the limit
+      for (let i = 0; i < 5; i++) {
+        const response = await request(app).get('/api/some-endpoint');
+        expect(response.status).not.toBe(429);
+      }
+    });
+    
+    test('Should block requests over the limit', async () => {
+      // Make enough requests to hit the limit
+      const limitPlus10 = 110; // Assuming limit is 100
+      const responses = [];
+      
+      for (let i = 0; i < limitPlus10; i++) {
+        responses.push(await request(app).get('/api/some-endpoint'));
+      }
+      
+      // Check that the later requests were rate limited
+      expect(responses[responses.length - 1].status).toBe(429);
+    });
+    
+    test('Rate limit headers should be present', async () => {
+      const response = await request(app).get('/api/some-endpoint');
+      
+      expect(response.headers).toHaveProperty('ratelimit-limit');
+      expect(response.headers).toHaveProperty('ratelimit-remaining');
+      expect(response.headers).toHaveProperty('ratelimit-reset');
+    });
+  });
+  ```
+
+### 3. Authentication Endpoint Protection Tests
+- Test that authentication endpoints have stricter limits:
+  ```typescript
+  // tests/integration/authRateLimit.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  
+  describe('Authentication Rate Limiting Tests', () => {
+    test('Should block after too many login attempts', async () => {
+      // Make multiple login attempts with bad credentials
+      for (let i = 0; i < 6; i++) {
+        await request(app)
+          .post('/api/login')
+          .send({ email: 'test@example.com', password: 'wrongpassword' });
+      }
+      
+      // The 6th attempt should be rate limited
+      const response = await request(app)
+        .post('/api/login')
+        .send({ email: 'test@example.com', password: 'wrongpassword' });
+      
+      expect(response.status).toBe(429);
+    });
+  });
+  ```
+
+### 4. AI Endpoints Rate Limiting Tests
+- Test rate limiting specifically for AI service endpoints:
+  ```typescript
+  // tests/integration/aiRateLimit.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  
+  describe('AI Service Rate Limiting Tests', () => {
+    test('Should limit AI service usage', async () => {
+      // Make multiple requests to an AI endpoint
+      for (let i = 0; i < 20; i++) {
+        await request(app)
+          .post('/api/ai/generate')
+          .send({ prompt: 'Test prompt' });
+      }
+      
+      // The 21st request should be rate limited
+      const response = await request(app)
+        .post('/api/ai/generate')
+        .send({ prompt: 'Test prompt' });
+      
+      expect(response.status).toBe(429);
+    });
+  });
+  ```
+
+### 5. Load Testing
+- Use tools like Artillery or JMeter to verify rate limits under load:
+  ```yaml
+  # artillery-config.yml
+  config:
+    target: "http://localhost:3000"
+    phases:
+      - duration: 60
+        arrivalRate: 5
+    defaults:
+      headers:
+        Content-Type: "application/json"
+  scenarios:
+    - flow:
+        - get:
+            url: "/api/some-endpoint"
+        - think: 1
+  ```
+  
+  Run with: `npx artillery run artillery-config.yml`
+
+### 6. Security Testing for Brute Force Protection
+- Test that brute force protection works correctly:
+  ```typescript
+  // tests/security/bruteForce.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  
+  describe('Brute Force Protection Tests', () => {
+    test('Should block IP after multiple failed login attempts', async () => {
+      // Make enough failed login attempts to trigger blocking
+      for (let i = 0; i < 11; i++) {
+        await request(app)
+          .post('/api/login')
+          .send({ email: 'test@example.com', password: 'wrongpassword' });
+      }
+      
+      // Try accessing a different endpoint from the same IP
+      const response = await request(app).get('/api/some-endpoint');
+      
+      // Should be blocked
+      expect(response.status).toBe(403);
+    });
+  });
+  ```
+
+# Subtasks:
+## 1. Select and Install Rate Limiting Libraries [pending]
+### Dependencies: None
+### Description: 
+### Details:
+
+

@@ -9,7 +9,8 @@
             class="hover:underline">Analyze</NuxtLink>
           <NuxtLink :to="currentAnalysisId ? `/cover-letter/${currentAnalysisId}` : '/cover-letter'"
             class="hover:underline">Cover Letters</NuxtLink>
-          <NuxtLink to="/login" class="hover:underline">Login</NuxtLink>
+          <NuxtLink to="/upwork" class="hover:underline">Upwork</NuxtLink>
+          <AuthBar />
           <NuxtLink to="/admin" class="hover:underline">Admin</NuxtLink>
         </nav>
       </div>
@@ -26,6 +27,7 @@
 </template>
 
 <script setup lang="ts">
+import AuthBar from '~/components/AuthBar.vue';
 import { ref, onMounted, watch } from '#imports';
 import { useRoute } from '#imports';
 import { StorageService } from '~/services/StorageService';

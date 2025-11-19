@@ -232,3 +232,7 @@ Resume upload supports multiple formats via server-side parsing:
 - PDF (`.pdf`) using `pdfjs-dist`
 
 Add new parsers in `server/api/resumes/index.ts` with appropriate MIME type handling.
+
+## Task Master AI Instructions
+**Import Task Master's development workflow commands and guidelines, treat as if import is in the main CLAUDE.md file.**
+@./.taskmaster/CLAUDE.md

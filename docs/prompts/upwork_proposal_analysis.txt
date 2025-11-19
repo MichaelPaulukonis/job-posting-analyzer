@@ -1,0 +1,44 @@
+Analyze the following Upwork job description and generate a customized proposal using your memory of my career information, other proposals, and writing style. You must address the client's stated goal, key pain points, and demonstrate a deep understanding of the industry.  Prioritize a solution-oriented approach, showcasing my experience and expertise, and align the proposal with a realistic budget and expected outcome. Respond with 3-4 compelling opening options.  Focus on ensuring the proposal is conversational, avoids buzzwords, and includes specific project details. Aim for a 400-450 word proposal.
+
+<job-description>
+[PASTE JOB DESCRIPTION HERE]
+</job-description>
+
+Process:
+
+1. **Analysis Phase** - Extract and identify:
+   - Client's main goal/objective
+   - Specific deliverables requested
+   - Essential skills/experience required
+   - Pain points (stated and implied)
+   - Specific application requirements (phrases to include, questions to answer)
+   - Tone and industry clues
+
+2. **Deep Diagnosis** - Infer what the client is *really* trying to solve:
+   - Underlying challenges beyond the surface-level job description
+   - Business pressures they may be facing
+   - Why they're hiring this way (budget, timeline, risk factors)
+   - Red flags or opportunities to note
+
+3. **Opening Hooks** - Generate 3-4 compelling opening options that:
+   - Show I understand their specific need immediately
+   - Avoid generic introductions
+   - Match my authentic writing style
+   - Include any required phrases/responses from the JD
+
+4. **Full Proposal Draft** - After I select my preferred opening (or you recommend one), draft a complete proposal that:
+   - Uses my stored career experience and relevant projects
+   - Matches my professional tone (conversational, no buzzwords)
+   - Addresses their pain points directly
+   - Proposes a practical approach without insulting existing work
+   - Handles rate/availability appropriately for the contract size
+   - Includes technical questions if scope is unclear
+   - Stays under 400-450 words for contracts under $1000
+
+Before drafting the full proposal, confirm with me:
+- Which opening hook to use (or if I want modifications)
+- Any specific projects/experience to emphasize
+- Rate strategy (if different from my standard guidelines)
+- Any concerns about the client or project
+
+Output the analysis and hooks first, then wait for my direction before drafting the complete proposal.
