@@ -1,0 +1,896 @@
+# Task ID: 20
+# Title: Implement JWT Authentication System with User Management
+# Status: deferred
+# Dependencies: 1, 2, 10
+# Priority: low
+# Description: Create a secure user authentication system using JWT tokens that includes user registration with email verification, login/logout functionality, password reset capabilities, and session management with middleware for protected routes.
+# Details:
+## Implementation Steps
+
+### 1. Set Up Authentication Dependencies
+- Install required packages:
+  ```bash
+  npm install jsonwebtoken bcrypt nodemailer uuid express-validator
+  npm install --save-dev @types/jsonwebtoken @types/bcrypt @types/nodemailer @types/uuid
+  ```
+- Create authentication configuration file with environment variables:
+  ```typescript
+  // config/auth.ts
+  export default {
+    jwtSecret: process.env.JWT_SECRET || 'your-development-secret-key',
+    jwtExpiresIn: '1d',
+    refreshTokenExpiresIn: '7d',
+    emailVerificationExpiry: 24, // hours
+    passwordResetExpiry: 1 // hours
+  };
+  ```
+
+### 2. Create User Model and Database Schema
+- Define user schema with required fields:
+  ```typescript
+  // models/User.ts
+  import { Schema, model } from 'mongoose'; // or your preferred ORM
+  import bcrypt from 'bcrypt';
+  
+  const userSchema = new Schema({
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    firstName: String,
+    lastName: String,
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationToken: String,
+    verificationExpires: Date,
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+    refreshTokens: [String],
+    lastLogin: Date,
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    }
+  });
+  
+  // Password hashing middleware
+  userSchema.pre('save', async function (next) {
+    if (!this.isModified('password')) return next();
+    
+    try {
+      const salt = await bcrypt.genSalt(10);
+      this.password = await bcrypt.hash(this.password, salt);
+      next();
+    } catch (error) {
+      next(error);
+    }
+  });
+  
+  // Password verification method
+  userSchema.methods.comparePassword = async function (candidatePassword) {
+    return bcrypt.compare(candidatePassword, this.password);
+  };
+  
+  export const User = model('User', userSchema);
+  ```
+
+### 3. Implement JWT Token Service
+- Create service for token generation and validation:
+  ```typescript
+  // services/tokenService.ts
+  import jwt from 'jsonwebtoken';
+  import { v4 as uuidv4 } from 'uuid';
+  import authConfig from '../config/auth';
+  import { User } from '../models/User';
+  
+  export const generateTokens = async (userId: string) => {
+    // Create JWT token
+    const accessToken = jwt.sign(
+      { id: userId },
+      authConfig.jwtSecret,
+      { expiresIn: authConfig.jwtExpiresIn }
+    );
+    
+    // Create refresh token
+    const refreshToken = uuidv4();
+    
+    // Store refresh token in database
+    await User.findByIdAndUpdate(userId, {
+      $push: { refreshTokens: refreshToken }
+    });
+    
+    return {
+      accessToken,
+      refreshToken
+    };
+  };
+  
+  export const verifyToken = (token: string) => {
+    try {
+      return jwt.verify(token, authConfig.jwtSecret);
+    } catch (error) {
+      return null;
+    }
+  };
+  
+  export const refreshAccessToken = async (refreshToken: string) => {
+    // Find user with this refresh token
+    const user = await User.findOne({ 
+      refreshTokens: refreshToken 
+    });
+    
+    if (!user) {
+      throw new Error('Invalid refresh token');
+    }
+    
+    // Generate new tokens
+    const tokens = await generateTokens(user._id);
+    
+    // Remove old refresh token
+    await User.findByIdAndUpdate(user._id, {
+      $pull: { refreshTokens: refreshToken }
+    });
+    
+    return tokens;
+  };
+  ```
+
+### 4. Email Service for Verification and Password Reset
+- Create service to send verification and reset emails:
+  ```typescript
+  // services/emailService.ts
+  import nodemailer from 'nodemailer';
+  import { v4 as uuidv4 } from 'uuid';
+  import config from '../config/auth';
+  import { User } from '../models/User';
+  
+  // Configure email transporter
+  const transporter = nodemailer.createTransport({
+    service: process.env.EMAIL_SERVICE,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD
+    }
+  });
+  
+  export const sendVerificationEmail = async (userId: string, email: string) => {
+    const token = uuidv4();
+    const verificationExpires = new Date(
+      Date.now() + config.emailVerificationExpiry * 60 * 60 * 1000
+    );
+    
+    await User.findByIdAndUpdate(userId, {
+      verificationToken: token,
+      verificationExpires
+    });
+    
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: 'Verify Your Email Address',
+      html: `
+        <h1>Email Verification</h1>
+        <p>Please click the link below to verify your email address:</p>
+        <a href="${verificationUrl}">Verify Email</a>
+        <p>This link will expire in ${config.emailVerificationExpiry} hours.</p>
+      `
+    };
+    
+    return transporter.sendMail(mailOptions);
+  };
+  
+  export const sendPasswordResetEmail = async (email: string) => {
+    const user = await User.findOne({ email });
+    if (!user) return;
+    
+    const token = uuidv4();
+    const resetPasswordExpires = new Date(
+      Date.now() + config.passwordResetExpiry * 60 * 60 * 1000
+    );
+    
+    await User.findByIdAndUpdate(user._id, {
+      resetPasswordToken: token,
+      resetPasswordExpires
+    });
+    
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: 'Password Reset Request',
+      html: `
+        <h1>Password Reset</h1>
+        <p>You requested a password reset. Please click the link below:</p>
+        <a href="${resetUrl}">Reset Password</a>
+        <p>This link will expire in ${config.passwordResetExpiry} hour(s).</p>
+      `
+    };
+    
+    return transporter.sendMail(mailOptions);
+  };
+  ```
+
+### 5. Authentication Controllers
+- Implement controllers for all authentication operations:
+  ```typescript
+  // controllers/authController.ts
+  import { Request, Response } from 'express';
+  import { User } from '../models/User';
+  import { generateTokens, refreshAccessToken } from '../services/tokenService';
+  import { sendVerificationEmail, sendPasswordResetEmail } from '../services/emailService';
+  
+  // Register new user
+  export const register = async (req: Request, res: Response) => {
+    try {
+      const { email, password, firstName, lastName } = req.body;
+      
+      // Check if user exists
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+      
+      // Create new user
+      const newUser = new User({
+        email,
+        password,
+        firstName,
+        lastName
+      });
+      
+      await newUser.save();
+      
+      // Send verification email
+      await sendVerificationEmail(newUser._id, email);
+      
+      return res.status(201).json({ 
+        message: 'Registration successful. Please verify your email.'
+      });
+    } catch (error) {
+      return res.status(500).json({ message: 'Error registering user' });
+    }
+  };
+  
+  // Login user
+  export const login = async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+      
+      // Find user
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      
+      // Verify password
+      const isMatch = await user.comparePassword(password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      
+      // Check email verification
+      if (!user.isVerified) {
+        return res.status(401).json({ 
+          message: 'Please verify your email before logging in'
+        });
+      }
+      
+      // Generate tokens
+      const tokens = await generateTokens(user._id);
+      
+      // Set refresh token as HTTP-only cookie
+      res.cookie('refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+      
+      // Update last login
+      user.lastLogin = new Date();
+      await user.save();
+      
+      return res.status(200).json({
+        user: {
+          id: user._id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName
+        },
+        accessToken: tokens.accessToken
+      });
+    } catch (error) {
+      return res.status(500).json({ message: 'Error logging in' });
+    }
+  };
+  ```
+
+### 6. Create Auth Middleware
+- Implement middleware for route protection:
+  ```typescript
+  // middleware/auth.ts
+  import { Request, Response, NextFunction } from 'express';
+  import { verifyToken } from '../services/tokenService';
+  import { User } from '../models/User';
+  
+  export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Get token from header
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+      
+      const token = authHeader.split(' ')[1];
+      
+      // Verify token
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return res.status(401).json({ message: 'Invalid or expired token' });
+      }
+      
+      // Add user data to request
+      req.user = { id: decoded.id };
+      
+      next();
+    } catch (error) {
+      return res.status(401).json({ message: 'Authentication failed' });
+    }
+  };
+  
+  // Optional: Role-based authorization middleware
+  export const authorize = (roles: string[]) => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!req.user) {
+          return res.status(401).json({ message: 'Authentication required' });
+        }
+        
+        const user = await User.findById(req.user.id);
+        if (!user) {
+          return res.status(401).json({ message: 'User not found' });
+        }
+        
+        if (roles.length && !roles.includes(user.role)) {
+          return res.status(403).json({ message: 'Access denied' });
+        }
+        
+        next();
+      } catch (error) {
+        return res.status(500).json({ message: 'Authorization failed' });
+      }
+    };
+  };
+  ```
+
+### 7. Setup Authentication Routes
+- Create routes for all authentication endpoints:
+  ```typescript
+  // routes/auth.ts
+  import { Router } from 'express';
+  import {
+    register,
+    login,
+    logout,
+    verifyEmail,
+    forgotPassword,
+    resetPassword,
+    refreshToken
+  } from '../controllers/authController';
+  import { authenticate } from '../middleware/auth';
+  import { validateRequest } from '../middleware/validation'; // From Task #1
+  import { authLimiter } from '../config/rateLimit'; // From Task #2
+  import { 
+    registerSchema,
+    loginSchema,
+    passwordResetSchema 
+  } from '../schemas/auth'; // Using Zod from Task #10
+  
+  const router = Router();
+  
+  // Apply rate limiting to prevent brute force
+  router.use(authLimiter);
+  
+  // Public routes
+  router.post('/register', validateRequest(registerSchema), register);
+  router.post('/login', validateRequest(loginSchema), login);
+  router.get('/verify-email', verifyEmail);
+  router.post('/forgot-password', forgotPassword);
+  router.post('/reset-password', validateRequest(passwordResetSchema), resetPassword);
+  router.post('/refresh-token', refreshToken);
+  
+  // Protected routes
+  router.post('/logout', authenticate, logout);
+  
+  export default router;
+  ```
+
+### 8. Zod Schema Validation
+- Create validation schemas using Zod:
+  ```typescript
+  // schemas/auth.ts
+  import { z } from 'zod';
+  
+  export const registerSchema = z.object({
+    body: z.object({
+      email: z.string().email('Invalid email format'),
+      password: z
+        .string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+          'Password must include uppercase, lowercase, number, and special character'
+        ),
+      firstName: z.string().min(1, 'First name is required'),
+      lastName: z.string().min(1, 'Last name is required'),
+    }),
+  });
+  
+  export const loginSchema = z.object({
+    body: z.object({
+      email: z.string().email('Invalid email format'),
+      password: z.string().min(1, 'Password is required'),
+    }),
+  });
+  
+  export const passwordResetSchema = z.object({
+    body: z.object({
+      token: z.string().min(1, 'Token is required'),
+      newPassword: z
+        .string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+          'Password must include uppercase, lowercase, number, and special character'
+        ),
+    }),
+  });
+  ```
+
+### 9. Security Enhancements
+- Add CSRF protection:
+  ```typescript
+  // middleware/csrf.ts
+  import csrf from 'csurf';
+  
+  export const csrfProtection = csrf({
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    }
+  });
+  ```
+
+- Add security headers using Helmet:
+  ```typescript
+  // app.ts
+  import helmet from 'helmet';
+  app.use(helmet());
+  ```
+
+### 10. Integration with Error Handling
+- Ensure authentication errors use the global error handling:
+  ```typescript
+  // Modify controllers to use error handling from Task #19
+  import { handleError } from '../middleware/errorHandler';
+  
+  export const login = async (req: Request, res: Response) => {
+    try {
+      // Existing login logic...
+    } catch (error) {
+      return handleError(error, req, res);
+    }
+  };
+  ```
+
+# Test Strategy:
+## Testing Strategy
+
+### 1. Unit Tests for Authentication Functions
+
+#### 1.1 Token Service Tests
+- Test JWT token generation and verification:
+  ```typescript
+  // tests/services/tokenService.test.ts
+  import { generateTokens, verifyToken } from '../../services/tokenService';
+  import jwt from 'jsonwebtoken';
+  
+  describe('Token Service', () => {
+    test('generateTokens should create valid access and refresh tokens', async () => {
+      // Mock User.findByIdAndUpdate
+      jest.spyOn(User, 'findByIdAndUpdate').mockResolvedValue({});
+      
+      const userId = 'user123';
+      const tokens = await generateTokens(userId);
+      
+      expect(tokens).toHaveProperty('accessToken');
+      expect(tokens).toHaveProperty('refreshToken');
+      
+      // Verify the token contains correct user ID
+      const decoded = jwt.verify(tokens.accessToken, authConfig.jwtSecret);
+      expect(decoded).toHaveProperty('id', userId);
+    });
+    
+    test('verifyToken should return payload for valid token', () => {
+      const payload = { id: 'user123' };
+      const token = jwt.sign(payload, authConfig.jwtSecret);
+      
+      const result = verifyToken(token);
+      expect(result).toHaveProperty('id', payload.id);
+    });
+    
+    test('verifyToken should return null for invalid token', () => {
+      const result = verifyToken('invalid.token.here');
+      expect(result).toBeNull();
+    });
+  });
+  ```
+
+#### 1.2 User Model Tests
+- Test password hashing and comparison:
+  ```typescript
+  // tests/models/User.test.ts
+  import { User } from '../../models/User';
+  import bcrypt from 'bcrypt';
+  
+  describe('User Model', () => {
+    test('should hash password before saving', async () => {
+      // Create a user with a plain text password
+      const testUser = new User({
+        email: 'test@example.com',
+        password: 'Password123!'
+      });
+      
+      // Mock bcrypt.genSalt and bcrypt.hash
+      const mockSalt = 'salt';
+      const mockHash = 'hashed_password';
+      jest.spyOn(bcrypt, 'genSalt').mockResolvedValue(mockSalt);
+      jest.spyOn(bcrypt, 'hash').mockResolvedValue(mockHash);
+      
+      // Trigger the pre-save hook
+      await testUser.save();
+      
+      // Verify password was hashed
+      expect(testUser.password).toBe(mockHash);
+      expect(bcrypt.genSalt).toHaveBeenCalledWith(10);
+      expect(bcrypt.hash).toHaveBeenCalledWith('Password123!', mockSalt);
+    });
+    
+    test('comparePassword should return true for matching password', async () => {
+      // Setup
+      const testUser = new User({
+        email: 'test@example.com',
+        password: 'hashed_password'
+      });
+      
+      // Mock bcrypt.compare
+      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);
+      
+      // Test
+      const result = await testUser.comparePassword('Password123!');
+      
+      // Verify
+      expect(result).toBe(true);
+      expect(bcrypt.compare).toHaveBeenCalledWith('Password123!', 'hashed_password');
+    });
+  });
+  ```
+
+### 2. Integration Tests for Authentication Flows
+
+#### 2.1 Registration and Verification Flow
+- Test the complete user registration and email verification process:
+  ```typescript
+  // tests/integration/auth/registration.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  import { User } from '../../models/User';
+  import * as emailService from '../../services/emailService';
+  
+  // Mock email service to capture verification token
+  jest.mock('../../services/emailService');
+  
+  describe('Registration and Verification Flow', () => {
+    let verificationToken: string;
+    
+    beforeEach(async () => {
+      await User.deleteMany({});
+      jest.clearAllMocks();
+      
+      // Mock email sending to capture verification token
+      (emailService.sendVerificationEmail as jest.Mock).mockImplementation(
+        async (userId, email) => {
+          const user = await User.findById(userId);
+          verificationToken = user.verificationToken;
+          return { messageId: 'test-id' };
+        }
+      );
+    });
+    
+    test('should register user and verify email', async () => {
+      // 1. Register new user
+      const registerResponse = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: 'test@example.com',
+          password: 'Password123!',
+          firstName: 'Test',
+          lastName: 'User'
+        });
+      
+      expect(registerResponse.status).toBe(201);
+      expect(registerResponse.body.message).toContain('Registration successful');
+      
+      // 2. Verify user exists but is unverified
+      let user = await User.findOne({ email: 'test@example.com' });
+      expect(user).toBeTruthy();
+      expect(user.isVerified).toBe(false);
+      
+      // 3. Verify email
+      const verifyResponse = await request(app)
+        .get(`/api/auth/verify-email?token=${verificationToken}`);
+      
+      expect(verifyResponse.status).toBe(200);
+      
+      // 4. Verify user is now verified
+      user = await User.findOne({ email: 'test@example.com' });
+      expect(user.isVerified).toBe(true);
+      
+      // 5. Login should now succeed
+      const loginResponse = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: 'test@example.com',
+          password: 'Password123!'
+        });
+      
+      expect(loginResponse.status).toBe(200);
+      expect(loginResponse.body).toHaveProperty('accessToken');
+    });
+    
+    test('should reject login for unverified user', async () => {
+      // 1. Register but don't verify
+      await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: 'unverified@example.com',
+          password: 'Password123!',
+          firstName: 'Unverified',
+          lastName: 'User'
+        });
+      
+      // 2. Attempt login
+      const loginResponse = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: 'unverified@example.com',
+          password: 'Password123!'
+        });
+      
+      expect(loginResponse.status).toBe(401);
+      expect(loginResponse.body.message).toContain('verify your email');
+    });
+  });
+  ```
+
+#### 2.2 Password Reset Flow
+- Test the complete password reset flow:
+  ```typescript
+  // tests/integration/auth/passwordReset.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  import { User } from '../../models/User';
+  import * as emailService from '../../services/emailService';
+  
+  jest.mock('../../services/emailService');
+  
+  describe('Password Reset Flow', () => {
+    let resetToken: string;
+    
+    beforeEach(async () => {
+      await User.deleteMany({});
+      
+      // Create test user
+      const user = new User({
+        email: 'reset@example.com',
+        password: 'OldPassword123!',
+        firstName: 'Reset',
+        lastName: 'Test',
+        isVerified: true
+      });
+      await user.save();
+      
+      // Mock password reset email to capture token
+      (emailService.sendPasswordResetEmail as jest.Mock).mockImplementation(
+        async (email) => {
+          const user = await User.findOne({ email });
+          resetToken = user.resetPasswordToken;
+          return { messageId: 'test-id' };
+        }
+      );
+    });
+    
+    test('should request password reset and reset password', async () => {
+      // 1. Request password reset
+      const requestResponse = await request(app)
+        .post('/api/auth/forgot-password')
+        .send({ email: 'reset@example.com' });
+      
+      expect(requestResponse.status).toBe(200);
+      
+      // 2. Reset password with token
+      const resetResponse = await request(app)
+        .post('/api/auth/reset-password')
+        .send({
+          token: resetToken,
+          newPassword: 'NewPassword123!'
+        });
+      
+      expect(resetResponse.status).toBe(200);
+      
+      // 3. Verify old password no longer works
+      const oldLoginResponse = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: 'reset@example.com',
+          password: 'OldPassword123!'
+        });
+      
+      expect(oldLoginResponse.status).toBe(401);
+      
+      // 4. Verify new password works
+      const newLoginResponse = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: 'reset@example.com',
+          password: 'NewPassword123!'
+        });
+      
+      expect(newLoginResponse.status).toBe(200);
+    });
+  });
+  ```
+
+### 3. Security Testing
+
+#### 3.1 Rate Limiting
+- Verify authentication endpoints are protected against brute force:
+  ```typescript
+  // tests/security/rateLimiting.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  
+  describe('Rate Limiting', () => {
+    test('should limit repeated login attempts', async () => {
+      const loginCredentials = { 
+        email: 'test@example.com', 
+        password: 'WrongPassword123!'
+      };
+      
+      // Make multiple rapid requests to trigger rate limiting
+      const requests = [];
+      for (let i = 0; i < 15; i++) {
+        requests.push(
+          request(app).post('/api/auth/login').send(loginCredentials)
+        );
+      }
+      
+      const responses = await Promise.all(requests);
+      
+      // Some of the later requests should be rate limited (429 status)
+      const rateLimitedResponses = responses.filter(res => res.status === 429);
+      expect(rateLimitedResponses.length).toBeGreaterThan(0);
+    });
+  });
+  ```
+
+#### 3.2 JWT Security
+- Test JWT token security features:
+  ```typescript
+  // tests/security/jwtSecurity.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  import jwt from 'jsonwebtoken';
+  
+  describe('JWT Security', () => {
+    let validToken: string;
+    
+    beforeAll(async () => {
+      // Log in to get a valid token
+      const loginResponse = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: 'secure@example.com',
+          password: 'Password123!'
+        });
+      
+      validToken = loginResponse.body.accessToken;
+    });
+    
+    test('should reject expired tokens', async () => {
+      // Create an expired token
+      const payload = { id: 'user123', exp: Math.floor(Date.now() / 1000) - 3600 };
+      const expiredToken = jwt.sign(payload, authConfig.jwtSecret);
+      
+      // Try to access protected route
+      const response = await request(app)
+        .get('/api/auth/protected')
+        .set('Authorization', `Bearer ${expiredToken}`);
+      
+      expect(response.status).toBe(401);
+    });
+    
+    test('should reject tokens with invalid signature', async () => {
+      // Create token with wrong secret
+      const invalidToken = jwt.sign({ id: 'user123' }, 'wrong-secret');
+      
+      const response = await request(app)
+        .get('/api/auth/protected')
+        .set('Authorization', `Bearer ${invalidToken}`);
+      
+      expect(response.status).toBe(401);
+    });
+  });
+  ```
+
+### 4. Cross-Cutting Concerns
+
+#### 4.1 Error Handling
+- Test custom error handling for authentication edge cases:
+  ```typescript
+  // tests/error/authErrors.test.ts
+  import request from 'supertest';
+  import app from '../../app';
+  import { User } from '../../models/User';
+  
+  describe('Authentication Error Handling', () => {
+    test('should handle validation errors with proper messages', async () => {
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: 'invalid-email',
+          password: 'short'
+        });
+      
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('errors');
+      expect(response.body.errors).toContain('Invalid email format');
+      expect(response.body.errors).toContain('Password must be at least 8 characters');
+    });
+    
+    test('should handle duplicate email registration gracefully', async () => {
+      // First create a user
+      await User.create({
+        email: 'duplicate@example.com',
+        password: 'Password123!',
+        firstName: 'Test',
+        lastName: 'User',
+        isVerified: true
+      });
+      
+      // Try to register with same email
+      const response = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: 'duplicate@example.com',
+          password: 'Password123!',
+          firstName: 'Another',
+          lastName: 'User'
+        });
+      
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe('Email already in use');
+    });
+  });
+  ```

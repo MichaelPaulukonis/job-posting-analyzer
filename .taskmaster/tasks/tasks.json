@@ -907,10 +907,119 @@
         "priority": "low",
         "subtasks": []
       }
+      ,
+      {
+        "id": 22,
+        "title": "Harden tests and implement a full mocking harness",
+        "description": "Create a unified, deterministic testing harness with MSW-based mocks, standardized Jest setup, and helper utilities for factories and fixtures.",
+        "details": "## Implementation Steps\n\n1. Update jest.setup.js to load .env.test, set NUXT_PUBLIC_* env variables to deterministic values, and mock global fetch.\n2. Add MSW handlers under tests/mocks for all in-app endpoints and common providers (firebase, firebase-admin, ai, storage).\n3. Provide tests/helpers/testServer.ts with setup/reset/teardown and handler toggles for success/failure.\n4. Add test factories and fixtures under tests/mocks/factories and tests/mocks/fixtures.\n5. Convert existing tests to use factories and fixtures; enforce restoreAllMocks/clearAllMocks in beforeEach.\n6. Replace live network calls with MSW or test double helpers and add CI enforcement for no live network calls.\n7. Add example migrations for services and update testing docs to use the harness.",
+        "testStrategy": "Add smoke tests for MSW handler coverage, unit tests for helpers, and CI checkpoint that fails on live networks or console errors. Convert a representative set of tests to validate pattern and determinism.",
+        "status": "pending",
+        "dependencies": [
+          21
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Standardize jest.setup.js and env for testing",
+            "description": "Load .env.test, set deterministic NUXT_PUBLIC_* values, mock fetch, and wire up MSW server.",
+            "dependencies": [],
+            "status": "pending"
+          },
+          {
+            "id": 2,
+            "title": "Implement MSW handlers for in-app endpoints and providers",
+            "description": "Add handler coverage for firebase, firebase-admin, AI providers, storage and other external services.",
+            "dependencies": [],
+            "status": "pending"
+          },
+          {
+            "id": 3,
+            "title": "Create test factories and fixtures",
+            "description": "Provide reusable factories and fixtures to replace ad-hoc test data across tests.",
+            "dependencies": [],
+            "status": "pending"
+          },
+          {
+            "id": 4,
+            "title": "Add CI checks to forbid live networks and console errors",
+            "description": "Set up a CI check that fails builds when tests perform live network calls or console.error is used by tests.",
+            "dependencies": [],
+            "status": "pending"
+          }
+        ]
+      },
+      {
+        "id": 23,
+        "title": "Update tests to be resilient and deterministic",
+        "description": "Standardize jest.setup.js, switch to test factories and shared fixtures, enforce mock cleanup, and replace live network calls with MSW mocks or test doubles.",
+        "details": "- Standardize `jest.setup.js` to load `.env.test`, set deterministic NUXT_PUBLIC_* env values, and mock global fetch.\n- Convert tests to use test factories and shared fixtures (e.g., `tests/mocks/*`).\n- Enforce restoreAllMocks/clearAllMocks in `beforeEach`.\n- Replace live network calls with MSW mocks or test double helpers.\n- Add CI check to fail builds on live network calls or console errors.",
+        "testStrategy": "Migrate a representative subset of tests to the new harness as examples. Add smoke tests to verify determinism, and fail CI on network calls or console errors.",
+        "status": "pending",
+        "dependencies": [22],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update jest.setup.js to load .env.test and set deterministic env values",
+            "description": "Ensure NUXT_PUBLIC_* env variables deterministic for tests and mock fetch.",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 2,
+            "title": "Convert representative tests to use factories and fixtures",
+            "description": "Migrate key tests to use centralized factories and fixtures to demonstrate pattern.",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 3,
+            "title": "Enforce mock cleanup in beforeEach",
+            "description": "Update test setup to call jest.restoreAllMocks() and jest.clearAllMocks() in beforeEach across test suites.",
+            "status": "pending",
+            "dependencies": []
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "title": "Create centralized mocking harness (MSW) and test utilities",
+        "description": "Add `tests/mocks` with MSW handlers and `tests/helpers/testServer.ts` for setup/reset/teardown, plus example migrations and importable fixtures.",
+        "details": "- Add `tests/mocks` with MSW handlers for all in-app API endpoints and common mock providers (firebase, firebase-admin, AI provider, storage service).\n- Add `tests/helpers/testServer.ts` to initialize handler lists and utilities to toggle success/failed responses.\n- Provide easy importable fixtures: `mockServer.setup()`, `mockServer.reset()`, `mockServer.teardown()`.\n- Provide example migration in `tests/services/*` to show how to switch to harness.",
+        "testStrategy": "Create a small suite of tests showing MSW integration, server lifecycle functions, and toggles between success/failure responses. Add CI checks for handler coverage.",
+        "status": "pending",
+        "dependencies": [22],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create MSW handlers in tests/mocks and wire into harness",
+            "description": "Implement handlers for firebase, AI provider, storage, and any server-side endpoints the app consumes.",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 2,
+            "title": "Implement tests/helpers/testServer.ts",
+            "description": "Provide setup/reset/teardown utilities and a test API to toggle mocked responses for tests.",
+            "status": "pending",
+            "dependencies": []
+          },
+          {
+            "id": 3,
+            "title": "Add example migrations for services to use harness",
+            "description": "Update at least one service test to demonstrate migration from live calls to MSW mocks.",
+            "status": "pending",
+            "dependencies": []
+          }
+        ]
+      }
     ],
     "metadata": {
       "created": "2025-11-01T03:42:40.547Z",
-      "updated": "2025-11-06T22:02:56.669Z",
+      "updated": "2025-11-19T12:00:00.000Z",
       "description": "Tasks for master context"
     }
   }

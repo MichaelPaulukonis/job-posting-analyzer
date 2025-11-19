@@ -1,6 +1,6 @@
 # Task ID: 5
 # Title: Implement End-to-End Testing Framework with Playwright for Critical User Journeys
-# Status: pending
+# Status: deferred
 # Dependencies: 1, 3
 # Priority: high
 # Description: Expand test coverage by implementing comprehensive Playwright-based E2E tests for critical user workflows including job analysis, resume management, cover letter generation, and service provider switching with error scenario validation.

@@ -1,0 +1,66 @@
+# Task ID: 17
+# Title: Proposal Generation Workflow
+# Status: done
+# Dependencies: 15, 16
+# Priority: medium
+# Description: Implement a multi-step workflow for generating customized job proposals based on job descriptions and experience.
+# Details:
+Implement the proposal generation workflow by creating new API endpoints that follow existing patterns in `server/api/`. The workflow has been simplified to a more efficient 2-step process:
+
+1. `/server/api/upwork/analyze.ts` - Comprehensive job analysis (combines analysis and diagnosis steps)
+2. `/server/api/upwork/generate.ts` - Complete proposal generation (combines hooks and full draft)
+
+This simplified approach offers several advantages:
+- Simpler user experience (analyze → generate vs 4-step workflow)
+- Faster time to result (24-hour delivery requirement met)
+- Same quality output with less complexity
+- Easier to maintain and debug
+
+Reuse existing patterns and functionality:
+- Follow streaming generation patterns from `server/api/cover-letter/generate.ts`
+- Utilize existing Claude integration patterns from other API endpoints
+- Leverage existing session management for maintaining context throughout the workflow
+- Integrate with MCP memory to pull relevant experience examples at appropriate steps
+
+Ensure the workflow emphasizes the 23 years of experience and backend specialization. Create a complete UI with /upwork page for the entire workflow.
+
+# Test Strategy:
+Test each API endpoint individually with various job descriptions. Verify that session data persists throughout the two-step process. Test integration with existing UI components to ensure proper workflow progression. Confirm that proposals include relevant experience from MCP memory. Validate streaming functionality works correctly. Test error handling and recovery. Validate proposal quality against subjective criteria, ensuring they emphasize experience and specialization.
+
+# Subtasks:
+## 1. undefined [done]
+### Dependencies: None
+### Description: Create `/server/api/upwork/analyze.ts` endpoint for comprehensive job analysis
+### Details:
+Implement the job analysis endpoint following existing patterns. This endpoint combines the analysis and diagnosis steps to provide a comprehensive understanding of the job description data using Claude API. Integrate with MCP memory to provide context about past experience. Ensure proper streaming and session management.
+
+## 2. undefined [done]
+### Dependencies: None
+### Description: Create `/server/api/upwork/generate.ts` endpoint for complete proposal generation
+### Details:
+Implement the complete proposal generation endpoint that produces compelling hooks and a full proposal draft. Use the analysis data from the previous step stored in the session. Integrate with MCP memory to reference relevant past work and experience. Follow existing streaming generation patterns and ensure proper integration with conversation history tracking.
+
+## 3. undefined [done]
+### Dependencies: None
+### Description: Integrate with existing UI components
+### Details:
+Implemented complete UI with /upwork page for the entire workflow. Ensured the new API endpoints work correctly with existing UI components for multi-step workflows and result display. Tested the end-to-end workflow from the user perspective.
+
+## 4. undefined [done]
+### Dependencies: None
+### Description: Create `/server/api/upwork/proposal/generate.ts` endpoint for full proposal draft
+### Details:
+This functionality has been incorporated into the simplified `/server/api/upwork/generate.ts` endpoint for more efficient workflow.
+
+## 5. undefined [done]
+### Dependencies: None
+### Description: Integrate with existing UI components
+### Details:
+Full UI integration completed with the /upwork page that provides a streamlined user experience for the proposal generation workflow.
+
+## 6. undefined [done]
+### Dependencies: None
+### Description: Write documentation for the proposal generation workflow
+### Details:
+Documented the simplified proposal generation workflow, API endpoints, and integration points. Included examples of how to use the workflow and details about session management and data flow.
+
