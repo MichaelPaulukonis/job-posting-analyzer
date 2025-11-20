@@ -138,7 +138,7 @@ export function useAnalysis() {
 
       const savedAnalysis = await StorageService.saveAnalysis(result, jobPosting, resume);
       currentAnalysisId.value = savedAnalysis.id;
-      savedAnalyses.value = await StorageService.getAnalyses(); // Refresh history
+      await loadAnalyses({ syncRouteAnalysis: false });
 
       // Navigate to the analysis page with the new ID
       router.push(`/analyze/${savedAnalysis.id}`);
@@ -182,10 +182,39 @@ export function useAnalysis() {
     settingsContainer.value?.collapse();
   };
 
-  const loadSavedAnalysis = async (analysis: SavedAnalysis) => {
-    jobPosting.title = analysis.jobTitle || '';
-    jobPosting.content = analysis.jobPosting.content;
-    resume.content = analysis.resume.content;
+  const loadSavedAnalysis = async (analysis?: SavedAnalysis) => {
+    if (!analysis) {
+      error.value = 'Analysis not found.';
+      return;
+    }
+
+    const jobContent = analysis.jobPosting?.content ?? '';
+    const resumeContent = analysis.resume?.content ?? '';
+    const hasJobContent = jobContent.trim().length > 0;
+    const hasResumeContent = resumeContent.trim().length > 0;
+
+    if (!hasJobContent && !hasResumeContent) {
+      const message = 'This saved analysis is missing the original job posting and resume data.';
+      console.warn('useAnalysis.loadSavedAnalysis: No payload available for analysis', analysis.id);
+      error.value = message;
+      return;
+    }
+
+    if (!hasJobContent || !hasResumeContent) {
+      console.warn('useAnalysis.loadSavedAnalysis: Partial payload for analysis', analysis.id, {
+        missingJobPosting: !hasJobContent,
+        missingResume: !hasResumeContent,
+      });
+      error.value = !hasJobContent
+        ? 'Job posting text is missing for this saved analysis. The form has been partially restored.'
+        : 'Resume text is missing for this saved analysis. The form has been partially restored.';
+    } else {
+      error.value = '';
+    }
+
+    jobPosting.title = analysis.jobTitle || analysis.jobPosting?.title || '';
+    jobPosting.content = jobContent;
+    resume.content = resumeContent;
     analysisResults.value = {
       matches: analysis.matches,
       maybes: analysis.maybes,
@@ -194,40 +223,76 @@ export function useAnalysis() {
       timestamp: analysis.timestamp,
     };
     currentAnalysisId.value = analysis.id;
-    selectedService.value = getDefaultService(); // Or load service used for that analysis if stored with it
+    selectedService.value = getDefaultService();
 
-    // Expand containers and scroll to top or results
     jobPostingContainer.value?.expand();
     resumeContainer.value?.expand();
     settingsContainer.value?.expand();
     await nextTick();
-    window && window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
-    // TODO: uh..... we're not scrolling to the results
-
-    // Update router to reflect loaded analysis without triggering full navigation if already on /analyze/[id]
-    // Or if on /analyze, navigate to /analyze/[id]
     if (route.path !== `/analyze/${analysis.id}`) {
-        router.push(`/analyze/${analysis.id}`);
+      router.push(`/analyze/${analysis.id}`);
     }
   };
 
   const deleteSavedAnalysis = async (id: string) => {
     await StorageService.deleteAnalysis(id);
-    savedAnalyses.value = await StorageService.getAnalyses();
+    await loadAnalyses({ syncRouteAnalysis: false });
     if (currentAnalysisId.value === id) {
       clearResults(); // Clear current results if they were from the deleted analysis
       router.push('/analyze'); // Navigate to base analyze page
     }
   };
 
-  const loadAnalyses = async () => {
-    savedAnalyses.value = await StorageService.getAnalyses();
-    const analysisIdFromRoute = getAnalysisId(route);
-    if (analysisIdFromRoute) {
-      const current = savedAnalyses.value.find(a => a.id === analysisIdFromRoute);
-      if (current) {
-        await loadSavedAnalysis(current);
+  const loadAnalyses = async (options: { syncRouteAnalysis?: boolean } = {}) => {
+    const { syncRouteAnalysis = true } = options;
+
+    try {
+      const analyses = await StorageService.getAnalyses();
+      const { sanitizedAnalyses, missingPayloadCount } = prepareAnalyses(analyses);
+      savedAnalyses.value = sanitizedAnalyses;
+      error.value = '';
+
+      if (missingPayloadCount) {
+        console.warn(
+          `useAnalysis: ${missingPayloadCount} saved analyses are missing original job postings or resumes.`,
+        );
+      }
+
+      if (syncRouteAnalysis) {
+        const analysisIdFromRoute = getAnalysisId(route);
+        if (analysisIdFromRoute) {
+          await loadAnalysisById(analysisIdFromRoute);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load analyses:', err);
+      savedAnalyses.value = [];
+      error.value = 'Unable to load saved analyses. Please try again later.';
+    }
+  };
+
+  const loadAnalysisById = async (id: string | null, options: { reloadIfMissing?: boolean } = {}) => {
+    if (!id) {
+      return;
+    }
+
+    const analysis = savedAnalyses.value.find(item => item.id === id);
+    if (analysis) {
+      await loadSavedAnalysis(analysis);
+      return;
+    }
+
+    if (options.reloadIfMissing) {
+      await loadAnalyses({ syncRouteAnalysis: false });
+      const refreshedAnalysis = savedAnalyses.value.find(item => item.id === id);
+      if (refreshedAnalysis) {
+        await loadSavedAnalysis(refreshedAnalysis);
+      } else {
+        console.warn('useAnalysis.loadAnalysisById: Analysis not found after refresh', id);
       }
     }
   };
@@ -240,12 +305,14 @@ export function useAnalysis() {
 
   // Watch for route changes to load analysis if ID is present
   watch(() => route.params.id, async (newId) => {
-    await loadAnalyses();
-  }, { immediate: true });
+    const id = Array.isArray(newId) ? newId[0] : newId;
+    await loadAnalysisById(id ?? null, { reloadIfMissing: true });
+  });
 
   watch(() => route.query.analysisId, async (newId) => {
-    await loadAnalyses();
-  }, { immediate: true });
+    const id = Array.isArray(newId) ? newId[0] : newId;
+    await loadAnalysisById(id ?? null, { reloadIfMissing: true });
+  });
 
   function getAnalysisId(currentRoute: typeof route): string | null {
     let id: string | null = null;
@@ -257,6 +324,45 @@ export function useAnalysis() {
     //   id = Array.isArray(currentRoute.query.analysisId) ? currentRoute.query.analysisId[0] : currentRoute.query.analysisId;
     // }
     return id;
+  }
+
+  function prepareAnalyses(analyses: SavedAnalysis[]): { sanitizedAnalyses: SavedAnalysis[]; missingPayloadCount: number } {
+    if (!Array.isArray(analyses) || !analyses.length) {
+      return { sanitizedAnalyses: [], missingPayloadCount: 0 };
+    }
+
+    let missingPayloadCount = 0;
+
+    const sanitizedAnalyses = analyses.reduce<SavedAnalysis[]>((acc, analysis) => {
+      if (!analysis?.id) {
+        return acc;
+      }
+
+      const jobTitle = analysis.jobPosting?.title ?? analysis.jobTitle ?? '';
+      const jobContent = analysis.jobPosting?.content ?? '';
+      const resumeContent = analysis.resume?.content ?? analysis.resumeSnippet ?? '';
+      const hasJobContent = jobContent.trim().length > 0;
+      const hasResumeContent = resumeContent.trim().length > 0;
+
+      if (!hasJobContent || !hasResumeContent) {
+        missingPayloadCount += 1;
+      }
+
+      acc.push({
+        ...analysis,
+        jobPosting: {
+          title: jobTitle,
+          content: jobContent,
+        },
+        resume: {
+          content: resumeContent,
+        },
+      });
+
+      return acc;
+    }, []);
+
+    return { sanitizedAnalyses, missingPayloadCount };
   }
 
   return {
@@ -288,6 +394,7 @@ export function useAnalysis() {
     loadSavedAnalysis,
     deleteSavedAnalysis,
     loadAnalyses,
+    loadAnalysisById,
     getAnalysisId,
   };
 }

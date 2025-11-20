@@ -1,37 +1,60 @@
-import { defineNitroPlugin } from '#imports';
-import * as admin from 'firebase-admin';
+import { defineNitroPlugin, useRuntimeConfig } from '#imports';
+import { cert, getApps, initializeApp } from 'firebase-admin/app';
+import type { ServiceAccount } from 'firebase-admin';
 import { readFileSync } from 'fs';
-export default defineNitroPlugin((nitroApp) => {
-  const config = useRuntimeConfig();
+
+const parseServiceAccount = (raw: unknown): ServiceAccount | null => {
+  if (!raw) {
+    return null;
+  }
+
   try {
-    if (admin.apps.length === 0) {
-      let credentials: any = null;
-      const serviceAccount = config.FIREBASE_SERVICE_ACCOUNT;
-      if (!serviceAccount) {
-        // No service account configured for server-run, skip initialization
-        return;
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (trimmed.startsWith('{')) {
+        return JSON.parse(trimmed);
       }
-
-      try {
-        // If the env var is a path, load the JSON file
-        if (serviceAccount.trim().startsWith('{')) {
-          credentials = JSON.parse(serviceAccount);
-        } else {
-          const fileContents = readFileSync(serviceAccount, { encoding: 'utf-8' });
-          credentials = JSON.parse(fileContents);
-        }
-      } catch (err) {
-        console.warn('Failed to parse FIREBASE_SERVICE_ACCOUNT:', err);
-        return;
+      if (trimmed.endsWith('.json') || trimmed.includes('/') || trimmed.includes('\\')) {
+        const fileContents = readFileSync(trimmed, { encoding: 'utf-8' });
+        return JSON.parse(fileContents);
       }
-
-      admin.initializeApp({
-        credential: admin.credential.cert(credentials),
-      });
-
-      console.info('Firebase Admin initialized');
+      // Assume base64-encoded service account JSON
+      const decoded = Buffer.from(trimmed, 'base64').toString('utf-8');
+      return JSON.parse(decoded);
     }
-  } catch (e) {
-    console.warn('Firebase Admin initialization failed', e);
+
+    if (typeof raw === 'object') {
+      return raw as ServiceAccount;
+    }
+  } catch (error) {
+    console.warn('Failed to parse FIREBASE_SERVICE_ACCOUNT:', error);
+    return null;
+  }
+
+  console.warn('Unsupported FIREBASE_SERVICE_ACCOUNT format; must be path, JSON string, or object');
+  return null;
+};
+
+export default defineNitroPlugin(() => {
+  const config = useRuntimeConfig();
+
+  try {
+    if (getApps().length > 0) {
+      return;
+    }
+
+    const credentials = parseServiceAccount(config.FIREBASE_SERVICE_ACCOUNT);
+    if (!credentials) {
+      console.info('Firebase Admin not initialized; missing FIREBASE_SERVICE_ACCOUNT');
+      return;
+    }
+
+    initializeApp({
+      credential: cert(credentials),
+    });
+
+    console.info('Firebase Admin initialized');
+  } catch (error) {
+    console.warn('Firebase Admin initialization failed', error);
   }
 });

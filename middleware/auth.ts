@@ -1,16 +1,24 @@
-import { defineNuxtRouteMiddleware, navigateTo, useRuntimeConfig } from '#imports';
+import { defineNuxtRouteMiddleware, navigateTo } from '#imports';
+import { useAuth } from '~/composables/useAuth';
 
 export default defineNuxtRouteMiddleware(async (to) => {
-  const config = useRuntimeConfig();
-  // Use route meta to check if route is protected
-  if (to.meta && to.meta.requiresAuth) {
-    const nuxtApp = useNuxtApp();
-    const { $firebaseAuth } = nuxtApp as any;
+  if (import.meta.server) {
+    return;
+  }
 
-    // TODO: replace with actual auth check
-    const user = $firebaseAuth?.currentUser;
-    if (!user) {
-      return navigateTo('/login');
-    }
+  const { isAuthenticated, waitForAuthReady } = useAuth();
+  await waitForAuthReady();
+
+  const redirectQuery = typeof to.query?.redirect === 'string' ? to.query.redirect : null;
+
+  if (to.meta?.requiresAuth && !isAuthenticated.value) {
+    return navigateTo({
+      path: '/login',
+      query: { redirect: to.fullPath }
+    });
+  }
+
+  if (to.meta?.requiresGuest && isAuthenticated.value) {
+    return navigateTo(redirectQuery || '/');
   }
 });

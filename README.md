@@ -55,6 +55,22 @@ npm install
 
 TODO: document API keys 
 
+### Firebase Setup (optional - required for auth)
+To use Firebase Authentication and verify ID tokens on the server, follow these steps:
+1. Create a Firebase project and add a Web App to obtain client SDK configuration.
+2. Add the client config to `.env` or your hosting platform's environment variables as `NUXT_PUBLIC_FIREBASE_API_KEY`, `NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, etc. (see `docs/auth.md` for exact keys).
+3. Generate a Firebase service account JSON key for server verification (Firebase Console -> Project Settings -> Service Accounts -> Generate private key). Store it securely. Locally you can set `FIREBASE_SERVICE_ACCOUNT=/path/to/key.json` or set the JSON in the env.
+4. On CI or hosted environments, create a secret like `FIREBASE_SERVICE_ACCOUNT_BASE64` containing the base64-encoded service account JSON and decode it in the workflow to `FIREBASE_SERVICE_ACCOUNT` before building.
+
+Example (GitHub Actions snippet):
+```yaml
+# In your workflow before building/run tests
+- name: Decode Firebase service account
+   run: |
+      echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}" | base64 --decode > firebase-service-account.json
+      echo "FIREBASE_SERVICE_ACCOUNT=$(cat firebase-service-account.json)" >> $GITHUB_ENV
+```
+
 ## Development Server
 
 Start the development server on `http://localhost:3000`:

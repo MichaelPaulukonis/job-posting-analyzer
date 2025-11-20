@@ -1,34 +1,52 @@
-// Simple Jest mock for `firebase/auth` module
-// Provides the basic functions used by the project's FirebaseAuthService and composables
+const mockUserFactory = (email: string) => ({
+  uid: 'mock-uid',
+  email,
+  getIdToken: jest.fn(async () => 'mock-token')
+});
 
-export function getAuth() {
-  // Returns a mock auth object; tests can override as needed
-  return {
-    currentUser: { uid: 'mock-uid', email: 'mock@user.local' },
-    onAuthStateChanged: (cb: (u: any) => void) => cb({ uid: 'mock-uid', email: 'mock@user.local' }),
-  };
-}
+const authState = {
+  currentUser: null as null | ReturnType<typeof mockUserFactory>
+};
 
-export async function signInWithEmailAndPassword(auth: any, email: string, password: string) {
-  return Promise.resolve({ user: { uid: 'signed-in-uid', email } });
-}
+export const getAuth = jest.fn(() => authState);
 
-export async function createUserWithEmailAndPassword(auth: any, email: string, password: string) {
-  return Promise.resolve({ user: { uid: 'created-uid', email } });
-}
+export const onAuthStateChanged = jest.fn((auth, next: (user: any) => void) => {
+  next?.(auth.currentUser);
+  return () => {};
+});
 
-export async function signOut(auth: any) {
-  return Promise.resolve();
-}
+export const signInWithEmailAndPassword = jest.fn(async (_auth, email: string) => {
+  authState.currentUser = mockUserFactory(email);
+  return { user: authState.currentUser };
+});
+
+export const createUserWithEmailAndPassword = jest.fn(async (_auth, email: string) => {
+  authState.currentUser = mockUserFactory(email);
+  return { user: authState.currentUser };
+});
+
+export const signOut = jest.fn(async () => {
+  authState.currentUser = null;
+});
 
 export class GoogleAuthProvider {}
 
-export async function signInWithPopup(auth: any, provider: any) {
-  return Promise.resolve({ user: { uid: 'google-uid', email: 'google-user@example.com' } });
-}
+export const signInWithPopup = jest.fn(async () => {
+  authState.currentUser = mockUserFactory('google-user@example.com');
+  return { user: authState.currentUser };
+});
 
-// Basic User interface shape used for tests
-export interface User {
-  uid: string;
-  email?: string;
-}
+export const browserLocalPersistence = Symbol('browserLocalPersistence');
+export const setPersistence = jest.fn(async () => undefined);
+
+export default {
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
+  browserLocalPersistence,
+  setPersistence
+};

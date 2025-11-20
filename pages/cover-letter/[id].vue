@@ -204,6 +204,11 @@ import CoverLetterSampleDialog from '../../components/input/CoverLetterSampleDia
 import AnalysisHistory from '../../components/analysis/AnalysisHistory.vue';
 import ConversationHistory from '../../components/analysis/ConversationHistory.vue';
 
+definePageMeta({
+  middleware: ['auth'],
+  requiresAuth: true
+});
+
 // Get analysis ID from route param
 const route = useRoute();
 const router = useRouter();

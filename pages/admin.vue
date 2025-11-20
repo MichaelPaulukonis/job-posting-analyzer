@@ -93,6 +93,11 @@ import { ref, onMounted, computed } from 'vue';
 // Explicitly import the component
 import StorageFileViewerComponent from '../components/admin/StorageFileViewer.vue';
 
+definePageMeta({
+  middleware: ['auth'],
+  requiresAuth: true
+});
+
 const storageFiles = ref<string[]>([]);
 const isLoading = ref(true);
 const error = ref<string | null>(null);

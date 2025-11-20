@@ -71,6 +71,11 @@ import { ref, onMounted } from '#imports';
 import type { SavedAnalysis } from '~/types';
 import { StorageService } from '~/services/StorageService';
 
+definePageMeta({
+  middleware: ['auth'],
+  requiresAuth: true
+});
+
 // State
 const loading = ref(true);
 const error = ref('');

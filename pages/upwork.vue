@@ -113,7 +113,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from '#imports';
-import { navigateTo } from '#imports';
 import type { ResumeEntry } from '~/types';
 import { StorageService } from '~/services/StorageService';
 
@@ -128,6 +127,11 @@ useHead({
   meta: [
     { name: 'description', content: 'Generate tailored Upwork proposals based on job postings and your resume.' }
   ]
+});
+
+definePageMeta({
+  middleware: ['auth'],
+  requiresAuth: true
 });
 
 // TypeScript interfaces for API responses
