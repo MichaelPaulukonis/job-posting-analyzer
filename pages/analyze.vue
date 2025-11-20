@@ -124,6 +124,11 @@ import { onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAnalysis } from '../composables/useAnalysis';
 
+definePageMeta({
+  middleware: ['auth'],
+  requiresAuth: true
+});
+
 // Import components
 import InputContainer from '../components/input/InputContainer.vue';
 import TextAreaInput from '../components/input/TextAreaInput.vue';

@@ -1,16 +1,9 @@
-import { defineEventHandler, readBody, createError } from '#imports';
-import { verifyIdToken } from '~/server/utils/firebaseAdmin';
+import { defineEventHandler } from '#imports';
+import { requireAuth as requireAuthUtil } from '~/server/utils/verifyToken';
 
-// This is a handler that can be used within server APIs to verify tokens.
-export const requireAuth = async (event: any) => {
-  const authHeader = event.node.req.headers['authorization'];
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) {
-    throw createError({ statusCode: 401, statusMessage: 'Missing authorization token' });
-  }
+// Default middleware export is a no-op to avoid being applied globally; use `requireAuthUtil` to explicitly verify tokens.
+export default defineEventHandler(async () => {
+  // no-op middleware
+});
 
-  const decoded = await verifyIdToken(token);
-  // Attach to event context
-  (event as any).auth = decoded;
-  return decoded;
-};
+export const requireAuth = requireAuthUtil;

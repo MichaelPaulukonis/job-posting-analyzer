@@ -21,10 +21,16 @@ const toHeaders = (headers?: HeadersInit): Headers => {
 export const useAPIFetch: UseFetchType = (path, options: UseFetchArgs[1] = {}) => {
   const config = useRuntimeConfig();
   const authBypassEnabled = Boolean(config.public?.authDisabled);
+  const defaultBaseUrl = config.public.apiBase ?? config.public.baseUrl;
   const mergedOptions: UseFetchArgs[1] = {
-    ...options,
-    baseURL: options.baseURL ?? config.public.apiBase ?? config.public.baseUrl
+    ...options
   };
+
+  if (options?.baseURL) {
+    mergedOptions.baseURL = options.baseURL;
+  } else if (process.client) {
+    mergedOptions.baseURL = defaultBaseUrl;
+  }
 
   const originalOnRequest = options.onRequest;
 

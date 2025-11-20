@@ -1,5 +1,5 @@
 import { defineEventHandler } from '#imports';
-import { requireAuth } from '~/server/middleware/verifyToken';
+import { requireAuth } from '~/server/utils/verifyToken';
 
 export default defineEventHandler(async (event) => {
   const decoded = await requireAuth(event);

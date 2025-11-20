@@ -1,18 +1,20 @@
 <template>
   <div>
     <header class="bg-blue-600 text-white shadow">
-      <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 py-4">
         <h1 class="text-xl font-bold">Job Posting Analyzer</h1>
-        <nav class="flex space-x-4 text-white">
-          <NuxtLink to="/" class="hover:underline">Home</NuxtLink>
-          <NuxtLink :to="currentAnalysisId ? `/analyze/${currentAnalysisId}` : '/analyze'"
-            class="hover:underline">Analyze</NuxtLink>
-          <NuxtLink :to="currentAnalysisId ? `/cover-letter/${currentAnalysisId}` : '/cover-letter'"
-            class="hover:underline">Cover Letters</NuxtLink>
-          <NuxtLink to="/upwork" class="hover:underline">Upwork</NuxtLink>
+        <div class="flex flex-1 items-center justify-end gap-4">
+          <nav class="flex flex-wrap items-center gap-4 text-white">
+            <NuxtLink to="/" class="hover:underline">Home</NuxtLink>
+            <NuxtLink :to="currentAnalysisId ? `/analyze/${currentAnalysisId}` : '/analyze'"
+              class="hover:underline">Analyze</NuxtLink>
+            <NuxtLink :to="currentAnalysisId ? `/cover-letter/${currentAnalysisId}` : '/cover-letter'"
+              class="hover:underline">Cover Letters</NuxtLink>
+            <NuxtLink to="/upwork" class="hover:underline">Upwork</NuxtLink>
+            <NuxtLink to="/admin" class="hover:underline">Admin</NuxtLink>
+          </nav>
           <AuthBar />
-          <NuxtLink to="/admin" class="hover:underline">Admin</NuxtLink>
-        </nav>
+        </div>
       </div>
     </header>
     <main>

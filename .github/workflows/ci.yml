@@ -37,10 +37,11 @@ jobs:
         run: npm ci
 
       - name: Run unit tests
+        id: unit-tests
         run: npm test --silent -- --runInBand
 
       - name: Upload coverage
-        if: success() && steps['Run unit tests'].conclusion == 'success'
+        if: success() && steps.unit-tests.conclusion == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report

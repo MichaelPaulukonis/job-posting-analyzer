@@ -1,9 +1,9 @@
-import { H3Event } from 'h3';
-import { defineEventHandler, useBody } from '#imports';
+import { H3Event, readBody } from 'h3';
+import { defineEventHandler } from '#imports';
 import * as admin from 'firebase-admin';
 
 export default defineEventHandler(async (event: H3Event) => {
-  const body = await useBody(event);
+  const body = await readBody(event);
   const idToken = body?.token;
 
   if (!idToken) {

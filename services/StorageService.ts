@@ -93,6 +93,8 @@ export class StorageService {
         },
         body: JSON.stringify(trimmedAnalyses)
       });
+
+      this.syncAnalysesToLocalStorage(trimmedAnalyses);
       
       return analysisToSave;
     } catch (error) {
@@ -129,6 +131,8 @@ export class StorageService {
         },
         body: JSON.stringify(savedAnalyses)
       });
+
+      this.syncAnalysesToLocalStorage(savedAnalyses);
       
     } catch (error) {
       console.error('Error saving cover letter:', error);
@@ -141,19 +145,24 @@ export class StorageService {
    */
   static async getAnalyses(): Promise<SavedAnalysis[]> {
     try {
-      // Fetch from server
       const asyncData = await useAPIFetch<SavedAnalysis[]>('/api/storage');
-      
+
       if (asyncData.error.value) {
-        console.error('Error fetching analyses (useAPIFetch):', asyncData.error.value);
-        throw asyncData.error.value; // Re-throw to be caught by the outer catch block
+        throw asyncData.error.value;
       }
-      // data.value can be T | null. Return an empty array if null to match Promise<SavedAnalysis[]>
-      return asyncData.data.value || [];
+
+      const serverAnalyses = this.normalizeAnalyses(asyncData.data.value);
+
+      if (!serverAnalyses.length && asyncData.data.value && !Array.isArray(asyncData.data.value)) {
+        console.warn('StorageService.getAnalyses: Server returned invalid analyses format, falling back to cache.');
+        return this.getAnalysesFromLocalStorage();
+      }
+
+      this.syncAnalysesToLocalStorage(serverAnalyses);
+
+      return serverAnalyses;
     } catch (error) {
-      // Error logging is already handled if error.value was thrown
-      // console.error('Error fetching analyses:', error); 
-      // Fallback to localStorage if server fetch fails
+      console.warn('StorageService.getAnalyses: Failed to fetch from server, using local cache.', error);
       return this.getAnalysesFromLocalStorage();
     }
   }
@@ -167,6 +176,8 @@ export class StorageService {
       await useAPIFetch(`/api/storage/${id}`, {
         method: 'DELETE'
       });
+
+      this.deleteAnalysisFromLocalStorage(id);
     } catch (error) {
       console.error('Error deleting analysis:', error);
       // Fallback to localStorage if server delete fails
@@ -183,6 +194,8 @@ export class StorageService {
       await useAPIFetch('/api/storage', {
         method: 'DELETE'
       });
+
+      this.clearAnalysesFromLocalStorage();
     } catch (error) {
       console.error('Error clearing analyses:', error);
       // Fallback to localStorage if server clear fails
@@ -317,6 +330,41 @@ export class StorageService {
   // --- Fallback localStorage methods ---
   
   private static STORAGE_KEY = 'job-analysis-history';
+
+  private static normalizeAnalyses(analyses?: SavedAnalysis[] | null): SavedAnalysis[] {
+    if (!Array.isArray(analyses)) {
+      return [];
+    }
+
+    return [...analyses]
+      .filter((analysis): analysis is SavedAnalysis => Boolean(analysis))
+      .sort((a, b) => {
+        const aTime = a?.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const bTime = b?.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return bTime - aTime;
+      });
+  }
+
+  private static syncAnalysesToLocalStorage(analyses: SavedAnalysis[]): void {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+
+    this.setAnalysesToLocalStorage(analyses);
+    console.debug('StorageService: Synchronized analyses to local cache.');
+  }
+
+  private static setAnalysesToLocalStorage(analyses: SavedAnalysis[]): void {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(analyses));
+    } catch (error) {
+      console.warn('StorageService: Failed to write analyses to localStorage.', error);
+    }
+  }
   
   private static saveAnalysisToLocalStorage(result: AnalysisResult, jobPosting: JobPosting, resume: Resume): SavedAnalysis {
     if (typeof localStorage === 'undefined') {
@@ -344,7 +392,7 @@ export class StorageService {
     
     // Keep only the latest 10 analyses
     const trimmedAnalyses = savedAnalyses.slice(0, 10);
-    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(trimmedAnalyses));
+    this.setAnalysesToLocalStorage(trimmedAnalyses);
     
     return analysisToSave;
   }
@@ -359,7 +407,7 @@ export class StorageService {
     if (!data) return [];
     
     try {
-      return JSON.parse(data);
+      return this.normalizeAnalyses(JSON.parse(data));
     } catch (e) {
       console.error('Failed to parse saved analyses from localStorage:', e);
       return [];
