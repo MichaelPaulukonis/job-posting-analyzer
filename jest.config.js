@@ -8,6 +8,7 @@ export default {
     '^~/(.*)$': '<rootDir>/$1',
     '^firebase/(.*)$': '<rootDir>/__mocks__/firebase/$1.ts',
     '^firebase-admin$': '<rootDir>/__mocks__/firebase-admin/index.ts',
+    '^firebase-admin/(.*)$': '<rootDir>/__mocks__/firebase-admin/$1.ts',
     '^#imports$': '<rootDir>/tests/mocks/nuxt-imports.ts'
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
