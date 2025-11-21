@@ -1,31 +1,24 @@
+import { cert as appCert, getApps, initializeApp as appInitializeApp } from './app';
+
+const buildAuth = () => ({
+  verifyIdToken: jest.fn(async () => ({ uid: 'server-mock-uid', email: 'server-mock@example.com' })),
+  getUser: jest.fn(async (uid: string) => ({ uid, email: `${uid}@example.com` })),
+});
+
+const credential = {
+  cert: appCert,
+};
+
+const auth = jest.fn(buildAuth);
+
 const admin = {
-  apps: [],
-  initializeApp: jest.fn(() => { admin.apps.push({ initialized: true }); return { admin: true }; }),
-  credential: {
-    cert: jest.fn((obj) => obj)
-  },
-  auth: jest.fn(() => ({ verifyIdToken: jest.fn(async (token) => ({ uid: 'mock-uid' })) }))
-};
-
-module.exports = admin;
-// Mock for firebase-admin node SDK used in server-side tests
-const mockAuth = {
-  verifyIdToken: async (token: string) => {
-    // return a minimal decoded token object
-    return Promise.resolve({ uid: 'server-mock-uid', email: 'server-mock@example.com' });
-  },
-  getUser: async (uid: string) => ({ uid, email: `${uid}@example.com` }),
-};
-
-export function initializeApp() {
-  return {}; // no-op
-}
-
-export function auth() {
-  return mockAuth;
-}
-
-export default {
-  initializeApp,
+  apps: getApps(),
+  initializeApp: appInitializeApp,
+  credential,
   auth,
 };
+
+export default admin;
+
+// Ensure CommonJS consumers (like Jest's import) receive the object shape they expect
+module.exports = admin;

@@ -24,7 +24,7 @@ describe('Response Parser', () => {
       console.log('Parsed suggestions:', result.suggestions);
     });
     
-    it.skip('should handle a simple well-formatted response', () => {
+    it('should handle a simple well-formatted response', () => {
       const simpleResponse = `
 1. Skills and qualifications that match between the job posting and resume.
 - JavaScript
