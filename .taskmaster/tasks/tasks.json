@@ -17,8 +17,9 @@
             "description": "Install Zod, configure TypeScript, and establish the schema directory structure for the validation framework",
             "dependencies": [],
             "details": "Install Zod using npm/yarn, configure TypeScript for optimal Zod integration, create the centralized schema directory structure with users, jobs, resumes, and common subdirectories as specified in the implementation steps",
-            "status": "pending",
-            "testStrategy": "Verify Zod installation works with basic schema validation test, confirm directory structure exists with required subdirectories"
+            "status": "done",
+            "testStrategy": "Verify Zod installation works with basic schema validation test, confirm directory structure exists with required subdirectories",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -28,8 +29,9 @@
               1
             ],
             "details": "Implement emailSchema, phoneSchema, urlSchema, and other common validation patterns in the /schemas/common directory for reuse across domain-specific schemas with appropriate error messages and validation rules",
-            "status": "pending",
-            "testStrategy": "Unit tests for each common schema component with valid and invalid input cases covering all validation rules and edge cases"
+            "status": "done",
+            "testStrategy": "Unit tests for each common schema component with valid and invalid input cases covering all validation rules and edge cases",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -40,8 +42,9 @@
               2
             ],
             "details": "Develop jobPostingSchema with validation for title, company, description, requirements, etc. and resumeSchema with validation for candidate information, experience, education, and skills as specified in the implementation examples",
-            "status": "pending",
-            "testStrategy": "Unit tests for each domain schema with comprehensive test cases covering all validation rules, required fields, and edge cases"
+            "status": "done",
+            "testStrategy": "Unit tests for each domain schema with comprehensive test cases covering all validation rules, required fields, and edge cases",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -49,8 +52,9 @@
             "description": "Create a robust HTML sanitization system to prevent XSS attacks using sanitize-html library",
             "dependencies": [],
             "details": "Install sanitize-html, create sanitizer utility with default configuration, implement sanitizeUserHtml and sanitizeObject functions for sanitizing strings and nested objects with proper configuration for allowed tags, attributes, and schemes",
-            "status": "pending",
-            "testStrategy": "Test with various HTML inputs including malicious scripts to verify proper sanitization and XSS prevention while maintaining necessary formatting"
+            "status": "done",
+            "testStrategy": "Test with various HTML inputs including malicious scripts to verify proper sanitization and XSS prevention while maintaining necessary formatting",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -63,8 +67,9 @@
               4
             ],
             "details": "Implement validate middleware function that sanitizes input, validates against schema, and handles errors; create error handling middleware; integrate with routes; configure security headers including CSP, X-XSS-Protection, and other security measures",
-            "status": "pending",
-            "testStrategy": "Integration tests with API endpoints to verify validation, sanitization, and error handling work correctly across different scenarios including invalid inputs and XSS attempts"
+            "status": "done",
+            "testStrategy": "Integration tests with API endpoints to verify validation, sanitization, and error handling work correctly across different scenarios including invalid inputs and XSS attempts",
+            "parentId": "undefined"
           }
         ]
       },
@@ -76,13 +81,15 @@
         "testStrategy": "## Testing Strategy\n\n### 1. Unit Tests for Rate Limiting Configuration\n- Create unit tests for the rate limiting configuration:\n  ```typescript\n  // tests/middleware/rateLimit.test.ts\n  import { apiLimiter, authLimiter, aiServiceLimiter } from '../../config/rateLimit';\n  \n  describe('Rate Limiting Configuration', () => {\n    test('API limiter should have correct window and max settings', () => {\n      expect(apiLimiter.windowMs).toBe(15 * 60 * 1000);\n      expect(apiLimiter.max).toBe(100);\n    });\n    \n    test('Auth limiter should be stricter than API limiter', () => {\n      expect(authLimiter.max).toBeLessThan(apiLimiter.max);\n    });\n  });\n  ```\n\n### 2. Integration Tests for Rate Limiting Middleware\n- Create integration tests to verify middleware behavior:\n  ```typescript\n  // tests/integration/rateLimit.test.ts\n  import request from 'supertest';\n  import app from '../../app';\n  \n  describe('Rate Limiting Integration Tests', () => {\n    test('Should allow requests below the limit', async () => {\n      // Make multiple requests below the limit\n      for (let i = 0; i < 5; i++) {\n        const response = await request(app).get('/api/some-endpoint');\n        expect(response.status).not.toBe(429);\n      }\n    });\n    \n    test('Should block requests over the limit', async () => {\n      // Make enough requests to hit the limit\n      const limitPlus10 = 110; // Assuming limit is 100\n      const responses = [];\n      \n      for (let i = 0; i < limitPlus10; i++) {\n        responses.push(await request(app).get('/api/some-endpoint'));\n      }\n      \n      // Check that the later requests were rate limited\n      expect(responses[responses.length - 1].status).toBe(429);\n    });\n    \n    test('Rate limit headers should be present', async () => {\n      const response = await request(app).get('/api/some-endpoint');\n      \n      expect(response.headers).toHaveProperty('ratelimit-limit');\n      expect(response.headers).toHaveProperty('ratelimit-remaining');\n      expect(response.headers).toHaveProperty('ratelimit-reset');\n    });\n  });\n  ```\n\n### 3. Authentication Endpoint Protection Tests\n- Test that authentication endpoints have stricter limits:\n  ```typescript\n  // tests/integration/authRateLimit.test.ts\n  import request from 'supertest';\n  import app from '../../app';\n  \n  describe('Authentication Rate Limiting Tests', () => {\n    test('Should block after too many login attempts', async () => {\n      // Make multiple login attempts with bad credentials\n      for (let i = 0; i < 6; i++) {\n        await request(app)\n          .post('/api/login')\n          .send({ email: 'test@example.com', password: 'wrongpassword' });\n      }\n      \n      // The 6th attempt should be rate limited\n      const response = await request(app)\n        .post('/api/login')\n        .send({ email: 'test@example.com', password: 'wrongpassword' });\n      \n      expect(response.status).toBe(429);\n    });\n  });\n  ```\n\n### 4. AI Endpoints Rate Limiting Tests\n- Test rate limiting specifically for AI service endpoints:\n  ```typescript\n  // tests/integration/aiRateLimit.test.ts\n  import request from 'supertest';\n  import app from '../../app';\n  \n  describe('AI Service Rate Limiting Tests', () => {\n    test('Should limit AI service usage', async () => {\n      // Make multiple requests to an AI endpoint\n      for (let i = 0; i < 20; i++) {\n        await request(app)\n          .post('/api/ai/generate')\n          .send({ prompt: 'Test prompt' });\n      }\n      \n      // The 21st request should be rate limited\n      const response = await request(app)\n        .post('/api/ai/generate')\n        .send({ prompt: 'Test prompt' });\n      \n      expect(response.status).toBe(429);\n    });\n  });\n  ```\n\n### 5. Load Testing\n- Use tools like Artillery or JMeter to verify rate limits under load:\n  ```yaml\n  # artillery-config.yml\n  config:\n    target: \"http://localhost:3000\"\n    phases:\n      - duration: 60\n        arrivalRate: 5\n    defaults:\n      headers:\n        Content-Type: \"application/json\"\n  scenarios:\n    - flow:\n        - get:\n            url: \"/api/some-endpoint\"\n        - think: 1\n  ```\n  \n  Run with: `npx artillery run artillery-config.yml`\n\n### 6. Security Testing for Brute Force Protection\n- Test that brute force protection works correctly:\n  ```typescript\n  // tests/security/bruteForce.test.ts\n  import request from 'supertest';\n  import app from '../../app';\n  \n  describe('Brute Force Protection Tests', () => {\n    test('Should block IP after multiple failed login attempts', async () => {\n      // Make enough failed login attempts to trigger blocking\n      for (let i = 0; i < 11; i++) {\n        await request(app)\n          .post('/api/login')\n          .send({ email: 'test@example.com', password: 'wrongpassword' });\n      }\n      \n      // Try accessing a different endpoint from the same IP\n      const response = await request(app).get('/api/some-endpoint');\n      \n      // Should be blocked\n      expect(response.status).toBe(403);\n    });\n  });\n  ```",
         "status": "deferred",
         "dependencies": [
-          1
+          "1"
         ],
         "priority": "high",
         "subtasks": [
           {
             "id": 1,
-            "title": "Select and Install Rate Limiting Libraries"
+            "title": "Select and Install Rate Limiting Libraries",
+            "parentId": "undefined",
+            "status": "done"
           }
         ]
       },
@@ -94,7 +101,7 @@
         "testStrategy": "## Testing Strategy\n\n### 1. Unit Tests for Error Classes\n- Create unit tests for each error class to verify they have the correct properties:\n  ```typescript\n  // tests/utils/errors.test.ts\n  import { ValidationError, ResourceNotFoundError, AuthenticationError } from '../../utils/errors';\n  \n  describe('Error Classes', () => {\n    test('ValidationError has correct properties', () => {\n      const error = new ValidationError('Invalid email', { field: 'email' });\n      expect(error.status).toBe(400);\n      expect(error.code).toBe('VALIDATION_ERROR');\n      expect(error.message).toBe('Invalid email');\n      expect(error.details).toEqual({ field: 'email' });\n      expect(error.isOperational).toBe(true);\n    });\n    \n    // Additional tests for other error classes\n  });\n  ```\n\n### 2. Integration Tests for Error Middleware\n- Create tests that trigger different error scenarios and verify the response format:\n  ```typescript\n  // tests/middleware/errorHandler.test.ts\n  import request from 'supertest';\n  import app from '../../app';\n  import { ResourceNotFoundError } from '../../utils/errors';\n  \n  // Mock route that throws different errors\n  app.get('/test/error/:type', (req, res, next) => {\n    switch (req.params.type) {\n      case 'not-found':\n        next(new ResourceNotFoundError('TestResource', '123'));\n        break;\n      case 'validation':\n        next(new ValidationError('Test validation error'));\n        break;\n      case 'unexpected':\n        throw new Error('Unexpected error');\n      default:\n        res.status(200).send('No error');\n    }\n  });\n  \n  describe('Error Handler Middleware', () => {\n    test('Returns correct format for known error types', async () => {\n      const response = await request(app).get('/test/error/not-found');\n      \n      expect(response.status).toBe(404);\n      expect(response.body).toHaveProperty('status', 404);\n      expect(response.body).toHaveProperty('code', 'RESOURCE_NOT_FOUND');\n      expect(response.body).toHaveProperty('traceId');\n      expect(response.body).toHaveProperty('timestamp');\n    });\n    \n    test('Sanitizes sensitive information in production', async () => {\n      // Mock production environment\n      const originalEnv = process.env.NODE_ENV;\n      process.env.NODE_ENV = 'production';\n      \n      const response = await request(app).get('/test/error/unexpected');\n      \n      expect(response.status).toBe(500);\n      expect(response.body).not.toHaveProperty('details');\n      \n      // Restore environment\n      process.env.NODE_ENV = originalEnv;\n    });\n  });\n  ```\n\n### 3. Tests for AI Service Error Handling\n- Create tests for the AI service wrapper with mocked service calls:\n  ```typescript\n  // tests/services/aiService.test.ts\n  import { callAIService } from '../../services/aiService';\n  \n  describe('AI Service Error Handling', () => {\n    test('Retries failed service calls', async () => {\n      // Mock implementation to fail twice then succeed\n      let attempts = 0;\n      const mockServiceFn = jest.fn().mockImplementation(() => {\n        attempts++;\n        if (attempts < 3) {\n          return Promise.reject(new Error('Service temporarily unavailable'));\n        }\n        return Promise.resolve('success');\n      });\n      \n      const result = await callAIService(mockServiceFn);\n      \n      expect(mockServiceFn).toHaveBeenCalledTimes(3);\n      expect(result).toBe('success');\n    });\n    \n    test('Uses fallback when all retries fail', async () => {\n      const mockServiceFn = jest.fn().mockRejectedValue(new Error('Service down'));\n      const fallback = 'fallback value';\n      \n      const result = await callAIService(mockServiceFn, fallback);\n      \n      expect(result).toBe(fallback);\n    });\n  });\n  ```\n\n### 4. Logging Tests\n- Create tests to verify that the logger correctly formats and outputs logs:\n  ```typescript\n  // tests/utils/logger.test.ts\n  import logger from '../../utils/logger';\n  \n  // Capture console output\n  let consoleOutput = [];\n  const originalConsoleLog = console.log;\n  \n  beforeEach(() => {\n    consoleOutput = [];\n    console.log = jest.fn(output => {\n      consoleOutput.push(output);\n    });\n  });\n  \n  afterEach(() => {\n    console.log = originalConsoleLog;\n  });\n  \n  describe('Logger', () => {\n    test('Logs messages with correct format and level', () => {\n      const testMessage = 'Test log message';\n      logger.info(testMessage, { userId: '123' });\n      \n      expect(consoleOutput.length).toBe(1);\n      const logOutput = consoleOutput[0];\n      \n      expect(logOutput).toContain(testMessage);\n      expect(logOutput).toContain('info');\n      expect(logOutput).toContain('userId');\n      expect(logOutput).toContain('123');\n    });\n  });\n  ```\n\n### 5. End-to-End Tests for Error Scenarios\n- Create tests that verify the complete error handling flow in realistic scenarios:\n  ```typescript\n  // tests/e2e/errorHandling.test.ts\n  import request from 'supertest';\n  import app from '../../app';\n  \n  describe('Error Handling E2E', () => {\n    test('Invalid JSON in request body returns appropriate error', async () => {\n      const response = await request(app)\n        .post('/api/users')\n        .set('Content-Type', 'application/json')\n        .send('{invalid json}');\n      \n      expect(response.status).toBe(400);\n      expect(response.body.code).toBe('INVALID_JSON');\n    });\n    \n    test('Validation errors return user-friendly messages', async () => {\n      const response = await request(app)\n        .post('/api/users')\n        .send({\n          email: 'not-an-email'\n        });\n      \n      expect(response.status).toBe(400);\n      expect(response.body.code).toBe('VALIDATION_ERROR');\n      expect(response.body.message).toContain('Invalid');\n    });\n  });\n  ```",
         "status": "deferred",
         "dependencies": [
-          1
+          "1"
         ],
         "priority": "high",
         "subtasks": [
@@ -104,8 +111,9 @@
             "description": "Create TypeScript interfaces for error responses and implement a hierarchy of error classes for consistent error handling across the application",
             "dependencies": [],
             "details": "Define ErrorResponse interface with status, code, message, details, traceId, and timestamp fields. Implement AppError base class with status, code, and operational flag. Create domain-specific error classes like ValidationError (400), AuthenticationError (401), and ServiceUnavailableError (503) that extend AppError with appropriate defaults.",
-            "status": "pending",
-            "testStrategy": "Unit tests verifying each error class has correct status codes, error codes, and inheritance structure. Test serialization of error responses."
+            "status": "done",
+            "testStrategy": "Unit tests verifying each error class has correct status codes, error codes, and inheritance structure. Test serialization of error responses.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -115,8 +123,9 @@
               1
             ],
             "details": "Install Winston package and configure logger with JSON format, timestamp, and service metadata. Implement console transport with colorization for development. Add file transports for error and combined logs in production environment. Ensure logs include traceId for request correlation and appropriate severity levels (error, warn, info).",
-            "status": "pending",
-            "testStrategy": "Verify logger outputs structured JSON with correct fields in different environments. Test that logs contain traceId, timestamp, and proper metadata. Confirm production logs write to correct files."
+            "status": "done",
+            "testStrategy": "Verify logger outputs structured JSON with correct fields in different environments. Test that logs contain traceId, timestamp, and proper metadata. Confirm production logs write to correct files.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -127,8 +136,9 @@
               2
             ],
             "details": "Develop errorHandler middleware that processes different error types (AppError, ZodError), determines appropriate log severity, and generates standardized ErrorResponse objects. Include trace ID generation for request correlation. Ensure production environments don't leak sensitive error details while development provides detailed debugging information.",
-            "status": "pending",
-            "testStrategy": "Test middleware with various error types to verify correct HTTP status codes, response formats, and logging behavior. Validate trace ID propagation and proper error message sanitization in production."
+            "status": "done",
+            "testStrategy": "Test middleware with various error types to verify correct HTTP status codes, response formats, and logging behavior. Validate trace ID propagation and proper error message sanitization in production.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -138,8 +148,9 @@
               2
             ],
             "details": "Configure process.on('uncaughtException') and process.on('unhandledRejection') handlers to log errors with stack traces. Implement graceful shutdown procedures that allow time for logs to flush before exiting. Ensure these handlers work across all application environments without exposing sensitive information.",
-            "status": "pending",
-            "testStrategy": "Simulate unhandled exceptions and promise rejections to verify proper logging and graceful shutdown behavior. Test that application recovers appropriately in production environments."
+            "status": "done",
+            "testStrategy": "Simulate unhandled exceptions and promise rejections to verify proper logging and graceful shutdown behavior. Test that application recovers appropriately in production environments.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -151,8 +162,9 @@
               3
             ],
             "details": "Develop callAIService function that implements retry logic with exponential backoff (2^attempt * 100ms). Include detailed retry attempt logging, trace ID correlation, and fallback value support. Throw standardized ServiceUnavailableError when all retries fail and no fallback is provided. Ensure proper error classification for operational vs critical failures.",
-            "status": "pending",
-            "testStrategy": "Test service wrapper with simulated failures to verify retry behavior, backoff timing, and fallback mechanisms. Validate proper error classification and logging during retry attempts and final failure scenarios."
+            "status": "done",
+            "testStrategy": "Test service wrapper with simulated failures to verify retry behavior, backoff timing, and fallback mechanisms. Validate proper error classification and logging during retry attempts and final failure scenarios.",
+            "parentId": "undefined"
           }
         ]
       },
@@ -164,8 +176,8 @@
         "testStrategy": "## Testing Strategy\n\n### 1. Establish Current Coverage Baseline\n- Run initial coverage report to identify areas below 55%\n- Prioritize critical business logic paths with lowest coverage\n- Create a coverage improvement roadmap with milestones\n\n### 2. Prioritize Test Implementation\n- Focus first on critical service layers and utilities\n- Implement tests in the following order:\n  1. Core business logic and services\n  2. API endpoints\n  3. UI components\n  4. Integration tests\n\n### 3. Test Verification Approach\n- Use mutation testing to verify test quality (Stryker Mutator)\n- Implement snapshot testing for UI components\n- Use test doubles (stubs, mocks, spies) to isolate units\n- Follow the Arrange-Act-Assert pattern consistently\n\n### 4. Code Review Process\n- Establish peer review checklist for test quality:\n  - Tests verify behavior, not implementation\n  - Tests are readable and maintainable\n  - Edge cases are covered\n  - Mocking strategy is appropriate\n\n### 5. Continuous Monitoring\n- Track coverage metrics over time\n- Generate weekly coverage reports\n- Automatically flag when coverage drops below thresholds\n\n### 6. Specific Test Scenarios\n- Test validation logic with valid and invalid inputs\n- Verify error handling returns standardized error responses\n- Test UI components for accessibility and user interactions\n- Test AI service workflows with various model responses\n- Test storage operations with data consistency checks\n- Verify rate limiting works as expected in integration tests",
         "status": "deferred",
         "dependencies": [
-          1,
-          3
+          "1",
+          "3"
         ],
         "priority": "high",
         "subtasks": [
@@ -175,8 +187,9 @@
             "description": "Set up Jest/Vitest with proper configuration for coverage reporting and establish coverage thresholds",
             "dependencies": [],
             "details": "Install required dependencies (Jest/Vitest, @testing-library/vue, c8, msw), configure vitest.config.js with coverage thresholds (statements: 80, branches: 75, functions: 80, lines: 80), and verify initial coverage report generation",
-            "status": "pending",
-            "testStrategy": "Verify coverage configuration by running initial test suite and confirming threshold enforcement"
+            "status": "done",
+            "testStrategy": "Verify coverage configuration by running initial test suite and confirming threshold enforcement",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -186,8 +199,9 @@
               1
             ],
             "details": "Implement test factories for common data structures, create mock implementations of external services and repositories, develop utility functions for API request testing, and set up MSW (Mock Service Worker) for network request mocking",
-            "status": "pending",
-            "testStrategy": "Test the utilities themselves with simple validation tests to ensure they function correctly in test environments"
+            "status": "done",
+            "testStrategy": "Test the utilities themselves with simple validation tests to ensure they function correctly in test environments",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -198,8 +212,9 @@
               2
             ],
             "details": "Create unit tests for all service methods covering success and error paths, implement API endpoint tests verifying correct responses, input validation, error formats, authentication flows, and test storage operations with in-memory database or test database",
-            "status": "pending",
-            "testStrategy": "Use code coverage reports to identify untested paths, implement tests until coverage thresholds are met for service and API layers"
+            "status": "done",
+            "testStrategy": "Use code coverage reports to identify untested paths, implement tests until coverage thresholds are met for service and API layers",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -210,8 +225,9 @@
               2
             ],
             "details": "Use @testing-library/vue to test component rendering, user interactions, and state changes; verify validation errors display correctly; test form submissions; and ensure components handle various states and props appropriately",
-            "status": "pending",
-            "testStrategy": "Test components in isolation with various input states, verify accessibility attributes, and ensure user interactions produce expected outcomes"
+            "status": "done",
+            "testStrategy": "Test components in isolation with various input states, verify accessibility attributes, and ensure user interactions produce expected outcomes",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -224,8 +240,9 @@
               4
             ],
             "details": "Configure GitHub Actions to run tests on PR and merge to main, generate and store coverage reports as artifacts, implement build failure when coverage drops below thresholds, and verify the complete test suite achieves 80%+ coverage across all metrics",
-            "status": "pending",
-            "testStrategy": "Run full test suite in CI environment, verify coverage reports meet thresholds, and confirm build fails when artificially lowering coverage"
+            "status": "done",
+            "testStrategy": "Run full test suite in CI environment, verify coverage reports meet thresholds, and confirm build fails when artificially lowering coverage",
+            "parentId": "undefined"
           }
         ]
       },
@@ -237,14 +254,16 @@
         "testStrategy": "## Testing Strategy\n\n### 1. Coverage Planning and Prioritization\n- Identify critical user journeys that require E2E coverage:\n  - Complete job application analysis workflow\n  - Resume upload, parsing, and management\n  - Cover letter generation and customization\n  - Service provider switching\n  - Authentication and account management\n- Create a test coverage matrix mapping features to test cases\n- Prioritize tests based on business impact and technical risk\n\n### 2. Page Object Model Architecture\n- Implement a robust Page Object pattern to abstract UI interactions\n- Create dedicated page classes for each major section of the application\n- Design reusable components for common UI elements \n- Ensure selectors are maintainable and resistant to UI changes\n\n### 3. Test Data Management\n- Create factories and fixtures for generating realistic test data\n- Implement database seeding and cleanup procedures\n- Use a combination of static test data and dynamically generated content\n- Isolate test runs to prevent cross-contamination\n\n### 4. Cross-Browser Testing Approach\n- Run tests against Chrome, Firefox, and Safari\n- Include mobile viewport testing for critical workflows\n- Implement visual comparison tests for critical UI components\n- Create browser-specific test variations where needed\n\n### 5. Error Scenario Coverage\n- Use request interception to simulate various error conditions:\n  - Network failures and timeouts\n  - API errors (4xx/5xx responses)\n  - Rate limiting and throttling\n- Verify that error messages are user-friendly and actionable\n- Test recovery paths after encountering errors\n\n### 6. Performance and Reliability\n- Implement test retries for potentially flaky scenarios\n- Add video recording and tracing for test failure investigation\n- Monitor test execution time and optimize slow tests\n- Implement parallel test execution where possible\n\n### 7. CI/CD Integration\n- Run full test suite on pull requests to critical branches\n- Run smoke tests on every commit to development branches\n- Schedule comprehensive test runs daily\n- Implement notifications for test failures\n\n### 8. Maintenance Strategy\n- Schedule regular reviews of E2E test coverage and performance\n- Monitor test flakiness and address root causes\n- Update tests proactively when features change\n- Document patterns for writing maintainable tests",
         "status": "deferred",
         "dependencies": [
-          1,
-          3
+          "1",
+          "3"
         ],
         "priority": "high",
         "subtasks": [
           {
             "id": 1,
-            "title": "Configure Playwright Testing Environment"
+            "title": "Configure Playwright Testing Environment",
+            "parentId": "undefined",
+            "status": "done"
           }
         ]
       },
@@ -256,8 +275,8 @@
         "testStrategy": "## Testing Strategy\n\n### 1. OpenAPI Specification Validation\n- Validate generated OpenAPI document against the specification:\n  ```typescript\n  // tests/documentation/openapi-validation.test.ts\n  import SwaggerParser from '@apidevtools/swagger-parser';\n  import { openapiConfig } from '../../config/openapi';\n  import swaggerJsDoc from 'swagger-jsdoc';\n  \n  describe('OpenAPI Specification', () => {\n    it('should be valid according to OpenAPI 3.0 specification', async () => {\n      const specs = swaggerJsDoc(openapiConfig);\n      await expect(SwaggerParser.validate(specs)).resolves.not.toThrow();\n    });\n  });\n  ```\n\n### 2. Documentation Completeness Check\n- Create tests to verify all endpoints are documented:\n  ```typescript\n  // tests/documentation/coverage.test.ts\n  describe('API Documentation Coverage', () => {\n    it('should document all API endpoints', async () => {\n      const specs = swaggerJsDoc(openapiConfig);\n      const documentedPaths = Object.keys(specs.paths);\n      \n      // Use route discovery to get all actual API routes\n      const routes = discoverAppRoutes(app);\n      \n      for (const route of routes) {\n        if (route.path.startsWith('/api/')) {\n          const normalizedPath = route.path.replace('/api', '');\n          expect(documentedPaths).toContain(normalizedPath);\n        }\n      }\n    });\n  });\n  ```\n\n### 3. Schema Consistency Tests\n- Verify that API documentation schemas match actual validation schemas:\n  ```typescript\n  // tests/documentation/schema-consistency.test.ts\n  describe('Schema Consistency', () => {\n    it('should have OpenAPI schemas that match validation schemas', () => {\n      const specs = swaggerJsDoc(openapiConfig);\n      \n      // Convert Zod schema to JSON schema\n      const generatedSchema = zodToJsonSchema(jobPostingSchema, 'openApi');\n      \n      // Get schema from OpenAPI specs\n      const openapiSchema = specs.components.schemas.JobPosting;\n      \n      // Compare properties to ensure consistency\n      expect(openapiSchema.properties).toMatchObject(generatedSchema.properties);\n      expect(openapiSchema.required).toEqual(expect.arrayContaining(generatedSchema.required || []));\n    });\n  });\n  ```\n\n### 4. Error Response Documentation Tests\n- Verify that all error codes from Task 3 are properly documented:\n  ```typescript\n  describe('Error Documentation', () => {\n    it('should document all standard error responses', () => {\n      const specs = swaggerJsDoc(openapiConfig);\n      const documentedErrors = Object.keys(specs.components.responses);\n      \n      // Get all error types defined in the error handling system\n      const errorTypes = getAllErrorTypes();\n      \n      // Check that each error type has corresponding documentation\n      for (const errorType of errorTypes) {\n        expect(documentedErrors).toContain(errorType);\n      }\n    });\n  });\n  ```\n\n### 5. Swagger UI Functionality Tests\n- Create E2E tests to verify documentation accessibility and functionality:\n  ```typescript\n  // tests/e2e/api-docs.test.ts\n  import { test, expect } from '@playwright/test';\n  \n  test('API documentation is accessible and loads correctly', async ({ page }) => {\n    await page.goto('/api-docs');\n    \n    // Check page title and content\n    expect(await page.title()).toContain('API Documentation');\n    await page.waitForSelector('.swagger-ui .information-container');\n    \n    // Test expanding an endpoint\n    await page.click('.opblock-tag:has-text(\"Jobs\")');\n    await page.click('.opblock-summary:has-text(\"Get all job postings\")');\n    \n    // Verify operation details are displayed\n    const responseSection = await page.waitForSelector('.responses-wrapper');\n    expect(await responseSection.textContent()).toContain('200');\n  });\n  ```\n\n### 6. API Contract Testing\n- Implement contract tests to verify API behavior matches documentation:\n  ```typescript\n  // tests/api/contract.test.ts\n  describe('API Contract Testing', () => {\n    it('GET /api/jobs should match documented response schema', async () => {\n      // Get expected response schema from OpenAPI spec\n      const responseSchema = specs.paths['/jobs'].get.responses['200'].content['application/json'].schema;\n      const validate = ajv.compile(responseSchema);\n      \n      // Make actual API request\n      const response = await request(app)\n        .get('/api/jobs')\n        .set('Authorization', `Bearer ${testToken}`);\n      \n      // Validate response against documented schema\n      expect(response.status).toBe(200);\n      expect(validate(response.body)).toBe(true);\n    });\n  });\n  ```\n\n### 7. Developer Experience Testing\n- Conduct usability sessions with developers to evaluate documentation:\n  - Create specific tasks for developers to complete using only the documentation\n  - Gather feedback on clarity, completeness, and usability\n  - Identify areas for improvement\n\n### 8. Documentation Update Tests\n- Create CI checks to detect when API implementation changes without documentation updates:\n  ```typescript\n  // In CI pipeline script\n  function checkDocumentationSync() {\n    // Generate fresh OpenAPI spec from current codebase\n    const currentSpec = generateOpenAPISpec();\n    \n    // Compare with previously committed spec\n    const committedSpec = loadCommittedSpec();\n    \n    const differences = compareSpecs(currentSpec, committedSpec);\n    if (differences.length > 0) {\n      console.warn('API documentation needs updating:', differences);\n      process.exit(1); // Fail the build\n    }\n  }\n  ```",
         "status": "deferred",
         "dependencies": [
-          1,
-          3
+          "1",
+          "3"
         ],
         "priority": "high",
         "subtasks": [
@@ -267,8 +286,9 @@
             "description": "Install required packages and configure basic OpenAPI specification with Swagger UI",
             "dependencies": [],
             "details": "Install swagger-jsdoc and swagger-ui-express packages, create central OpenAPI configuration file with basic info, servers, and security schemes, set up express route to serve Swagger UI at /api-docs endpoint with explorer enabled and custom site title",
-            "status": "pending",
-            "testStrategy": "Validate that Swagger UI loads correctly at /api-docs endpoint and displays basic API information including title, version, and server URLs"
+            "status": "done",
+            "testStrategy": "Validate that Swagger UI loads correctly at /api-docs endpoint and displays basic API information including title, version, and server URLs",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -278,8 +298,9 @@
               1
             ],
             "details": "Create utility functions to convert Zod schemas to OpenAPI schemas using zod-to-json-schema, define all API model schemas by reusing validation schemas from Task 1, create reusable error response components based on standardized errors including validation, authentication, and server error responses",
-            "status": "pending",
-            "testStrategy": "Verify generated schemas match expected structure through validation tests and visual inspection in Swagger UI to ensure proper schema references and error response formats"
+            "status": "done",
+            "testStrategy": "Verify generated schemas match expected structure through validation tests and visual inspection in Swagger UI to ensure proper schema references and error response formats",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -289,8 +310,9 @@
               2
             ],
             "details": "Use JSDoc annotations to document each endpoint with summary, description, parameters, responses, and security requirements; add bearer authentication to protected endpoints; include realistic request/response examples for major endpoints representing common use cases",
-            "status": "pending",
-            "testStrategy": "Manually verify each documented endpoint in Swagger UI to ensure parameters, responses, authentication requirements, and examples display correctly and match actual API behavior"
+            "status": "done",
+            "testStrategy": "Manually verify each documented endpoint in Swagger UI to ensure parameters, responses, authentication requirements, and examples display correctly and match actual API behavior",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -300,8 +322,9 @@
               3
             ],
             "details": "Add environment checks to control documentation visibility (enabled in development/staging, restricted in production), implement basic authentication for production documentation using middleware, create endpoint for downloadable OpenAPI specification (JSON/YAML)",
-            "status": "pending",
-            "testStrategy": "Test documentation access in different environments to verify proper access controls, validate that authentication is required in production but not development, and confirm downloadable specification matches generated documentation"
+            "status": "done",
+            "testStrategy": "Test documentation access in different environments to verify proper access controls, validate that authentication is required in production but not development, and confirm downloadable specification matches generated documentation",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -311,8 +334,9 @@
               4
             ],
             "details": "Create scripts to generate static documentation for CI/CD integration, implement versioning strategy with multiple API versions supported, include backwards compatibility information, document deprecation notices with migration paths, and integrate documentation generation into build pipeline",
-            "status": "pending",
-            "testStrategy": "Verify documentation generation scripts work correctly across different environments, confirm versioning strategy is properly implemented with clear version indicators in Swagger UI, and validate that deprecated endpoints show appropriate migration guidance"
+            "status": "done",
+            "testStrategy": "Verify documentation generation scripts work correctly across different environments, confirm versioning strategy is properly implemented with clear version indicators in Swagger UI, and validate that deprecated endpoints show appropriate migration guidance",
+            "parentId": "undefined"
           }
         ]
       },
@@ -324,9 +348,9 @@
         "testStrategy": "## Testing Strategy\n\n### 1. Documentation Accuracy Validation\n- Cross-reference all documented steps with actual application functionality\n- Verify that screenshots match current UI design and elements\n- Test all links, references, and cross-documentation navigation\n- Review with development team to ensure technical accuracy\n- Implement documentation linting for formatting consistency\n\n### 2. User Experience Testing\n- Conduct task-based usability testing with documentation as sole guidance\n- Measure completion rates and time-to-completion for key tasks\n- Collect qualitative feedback on clarity and helpfulness\n- Identify areas where users struggle to find relevant information\n- Test documentation across different devices and screen sizes\n\n### 3. Video Tutorial Effectiveness Testing\n- Measure video engagement metrics (completion rates, drop-off points)\n- Conduct A/B testing of different tutorial approaches where applicable\n- Verify that videos remain accurate after UI updates\n- Test playback across different browsers and connection speeds\n\n### 4. Accessibility Compliance\n- Test documentation with screen readers and assistive technologies\n- Verify color contrast ratios for text readability\n- Ensure keyboard navigation works throughout documentation\n- Validate that all images have appropriate alt text\n- Confirm that video tutorials have accurate captions\n\n### 5. Continuous Improvement Process\n- Implement analytics to track most-viewed and least-viewed documentation\n- Create user feedback collection system with documentation ratings\n- Establish regular documentation audit process based on support tickets\n- Test search functionality effectiveness with common user queries",
         "status": "deferred",
         "dependencies": [
-          3,
-          4,
-          5
+          "3",
+          "4",
+          "5"
         ],
         "priority": "medium",
         "subtasks": [
@@ -336,8 +360,9 @@
             "description": "Select and configure documentation platform with consistent formatting standards and versioning strategy",
             "dependencies": [],
             "details": "Evaluate GitBook vs Docusaurus; create content style guide for tone and visuals; design information architecture with category hierarchy; implement version control for future updates",
-            "status": "pending",
-            "testStrategy": "Validate framework setup through sample page creation; verify style guide adherence via peer review checklist"
+            "status": "done",
+            "testStrategy": "Validate framework setup through sample page creation; verify style guide adherence via peer review checklist",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -347,8 +372,9 @@
               1
             ],
             "details": "Document account creation flow with progressive disclosure; capture current UI screenshots with annotations; develop terminology reference guide; include navigation walkthrough for first-time users",
-            "status": "pending",
-            "testStrategy": "Conduct usability testing with new users; verify screenshot accuracy against live application interface"
+            "status": "done",
+            "testStrategy": "Conduct usability testing with new users; verify screenshot accuracy against live application interface",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -358,8 +384,9 @@
               1
             ],
             "details": "Cover resume parsing, job analysis, and cover letter generation; include industry-specific templates; document keyword optimization strategies; provide before/after examples showing content improvements",
-            "status": "pending",
-            "testStrategy": "Cross-reference steps with application functionality; validate best practices with HR professionals"
+            "status": "done",
+            "testStrategy": "Cross-reference steps with application functionality; validate best practices with HR professionals",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -370,8 +397,9 @@
               3
             ],
             "details": "Script and record key workflow videos with professional narration; add captions and transcripts; organize FAQs by user journey stage; document error resolution paths with edge case scenarios",
-            "status": "pending",
-            "testStrategy": "Test video clarity with target users; validate FAQ effectiveness through support ticket analysis"
+            "status": "done",
+            "testStrategy": "Test video clarity with target users; validate FAQ effectiveness through support ticket analysis",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -383,8 +411,9 @@
               4
             ],
             "details": "Integrate documentation links throughout application UI; develop tooltips for form fields; implement search with relevance ranking; create feedback system for continuous improvement",
-            "status": "pending",
-            "testStrategy": "Verify all contextual help links function correctly; test search relevance with real user queries"
+            "status": "done",
+            "testStrategy": "Verify all contextual help links function correctly; test search relevance with real user queries",
+            "parentId": "undefined"
           }
         ]
       },
@@ -396,8 +425,8 @@
         "testStrategy": "## Testing Strategy\n\n### 1. Template Consistency Validation\n- Create a linting or validation script to ensure all ADRs follow the standard template\n- Verify that required sections are present in each ADR\n- Ensure proper formatting and metadata consistency\n\n### 2. Technical Review Process\n- Establish a checklist for technical review of each ADR:\n  - Are all architectural constraints and requirements addressed?\n  - Is the rationale clearly explained?\n  - Are consequences and trade-offs documented?\n  - Are alternatives adequately explored?\n- Conduct peer reviews for each ADR with at least two senior developers\n\n### 3. Documentation Completeness\n- Create a coverage matrix linking architectural components to their corresponding ADRs\n- Identify gaps where significant architectural decisions are not documented\n- Verify that dependency relationships between architectural components are captured\n\n### 4. Process Effectiveness Evaluation\n- After initial implementation, conduct a retrospective on the ADR process:\n  - Are ADRs being referenced during development?\n  - Do they contain sufficient detail?\n  - Are they kept up-to-date?\n  - Do they help onboard new team members?\n- Adjust the template and process based on feedback\n\n### 5. Integration Testing\n- Verify that links between ADRs and related documentation work correctly\n- Test any automation tools created for the ADR workflow\n- Ensure ADRs are properly versioned in source control",
         "status": "deferred",
         "dependencies": [
-          1,
-          3
+          "1",
+          "3"
         ],
         "priority": "medium",
         "subtasks": [
@@ -407,8 +436,9 @@
             "description": "Investigate industry standards for Architecture Decision Records and define appropriate framework for the project",
             "dependencies": [],
             "details": "Review Michael Nygard's template, MADR, and other industry standards; determine optimal storage location in repository; design sequential naming convention for ADR files",
-            "status": "pending",
-            "testStrategy": "Validate framework selection through stakeholder review and comparison against industry best practices"
+            "status": "done",
+            "testStrategy": "Validate framework selection through stakeholder review and comparison against industry best practices",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -418,8 +448,9 @@
               1
             ],
             "details": "Implement template with sections for Context, Decision, Rationale, Consequences, Alternatives Considered, and References; include status tracking (Proposed, Accepted, Deprecated, Superseded)",
-            "status": "pending",
-            "testStrategy": "Verify template completeness by ensuring all required sections are present and properly formatted in sample ADRs"
+            "status": "done",
+            "testStrategy": "Verify template completeness by ensuring all required sections are present and properly formatted in sample ADRs",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -429,8 +460,9 @@
               2
             ],
             "details": "Document decisions for AI service abstraction layer, storage architecture, TypeScript usage policies, and framework selections with complete rationale and consequences",
-            "status": "pending",
-            "testStrategy": "Review each ADR with relevant technical stakeholders to validate completeness and accuracy of documented decisions"
+            "status": "done",
+            "testStrategy": "Review each ADR with relevant technical stakeholders to validate completeness and accuracy of documented decisions",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -440,8 +472,9 @@
               3
             ],
             "details": "Create documented process for ADR submission, stakeholder review, approval criteria, and procedures for updating or deprecating existing ADRs",
-            "status": "pending",
-            "testStrategy": "Conduct trial run of the process with a new architectural decision to validate workflow effectiveness"
+            "status": "done",
+            "testStrategy": "Conduct trial run of the process with a new architectural decision to validate workflow effectiveness",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -451,8 +484,9 @@
               4
             ],
             "details": "Add ADR review requirements to PR templates for architectural changes; link ADRs to relevant technical documentation; implement CLI tool for ADR template generation",
-            "status": "pending",
-            "testStrategy": "Monitor initial implementation to ensure ADR process is consistently followed in development workflow"
+            "status": "done",
+            "testStrategy": "Monitor initial implementation to ensure ADR process is consistently followed in development workflow",
+            "parentId": "undefined"
           }
         ]
       },
@@ -464,8 +498,8 @@
         "testStrategy": "## Testing Strategy\n\n### 1. Type Guard Unit Tests\n- Create unit tests for all type guards:\n  ```typescript\n  // tests/utils/type-guards.test.ts\n  import { isUser, isJobPosting } from '../../utils/type-guards';\n  \n  describe('User type guards', () => {\n    test('validates correct user data', () => {\n      const validUser = {\n        id: '123',\n        name: 'Test User',\n        email: 'test@example.com'\n      };\n      expect(isUser(validUser)).toBe(true);\n    });\n    \n    test('rejects invalid user data', () => {\n      const invalidUser = {\n        id: '123',\n        // missing required fields\n      };\n      expect(isUser(invalidUser)).toBe(false);\n    });\n  });\n  ```\n\n### 2. TypeScript Compile-Time Tests\n- Create files specifically for testing TypeScript's type system:\n  ```typescript\n  // tests/types/compile-time.test.ts\n  import { expectType } from 'tsd';\n  import { User, JobPosting } from '../../types';\n  \n  // These tests will fail at compile-time if types don't match\n  expectType<string>(user.id);\n  expectType<string | undefined>(user.middleName);\n  ```\n- Run the TypeScript compiler in a CI step to catch type errors\n\n### 3. Integration Tests for API Type Safety\n- Test error handling when unexpected data shapes are received:\n  ```typescript\n  // tests/services/jobApi.test.ts\n  describe('Job API with invalid responses', () => {\n    beforeEach(() => {\n      // Mock fetch to return invalid data\n      global.fetch = jest.fn().mockResolvedValue({\n        json: () => Promise.resolve({ invalidField: 'wrong data shape' })\n      });\n    });\n    \n    test('throws type error for invalid job posting data', async () => {\n      await expect(getJobPostings()).rejects.toThrow(TypeError);\n    });\n  });\n  ```\n\n### 4. Static Analysis Checks\n- Configure pre-commit hooks to prevent addition of new 'any' types\n- Set up CI pipeline to run type checking with maximum strictness\n- Create a TypeScript ESLint configuration focused on type safety:\n  ```javascript\n  // .eslintrc.js\n  module.exports = {\n    // ...\n    rules: {\n      '@typescript-eslint/no-explicit-any': 'error',\n      '@typescript-eslint/explicit-function-return-type': 'error',\n      '@typescript-eslint/explicit-module-boundary-types': 'error'\n    }\n  };\n  ```\n\n### 5. Type Coverage Reporting\n- Install and configure type coverage tool:\n  ```bash\n  npm install --save-dev type-coverage\n  ```\n- Add coverage threshold checks to CI:\n  ```bash\n  npx type-coverage --detail --strict --at-least 95\n  ```\n- Generate reports showing improvement over time\n\n### 6. Regression Testing\n- Run existing test suite after each major type refactoring\n- Verify that type improvements don't break existing functionality\n- Create integration tests that focus on boundaries between typed and untyped code",
         "status": "deferred",
         "dependencies": [
-          1,
-          8
+          "1",
+          "8"
         ],
         "priority": "high",
         "subtasks": [
@@ -476,7 +510,8 @@
             "dependencies": [],
             "details": "Update tsconfig.json with strict mode options including noImplicitAny, strictNullChecks, and other strict settings. Install and configure TypeScript ESLint plugin with rules for no-explicit-any and explicit-module-boundary-types at warning level.",
             "status": "pending",
-            "testStrategy": "Verify TypeScript compiler errors appear for implicit any types and ESLint warnings are generated for explicit any usage during build process"
+            "testStrategy": "Verify TypeScript compiler errors appear for implicit any types and ESLint warnings are generated for explicit any usage during build process",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -487,7 +522,8 @@
             ],
             "details": "Create and execute TypeScript AST analysis script to find all 'any' type declarations. Document locations in tracking system with file paths, line numbers, and severity assessment based on usage context and risk level.",
             "status": "pending",
-            "testStrategy": "Validate audit results by comparing with manual code review of sample files to ensure no 'any' instances are missed"
+            "testStrategy": "Validate audit results by comparing with manual code review of sample files to ensure no 'any' instances are missed",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -498,7 +534,8 @@
             ],
             "details": "Establish organized type definition structure in /types directory (api, models, services, utils). Extract common patterns into reusable interfaces. Derive TypeScript types from existing Zod schemas where applicable to maintain consistency.",
             "status": "pending",
-            "testStrategy": "Unit tests for type definitions to ensure they correctly model expected data structures and handle edge cases through type validation"
+            "testStrategy": "Unit tests for type definitions to ensure they correctly model expected data structures and handle edge cases through type validation",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -509,7 +546,8 @@
             ],
             "details": "Develop isX() type guard functions for critical domain objects. Create higher-order API response validation utilities. Integrate with Zod schemas for runtime validation. Implement error handling for invalid data scenarios.",
             "status": "pending",
-            "testStrategy": "Comprehensive unit tests for all type guards with valid and invalid input cases, including edge cases and malformed data structures"
+            "testStrategy": "Comprehensive unit tests for all type guards with valid and invalid input cases, including edge cases and malformed data structures",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -523,7 +561,8 @@
             ],
             "details": "Execute planned replacement of 'any' types following audit documentation. Update API integrations to use type guards. Leverage TypeScript utility types. Update tests as types are refined. Document exceptions where 'any' might still be necessary with justification.",
             "status": "pending",
-            "testStrategy": "Verify all TypeScript compiler errors are resolved, ensure all unit and integration tests pass with strict types, monitor for runtime errors in staging environment"
+            "testStrategy": "Verify all TypeScript compiler errors are resolved, ensure all unit and integration tests pass with strict types, monitor for runtime errors in staging environment",
+            "parentId": "undefined"
           }
         ]
       },
@@ -535,8 +574,8 @@
         "testStrategy": "## Testing Strategy\n\n### 1. Unit Tests for Schema Definitions\n- Test all schema definitions with valid and invalid data:\n  ```typescript\n  // tests/schemas/aiServices/completionResponse.test.ts\n  import { completionResponseSchema } from '../../../schemas/aiServices/completionResponse';\n  \n  describe('AI Completion Response Schema', () => {\n    it('should validate valid completion responses', () => {\n      const validResponse = {\n        id: 'cmpl-123',\n        choices: [{\n          text: 'This is a test response',\n          index: 0,\n          finish_reason: 'stop'\n        }],\n        usage: {\n          prompt_tokens: 10,\n          completion_tokens: 8,\n          total_tokens: 18\n        }\n      };\n      \n      const result = completionResponseSchema.safeParse(validResponse);\n      expect(result.success).toBe(true);\n    });\n    \n    it('should reject invalid completion responses', () => {\n      const invalidResponse = {\n        // Missing required 'id' field\n        choices: [{\n          // Missing required 'text' field\n          index: 0,\n          finish_reason: 'invalid_reason' // Invalid enum value\n        }]\n      };\n      \n      const result = completionResponseSchema.safeParse(invalidResponse);\n      expect(result.success).toBe(false);\n      if (!result.success) {\n        // Verify specific error information\n        const errors = result.error.format();\n        expect(errors.id?._errors).toBeDefined();\n        expect(errors.choices?.[0]?.text?._errors).toBeDefined();\n        expect(errors.choices?.[0]?.finish_reason?._errors).toBeDefined();\n      }\n    });\n  });\n  ```\n\n### 2. Unit Tests for Validation Utilities\n- Test all validation utilities:\n  ```typescript\n  // tests/utils/validation.test.ts\n  import { validateOrThrow, validateOrDefault, validateWithResult } from '../../utils/validation';\n  import { z } from 'zod';\n  \n  describe('Validation Utilities', () => {\n    const testSchema = z.object({\n      name: z.string(),\n      age: z.number().int().positive()\n    });\n    \n    it('should throw on invalid data with validateOrThrow', () => {\n      const validData = { name: 'Test', age: 25 };\n      const invalidData = { name: 'Test', age: -5 };\n      \n      expect(() => validateOrThrow(validData, testSchema)).not.toThrow();\n      expect(() => validateOrThrow(invalidData, testSchema)).toThrow();\n    });\n    \n    it('should return default value on invalid data with validateOrDefault', () => {\n      const validData = { name: 'Test', age: 25 };\n      const invalidData = { name: 'Test', age: -5 };\n      const defaultValue = { name: 'Default', age: 30 };\n      \n      expect(validateOrDefault(validData, testSchema, defaultValue)).toEqual(validData);\n      expect(validateOrDefault(invalidData, testSchema, defaultValue)).toEqual(defaultValue);\n    });\n    \n    it('should return result object with validateWithResult', () => {\n      const validData = { name: 'Test', age: 25 };\n      const invalidData = { name: 'Test', age: -5 };\n      \n      const validResult = validateWithResult(validData, testSchema);\n      expect(validResult.success).toBe(true);\n      expect(validResult.data).toEqual(validData);\n      \n      const invalidResult = validateWithResult(invalidData, testSchema);\n      expect(invalidResult.success).toBe(false);\n      expect(invalidResult.error).toBeDefined();\n    });\n  });\n  ```\n\n### 3. Cross-Environment Validation Testing\n- Create tests that verify validation works identically in both Node.js and browser environments:\n  ```typescript\n  // tests/cross-env/validation.test.ts\n  import { validateWithResult } from '../../utils/validation';\n  import { userProfileSchema } from '../../schemas/userInputs/userProfile';\n  \n  // These tests should be run in both Node.js and browser environments\n  describe('Cross-Environment Validation', () => {\n    it('should validate consistently across environments', () => {\n      const testData = {\n        username: 'testuser',\n        email: 'test@example.com',\n        preferences: {\n          theme: 'dark',\n          notifications: true\n        }\n      };\n      \n      const result = validateWithResult(testData, userProfileSchema);\n      expect(result.success).toBe(true);\n      \n      // Verify object structure after validation is consistent\n      expect(result.data).toHaveProperty('username');\n      expect(result.data).toHaveProperty('email');\n      expect(result.data).toHaveProperty('preferences.theme');\n    });\n    \n    // Add more cross-environment tests...\n  });\n  ```\n\n### 4. AI Response Validation Testing\n- Test AI response validation with real-world examples:\n  ```typescript\n  // tests/integration/aiResponseValidation.test.ts\n  import { validateAICompletion } from '../../utils/aiResponseValidation';\n  import sampleResponses from '../fixtures/ai-responses.json';\n  \n  describe('AI Response Validation', () => {\n    it('should validate typical AI responses', () => {\n      // Test with multiple real-world sample responses\n      sampleResponses.valid.forEach(response => {\n        expect(() => validateAICompletion(response)).not.toThrow();\n      });\n    });\n    \n    it('should handle malformed AI responses gracefully', () => {\n      // Test with samples of malformed responses\n      sampleResponses.malformed.forEach(response => {\n        // Should not throw but return fallback data\n        const result = validateAICompletion(response);\n        expect(result).toBeDefined();\n        // Verify critical fields are present in fallback data\n        expect(result.choices).toBeInstanceOf(Array);\n        expect(result.choices.length).toBeGreaterThan(0);\n      });\n    });\n  });\n  ```\n\n### 5. Configuration Validation Testing\n- Test configuration validation:\n  ```typescript\n  // tests/config/validation.test.ts\n  import { appConfigSchema } from '../../schemas/configuration/appConfig';\n  \n  describe('Configuration Validation', () => {\n    it('should validate correct configuration', () => {\n      const validConfig = {\n        environment: 'development',\n        api: {\n          baseUrl: 'https://api.example.com',\n          timeout: 5000,\n          retryAttempts: 3\n        },\n        aiService: {\n          provider: 'openai',\n          apiKey: 'sk-test-key',\n          defaultModel: 'gpt-3.5-turbo',\n          maxTokens: 500\n        }\n      };\n      \n      const result = appConfigSchema.safeParse(validConfig);\n      expect(result.success).toBe(true);\n    });\n    \n    it('should apply default values correctly', () => {\n      const minimalConfig = {\n        environment: 'development',\n        api: {\n          baseUrl: 'https://api.example.com'\n          // Missing optional fields that should get defaults\n        },\n        aiService: {\n          provider: 'openai',\n          apiKey: 'sk-test-key',\n          defaultModel: 'gpt-3.5-turbo'\n          // Missing maxTokens\n        }\n      };\n      \n      const result = appConfigSchema.safeParse(minimalConfig);\n      expect(result.success).toBe(true);\n      if (result.success) {\n        expect(result.data.api.timeout).toBe(30000); // Default value\n        expect(result.data.api.retryAttempts).toBe(3); // Default value\n        expect(result.data.aiService.maxTokens).toBe(1000); // Default value\n      }\n    });\n  });\n  ```\n\n### 6. Performance Testing\n- Test validation performance:\n  ```typescript\n  // tests/performance/validation.test.ts\n  import { validateWithResult } from '../../utils/validation';\n  import { cachedValidation } from '../../utils/validationCache';\n  import { largeObjectSchema } from '../../schemas/test/largeObject';\n  import { generateLargeTestObject } from '../utils/testDataGenerator';\n  \n  describe('Validation Performance', () => {\n    it('should validate within acceptable time limits', () => {\n      const testObject = generateLargeTestObject(1000); // Object with 1000 properties\n      \n      const startTime = performance.now();\n      validateWithResult(testObject, largeObjectSchema);\n      const duration = performance.now() - startTime;\n      \n      // Validation should complete in under 50ms\n      expect(duration).toBeLessThan(50);\n    });\n    \n    it('should improve performance with cached validation', () => {\n      const testObject = generateLargeTestObject(1000);\n      \n      // First validation - uncached\n      const startTime1 = performance.now();\n      cachedValidation(testObject, largeObjectSchema);\n      const duration1 = performance.now() - startTime1;\n      \n      // Second validation - should use cache\n      const startTime2 = performance.now();\n      cachedValidation(testObject, largeObjectSchema);\n      const duration2 = performance.now() - startTime2;\n      \n      // Cached validation should be significantly faster\n      expect(duration2).toBeLessThan(duration1 * 0.1); // At least 10x faster\n    });\n  });\n  ```",
         "status": "deferred",
         "dependencies": [
-          1,
-          3
+          "1",
+          "3"
         ],
         "priority": "high",
         "subtasks": [
@@ -547,7 +586,8 @@
             "dependencies": [],
             "details": "Create the /schemas directory structure with subdirectories for aiServices, configuration, userInputs, and shared components. Implement schema versioning using semantic versioning principles to handle changes in AI response formats over time, including version metadata in schema definitions.",
             "status": "pending",
-            "testStrategy": "Verify directory structure exists and contains required subdirectories. Test schema versioning with sample schema changes to ensure backward compatibility and proper version tracking."
+            "testStrategy": "Verify directory structure exists and contains required subdirectories. Test schema versioning with sample schema changes to ensure backward compatibility and proper version tracking.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -558,7 +598,8 @@
             ],
             "details": "Implement validateOrThrow, validateOrDefault, and validateWithResult functions that accept any Zod schema and data to validate. Ensure proper TypeScript typing, tree-shaking compatibility, and consistent error handling across different execution environments.",
             "status": "pending",
-            "testStrategy": "Unit tests for each validation utility function with various schema types and data inputs, verifying correct behavior for valid and invalid data across different environments."
+            "testStrategy": "Unit tests for each validation utility function with various schema types and data inputs, verifying correct behavior for valid and invalid data across different environments.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -570,7 +611,8 @@
             ],
             "details": "Implement schemas for all AI service endpoints in the /schemas/aiServices directory. Create validation functions with fallback strategies to handle unexpected response formats while logging validation failures and attempting to extract usable data from malformed responses.",
             "status": "pending",
-            "testStrategy": "Test each AI service schema with valid responses, edge cases, and invalid data. Verify fallback strategies work correctly when validation fails and ensure proper error logging."
+            "testStrategy": "Test each AI service schema with valid responses, edge cases, and invalid data. Verify fallback strategies work correctly when validation fails and ensure proper error logging.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -583,7 +625,8 @@
             ],
             "details": "Develop schemas for all configuration objects in /schemas/configuration and form inputs in /schemas/userInputs. Implement validation at application startup and create form validation helpers for client-side use with user-friendly error formatting for UI display.",
             "status": "pending",
-            "testStrategy": "Test configuration validation with various environment setups. Test form validation helpers with valid and invalid user inputs, verifying proper error formatting and data transformation."
+            "testStrategy": "Test configuration validation with various environment setups. Test form validation helpers with valid and invalid user inputs, verifying proper error formatting and data transformation.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -597,7 +640,8 @@
             ],
             "details": "Extend error handling system to support validation errors with proper formatting and error codes. Implement validation result caching using WeakMap for performance optimization. Ensure proper error propagation through the application layers with consistent error structures.",
             "status": "pending",
-            "testStrategy": "Test error handling integration with validation failures across different contexts. Benchmark validation performance with and without caching to verify optimization benefits and memory usage."
+            "testStrategy": "Test error handling integration with validation failures across different contexts. Benchmark validation performance with and without caching to verify optimization benefits and memory usage.",
+            "parentId": "undefined"
           }
         ]
       },
@@ -609,9 +653,9 @@
         "testStrategy": "## Testing Strategy\n\n### 1. Unit Testing\n- Create unit tests for each workflow step service:\n  ```typescript\n  // tests/services/proposals/analysisService.test.ts\n  import { analyzeJobDescription } from '../../../services/proposals/analysisService';\n  \n  describe('Job Description Analysis', () => {\n    test('should extract key requirements from job description', async () => {\n      const jobDescription = '...';\n      const result = await analyzeJobDescription(jobDescription);\n      expect(result.requirements).toBeArray();\n      expect(result.requirements.length).toBeGreaterThan(0);\n    });\n  });\n  ```\n- Test validation schemas for job descriptions and proposals\n- Verify AI service integration with mock responses\n\n### 2. Integration Testing\n- Test the complete workflow from job description input to final proposal generation\n- Verify data consistency between workflow steps\n- Test resume data integration with proposal generation\n- Validate the prompt construction with different inputs\n\n### 3. UI Testing\n- Use React Testing Library to test UI components:\n  ```typescript\n  // tests/components/ProposalWizard.test.tsx\n  import { render, screen, fireEvent } from '@testing-library/react';\n  import ProposalWizard from '../../components/ProposalWizard';\n  \n  describe('Proposal Wizard', () => {\n    test('should advance to next step when confirmation is clicked', () => {\n      render(<ProposalWizard />);\n      fireEvent.change(screen.getByLabelText(/job description/i), {\n        target: { value: 'Test job description' },\n      });\n      fireEvent.click(screen.getByText(/analyze/i));\n      expect(screen.getByText(/analysis results/i)).toBeInTheDocument();\n    });\n  });\n  ```\n- Test error state handling and recovery in the UI\n- Verify accessibility compliance for all new UI components\n\n### 4. Quality Assurance\n- Conduct manual testing with various real Upwork job descriptions\n- Perform A/B testing of different prompt strategies to optimize proposal quality\n- Create a feedback loop for monitoring proposal effectiveness\n- Test with edge cases like very short or extremely detailed job descriptions",
         "status": "deferred",
         "dependencies": [
-          1,
-          3,
-          10
+          "1",
+          "3",
+          "10"
         ],
         "priority": "high",
         "subtasks": [
@@ -622,7 +666,8 @@
             "dependencies": [],
             "details": "Define TypeScript interfaces for job descriptions and proposals, map state transitions between workflow steps, and design data flow between frontend, backend, and AI services with appropriate error handling mechanisms",
             "status": "pending",
-            "testStrategy": "Review architecture design with team members to validate approach and identify potential issues through design walkthrough sessions"
+            "testStrategy": "Review architecture design with team members to validate approach and identify potential issues through design walkthrough sessions",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -633,7 +678,8 @@
             ],
             "details": "Create endpoints at /api/proposals/analyze, /api/proposals/diagnose, /api/proposals/hooks, and /api/proposals/draft with proper request/response validation using Zod schemas from Task 10 implementation",
             "status": "pending",
-            "testStrategy": "Unit tests for each endpoint with mock data to verify correct request handling, response formatting, and validation error scenarios"
+            "testStrategy": "Unit tests for each endpoint with mock data to verify correct request handling, response formatting, and validation error scenarios",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -645,7 +691,8 @@
             ],
             "details": "Create optimized prompt templates for analysis, diagnosis, hooks, and full draft stages; implement caching strategy using Redis; add telemetry for performance tracking and integrate with prompt template in docs/prompts/upwork_proposal_analysis.txt",
             "status": "pending",
-            "testStrategy": "Integration tests with AI service to verify prompt formatting, response handling, caching behavior, and performance metrics collection"
+            "testStrategy": "Integration tests with AI service to verify prompt formatting, response handling, caching behavior, and performance metrics collection",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -657,7 +704,8 @@
             ],
             "details": "Implement logic to extract relevant skills, experience, and achievements from user resumes; format data for AI prompt integration; handle various resume formats while maintaining data privacy standards",
             "status": "pending",
-            "testStrategy": "Unit tests with diverse resume samples to verify accurate extraction and formatting of key information across different resume structures"
+            "testStrategy": "Unit tests with diverse resume samples to verify accurate extraction and formatting of key information across different resume structures",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -668,7 +716,8 @@
             ],
             "details": "Implement a wizard component with navigation between workflow steps, job description input form with validation, preview interfaces for each phase, confirmation dialogs between steps, and proposal editing interface with formatting tools",
             "status": "pending",
-            "testStrategy": "Component tests for UI interactions, navigation between steps, data flow to/from API endpoints, and validation of user input handling"
+            "testStrategy": "Component tests for UI interactions, navigation between steps, data flow to/from API endpoints, and validation of user input handling",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -679,7 +728,8 @@
             ],
             "details": "Add loading indicators for AI operations, implement intelligent error recovery that preserves user progress, create helpful tooltips, add example templates for different Upwork categories, and implement session persistence using localStorage",
             "status": "pending",
-            "testStrategy": "User testing sessions to validate UX improvements, automated tests for session persistence, and error recovery scenarios with simulated network failures"
+            "testStrategy": "User testing sessions to validate UX improvements, automated tests for session persistence, and error recovery scenarios with simulated network failures",
+            "parentId": "undefined"
           }
         ]
       },
@@ -697,31 +747,36 @@
             "id": 1,
             "description": "Create `/upwork` page in the Nuxt 3 application for proposal generation",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 2,
             "description": "Implement `/api/upwork/` API routes in the existing Nuxt server middleware",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 3,
             "description": "Integrate MCP memory functionality with the existing Claude integration",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 4,
             "description": "Configure environment variables for MCP memory access",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 5,
             "description": "Ensure compatibility with existing Docker setup",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           }
         ]
       },
@@ -731,7 +786,7 @@
         "description": "Integrate MCP memory service functionality into the existing Nuxt 3 application to retrieve relevant experience data for proposal generation.",
         "status": "done",
         "dependencies": [
-          12
+          "12"
         ],
         "priority": "high",
         "details": "Implement client functionality within the Nuxt 3 application to communicate with the existing MCP memory server located at `/Users/michaelpaulukonis/projects/mcp-memory-service/`. Create a composable or service to query the memory store using the specified prompt phrase \"use your memory of my career and writing style\". Integrate MCP data retrieval with existing Claude API calls in server/api/analyze.ts to enhance proposal generation. Leverage existing error handling and service patterns in the codebase for consistent implementation. Implement caching to improve performance.",
@@ -742,32 +797,37 @@
             "description": "Create MCP client functionality in the Nuxt app to connect to the existing memory server",
             "status": "done",
             "dependencies": [],
-            "details": "<info added on 2025-11-06T21:53:25.349Z>\nInitial exploration of MCP memory service completed. Key findings:\n\n- MCP memory service is already accessible through existing MCP tools in the development environment\n- Memory service database contains 61 memories, totaling 1.66 MB\n- Successfully tested retrieval functionality using the query \"use your memory of my career and writing style\"\n- Retrieved relevant memories including cover letter writing guidelines and career information\n- No custom HTTP client required - can leverage existing MCP tools directly from Nuxt server-side code\n\nNext steps: Create a service/composable that uses MCP tools on the server-side to query memories and return results to the client through API routes.\n</info added on 2025-11-06T21:53:25.349Z>"
+            "details": "<info added on 2025-11-06T21:53:25.349Z>\nInitial exploration of MCP memory service completed. Key findings:\n\n- MCP memory service is already accessible through existing MCP tools in the development environment\n- Memory service database contains 61 memories, totaling 1.66 MB\n- Successfully tested retrieval functionality using the query \"use your memory of my career and writing style\"\n- Retrieved relevant memories including cover letter writing guidelines and career information\n- No custom HTTP client required - can leverage existing MCP tools directly from Nuxt server-side code\n\nNext steps: Create a service/composable that uses MCP tools on the server-side to query memories and return results to the client through API routes.\n</info added on 2025-11-06T21:53:25.349Z>",
+            "parentId": "undefined"
           },
           {
             "id": 2,
             "description": "Develop composable/service for querying MCP memory with the specific prompt phrase",
             "status": "done",
             "dependencies": [],
-            "details": "<info added on 2025-11-06T21:59:43.972Z>\nMCP memory service integration implemented successfully:\n\nCOMPLETED WORK:\n- Created MemoryService.ts with complete interface for MCP memory integration\n- Implemented memory querying methods with proper TypeScript interfaces\n- Added memory integration to both analyze.ts and generate.ts API routes\n- Memory service supports multiple query types: career memories, writing guidelines, technical experience\n- Added comprehensive profile method that combines career info and writing style\n- Integrated memory context into AI prompts when useMemory=true\n- Added proper error handling and logging throughout\n\nIMPLEMENTATION DETAILS:\n- MemoryService follows existing service patterns in the codebase\n- Memory integration is activated by the \"Use memory of my career and writing style\" checkbox\n- Service includes formatMemoriesForPrompt() method for AI prompt integration\n- Mock implementation ready for production MCP server connection\n- Full TypeScript typing with MemoryEntry and MemoryQueryResult interfaces\n\nTESTING READY:\n- All API routes compile without errors\n- Memory service can be tested through /upwork page with useMemory checkbox\n- Integration follows existing Claude API patterns for consistency\n</info added on 2025-11-06T21:59:43.972Z>"
+            "details": "<info added on 2025-11-06T21:59:43.972Z>\nMCP memory service integration implemented successfully:\n\nCOMPLETED WORK:\n- Created MemoryService.ts with complete interface for MCP memory integration\n- Implemented memory querying methods with proper TypeScript interfaces\n- Added memory integration to both analyze.ts and generate.ts API routes\n- Memory service supports multiple query types: career memories, writing guidelines, technical experience\n- Added comprehensive profile method that combines career info and writing style\n- Integrated memory context into AI prompts when useMemory=true\n- Added proper error handling and logging throughout\n\nIMPLEMENTATION DETAILS:\n- MemoryService follows existing service patterns in the codebase\n- Memory integration is activated by the \"Use memory of my career and writing style\" checkbox\n- Service includes formatMemoriesForPrompt() method for AI prompt integration\n- Mock implementation ready for production MCP server connection\n- Full TypeScript typing with MemoryEntry and MemoryQueryResult interfaces\n\nTESTING READY:\n- All API routes compile without errors\n- Memory service can be tested through /upwork page with useMemory checkbox\n- Integration follows existing Claude API patterns for consistency\n</info added on 2025-11-06T21:59:43.972Z>",
+            "parentId": "undefined"
           },
           {
             "id": 3,
             "description": "Integrate MCP data retrieval with existing Claude API calls in server/api/analyze.ts",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 4,
             "description": "Implement caching mechanism for retrieved memory data",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 5,
             "description": "Update error handling to align with existing patterns in the codebase",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           }
         ]
       },
@@ -777,7 +837,7 @@
         "description": "Develop functionality to analyze job descriptions and provide detailed suitability assessments, integrating with the existing Nuxt architecture.",
         "status": "done",
         "dependencies": [
-          15
+          "15"
         ],
         "priority": "medium",
         "details": "Implemented job suitability analysis by creating a new API endpoint (`server/api/upwork/analyze.ts`) and corresponding page component. Reused existing Claude integration patterns from `server/api/analyze.ts` and UI patterns from job analysis pages. The analysis extracts required and nice-to-have skills from job descriptions, detects red flags in budget, timeline, and client history, and matches skills against experience from MCP. Generated a detailed go/no-go recommendation with supporting reasoning. Used the existing prompt template from `docs/prompts/upwork_proposal_analysis.txt` as a starting point, adapting it to the existing Claude integration architecture. The implementation includes comprehensive analysis covering requirements, skill matching, competitive position, concerns, and recommendations, with an option to integrate with MCP memory when the 'use memory' checkbox is selected.",
@@ -788,35 +848,40 @@
             "title": "Create API Endpoint for Job Analysis",
             "description": "Implement the server/api/upwork/analyze.ts endpoint following established patterns from existing server/api/analyze.ts implementation. Handle request validation, Claude API interaction, and error handling consistently with existing patterns.",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 2,
             "title": "Implement Job Suitability Analysis Logic",
             "description": "Add specific logic for Upwork job suitability including red flag detection (budget, timeline, client history) and skill matching against MCP data. Adapt the existing prompt template to work with the current Claude integration.",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 3,
             "title": "Create Page Component for Results",
             "description": "Build page component for job suitability analysis, reusing existing input forms and result display components. Ensure consistent UI experience with the rest of the application.",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 4,
             "title": "Integrate with MCP Memory",
             "description": "Connect analysis with MCP memory data to enable personalized skill assessment and job matching. Use existing patterns for accessing and utilizing memory data.",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 5,
             "title": "Add Route and Navigation",
             "description": "Configure Nuxt routing for the new job suitability analysis page and add navigation links to make the feature accessible within the application.",
             "status": "done",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           }
         ]
       },
@@ -826,8 +891,8 @@
         "description": "Implement a multi-step workflow for generating customized job proposals based on job descriptions and experience.",
         "status": "done",
         "dependencies": [
-          15,
-          16
+          "15",
+          "16"
         ],
         "priority": "medium",
         "details": "Implement the proposal generation workflow by creating new API endpoints that follow existing patterns in `server/api/`. The workflow has been simplified to a more efficient 2-step process:\n\n1. `/server/api/upwork/analyze.ts` - Comprehensive job analysis (combines analysis and diagnosis steps)\n2. `/server/api/upwork/generate.ts` - Complete proposal generation (combines hooks and full draft)\n\nThis simplified approach offers several advantages:\n- Simpler user experience (analyze → generate vs 4-step workflow)\n- Faster time to result (24-hour delivery requirement met)\n- Same quality output with less complexity\n- Easier to maintain and debug\n\nReuse existing patterns and functionality:\n- Follow streaming generation patterns from `server/api/cover-letter/generate.ts`\n- Utilize existing Claude integration patterns from other API endpoints\n- Leverage existing session management for maintaining context throughout the workflow\n- Integrate with MCP memory to pull relevant experience examples at appropriate steps\n\nEnsure the workflow emphasizes the 23 years of experience and backend specialization. Create a complete UI with /upwork page for the entire workflow.",
@@ -838,42 +903,48 @@
             "description": "Create `/server/api/upwork/analyze.ts` endpoint for comprehensive job analysis",
             "status": "done",
             "details": "Implement the job analysis endpoint following existing patterns. This endpoint combines the analysis and diagnosis steps to provide a comprehensive understanding of the job description data using Claude API. Integrate with MCP memory to provide context about past experience. Ensure proper streaming and session management.",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 2,
             "description": "Create `/server/api/upwork/generate.ts` endpoint for complete proposal generation",
             "status": "done",
             "details": "Implement the complete proposal generation endpoint that produces compelling hooks and a full proposal draft. Use the analysis data from the previous step stored in the session. Integrate with MCP memory to reference relevant past work and experience. Follow existing streaming generation patterns and ensure proper integration with conversation history tracking.",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 3,
             "description": "Integrate with existing UI components",
             "status": "done",
             "details": "Implemented complete UI with /upwork page for the entire workflow. Ensured the new API endpoints work correctly with existing UI components for multi-step workflows and result display. Tested the end-to-end workflow from the user perspective.",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 4,
             "description": "Create `/server/api/upwork/proposal/generate.ts` endpoint for full proposal draft",
             "status": "done",
             "details": "This functionality has been incorporated into the simplified `/server/api/upwork/generate.ts` endpoint for more efficient workflow.",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 5,
             "description": "Integrate with existing UI components",
             "status": "done",
             "details": "Full UI integration completed with the /upwork page that provides a streamlined user experience for the proposal generation workflow.",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 6,
             "description": "Write documentation for the proposal generation workflow",
             "status": "done",
             "details": "Documented the simplified proposal generation workflow, API endpoints, and integration points. Included examples of how to use the workflow and details about session management and data flow.",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           }
         ]
       },
@@ -885,9 +956,9 @@
         "testStrategy": "## Testing Strategy\n\n### 1. Unit Tests for Authentication Functions\n\n#### 1.1 Token Service Tests\n- Test JWT token generation and verification:\n  ```typescript\n  // tests/services/tokenService.test.ts\n  import { generateTokens, verifyToken } from '../../services/tokenService';\n  import jwt from 'jsonwebtoken';\n  \n  describe('Token Service', () => {\n    test('generateTokens should create valid access and refresh tokens', async () => {\n      // Mock User.findByIdAndUpdate\n      jest.spyOn(User, 'findByIdAndUpdate').mockResolvedValue({});\n      \n      const userId = 'user123';\n      const tokens = await generateTokens(userId);\n      \n      expect(tokens).toHaveProperty('accessToken');\n      expect(tokens).toHaveProperty('refreshToken');\n      \n      // Verify the token contains correct user ID\n      const decoded = jwt.verify(tokens.accessToken, authConfig.jwtSecret);\n      expect(decoded).toHaveProperty('id', userId);\n    });\n    \n    test('verifyToken should return payload for valid token', () => {\n      const payload = { id: 'user123' };\n      const token = jwt.sign(payload, authConfig.jwtSecret);\n      \n      const result = verifyToken(token);\n      expect(result).toHaveProperty('id', payload.id);\n    });\n    \n    test('verifyToken should return null for invalid token', () => {\n      const result = verifyToken('invalid.token.here');\n      expect(result).toBeNull();\n    });\n  });\n  ```\n\n#### 1.2 User Model Tests\n- Test password hashing and comparison:\n  ```typescript\n  // tests/models/User.test.ts\n  import { User } from '../../models/User';\n  import bcrypt from 'bcrypt';\n  \n  describe('User Model', () => {\n    test('should hash password before saving', async () => {\n      // Create a user with a plain text password\n      const testUser = new User({\n        email: 'test@example.com',\n        password: 'Password123!'\n      });\n      \n      // Mock bcrypt.genSalt and bcrypt.hash\n      const mockSalt = 'salt';\n      const mockHash = 'hashed_password';\n      jest.spyOn(bcrypt, 'genSalt').mockResolvedValue(mockSalt);\n      jest.spyOn(bcrypt, 'hash').mockResolvedValue(mockHash);\n      \n      // Trigger the pre-save hook\n      await testUser.save();\n      \n      // Verify password was hashed\n      expect(testUser.password).toBe(mockHash);\n      expect(bcrypt.genSalt).toHaveBeenCalledWith(10);\n      expect(bcrypt.hash).toHaveBeenCalledWith('Password123!', mockSalt);\n    });\n    \n    test('comparePassword should return true for matching password', async () => {\n      // Setup\n      const testUser = new User({\n        email: 'test@example.com',\n        password: 'hashed_password'\n      });\n      \n      // Mock bcrypt.compare\n      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true);\n      \n      // Test\n      const result = await testUser.comparePassword('Password123!');\n      \n      // Verify\n      expect(result).toBe(true);\n      expect(bcrypt.compare).toHaveBeenCalledWith('Password123!', 'hashed_password');\n    });\n  });\n  ```\n\n### 2. Integration Tests for Authentication Flows\n\n#### 2.1 Registration and Verification Flow\n- Test the complete user registration and email verification process:\n  ```typescript\n  // tests/integration/auth/registration.test.ts\n  import request from 'supertest';\n  import app from '../../app';\n  import { User } from '../../models/User';\n  import * as emailService from '../../services/emailService';\n  \n  // Mock email service to capture verification token\n  jest.mock('../../services/emailService');\n  \n  describe('Registration and Verification Flow', () => {\n    let verificationToken: string;\n    \n    beforeEach(async () => {\n      await User.deleteMany({});\n      jest.clearAllMocks();\n      \n      // Mock email sending to capture verification token\n      (emailService.sendVerificationEmail as jest.Mock).mockImplementation(\n        async (userId, email) => {\n          const user = await User.findById(userId);\n          verificationToken = user.verificationToken;\n          return { messageId: 'test-id' };\n        }\n      );\n    });\n    \n    test('should register user and verify email', async () => {\n      // 1. Register new user\n      const registerResponse = await request(app)\n        .post('/api/auth/register')\n        .send({\n          email: 'test@example.com',\n          password: 'Password123!',\n          firstName: 'Test',\n          lastName: 'User'\n        });\n      \n      expect(registerResponse.status).toBe(201);\n      expect(registerResponse.body.message).toContain('Registration successful');\n      \n      // 2. Verify user exists but is unverified\n      let user = await User.findOne({ email: 'test@example.com' });\n      expect(user).toBeTruthy();\n      expect(user.isVerified).toBe(false);\n      \n      // 3. Verify email\n      const verifyResponse = await request(app)\n        .get(`/api/auth/verify-email?token=${verificationToken}`);\n      \n      expect(verifyResponse.status).toBe(200);\n      \n      // 4. Verify user is now verified\n      user = await User.findOne({ email: 'test@example.com' });\n      expect(user.isVerified).toBe(true);\n      \n      // 5. Login should now succeed\n      const loginResponse = await request(app)\n        .post('/api/auth/login')\n        .send({\n          email: 'test@example.com',\n          password: 'Password123!'\n        });\n      \n      expect(loginResponse.status).toBe(200);\n      expect(loginResponse.body).toHaveProperty('accessToken');\n    });\n    \n    test('should reject login for unverified user', async () => {\n      // 1. Register but don't verify\n      await request(app)\n        .post('/api/auth/register')\n        .send({\n          email: 'unverified@example.com',\n          password: 'Password123!',\n          firstName: 'Unverified',\n          lastName: 'User'\n        });\n      \n      // 2. Attempt login\n      const loginResponse = await request(app)\n        .post('/api/auth/login')\n        .send({\n          email: 'unverified@example.com',\n          password: 'Password123!'\n        });\n      \n      expect(loginResponse.status).toBe(401);\n      expect(loginResponse.body.message).toContain('verify your email');\n    });\n  });\n  ```\n\n#### 2.2 Password Reset Flow\n- Test the complete password reset flow:\n  ```typescript\n  // tests/integration/auth/passwordReset.test.ts\n  import request from 'supertest';\n  import app from '../../app';\n  import { User } from '../../models/User';\n  import * as emailService from '../../services/emailService';\n  \n  jest.mock('../../services/emailService');\n  \n  describe('Password Reset Flow', () => {\n    let resetToken: string;\n    \n    beforeEach(async () => {\n      await User.deleteMany({});\n      \n      // Create test user\n      const user = new User({\n        email: 'reset@example.com',\n        password: 'OldPassword123!',\n        firstName: 'Reset',\n        lastName: 'Test',\n        isVerified: true\n      });\n      await user.save();\n      \n      // Mock password reset email to capture token\n      (emailService.sendPasswordResetEmail as jest.Mock).mockImplementation(\n        async (email) => {\n          const user = await User.findOne({ email });\n          resetToken = user.resetPasswordToken;\n          return { messageId: 'test-id' };\n        }\n      );\n    });\n    \n    test('should request password reset and reset password', async () => {\n      // 1. Request password reset\n      const requestResponse = await request(app)\n        .post('/api/auth/forgot-password')\n        .send({ email: 'reset@example.com' });\n      \n      expect(requestResponse.status).toBe(200);\n      \n      // 2. Reset password with token\n      const resetResponse = await request(app)\n        .post('/api/auth/reset-password')\n        .send({\n          token: resetToken,\n          newPassword: 'NewPassword123!'\n        });\n      \n      expect(resetResponse.status).toBe(200);\n      \n      // 3. Verify old password no longer works\n      const oldLoginResponse = await request(app)\n        .post('/api/auth/login')\n        .send({\n          email: 'reset@example.com',\n          password: 'OldPassword123!'\n        });\n      \n      expect(oldLoginResponse.status).toBe(401);\n      \n      // 4. Verify new password works\n      const newLoginResponse = await request(app)\n        .post('/api/auth/login')\n        .send({\n          email: 'reset@example.com',\n          password: 'NewPassword123!'\n        });\n      \n      expect(newLoginResponse.status).toBe(200);\n    });\n  });\n  ```\n\n### 3. Security Testing\n\n#### 3.1 Rate Limiting\n- Verify authentication endpoints are protected against brute force:\n  ```typescript\n  // tests/security/rateLimiting.test.ts\n  import request from 'supertest';\n  import app from '../../app';\n  \n  describe('Rate Limiting', () => {\n    test('should limit repeated login attempts', async () => {\n      const loginCredentials = { \n        email: 'test@example.com', \n        password: 'WrongPassword123!'\n      };\n      \n      // Make multiple rapid requests to trigger rate limiting\n      const requests = [];\n      for (let i = 0; i < 15; i++) {\n        requests.push(\n          request(app).post('/api/auth/login').send(loginCredentials)\n        );\n      }\n      \n      const responses = await Promise.all(requests);\n      \n      // Some of the later requests should be rate limited (429 status)\n      const rateLimitedResponses = responses.filter(res => res.status === 429);\n      expect(rateLimitedResponses.length).toBeGreaterThan(0);\n    });\n  });\n  ```\n\n#### 3.2 JWT Security\n- Test JWT token security features:\n  ```typescript\n  // tests/security/jwtSecurity.test.ts\n  import request from 'supertest';\n  import app from '../../app';\n  import jwt from 'jsonwebtoken';\n  \n  describe('JWT Security', () => {\n    let validToken: string;\n    \n    beforeAll(async () => {\n      // Log in to get a valid token\n      const loginResponse = await request(app)\n        .post('/api/auth/login')\n        .send({\n          email: 'secure@example.com',\n          password: 'Password123!'\n        });\n      \n      validToken = loginResponse.body.accessToken;\n    });\n    \n    test('should reject expired tokens', async () => {\n      // Create an expired token\n      const payload = { id: 'user123', exp: Math.floor(Date.now() / 1000) - 3600 };\n      const expiredToken = jwt.sign(payload, authConfig.jwtSecret);\n      \n      // Try to access protected route\n      const response = await request(app)\n        .get('/api/auth/protected')\n        .set('Authorization', `Bearer ${expiredToken}`);\n      \n      expect(response.status).toBe(401);\n    });\n    \n    test('should reject tokens with invalid signature', async () => {\n      // Create token with wrong secret\n      const invalidToken = jwt.sign({ id: 'user123' }, 'wrong-secret');\n      \n      const response = await request(app)\n        .get('/api/auth/protected')\n        .set('Authorization', `Bearer ${invalidToken}`);\n      \n      expect(response.status).toBe(401);\n    });\n  });\n  ```\n\n### 4. Cross-Cutting Concerns\n\n#### 4.1 Error Handling\n- Test custom error handling for authentication edge cases:\n  ```typescript\n  // tests/error/authErrors.test.ts\n  import request from 'supertest';\n  import app from '../../app';\n  import { User } from '../../models/User';\n  \n  describe('Authentication Error Handling', () => {\n    test('should handle validation errors with proper messages', async () => {\n      const response = await request(app)\n        .post('/api/auth/register')\n        .send({\n          email: 'invalid-email',\n          password: 'short'\n        });\n      \n      expect(response.status).toBe(400);\n      expect(response.body).toHaveProperty('errors');\n      expect(response.body.errors).toContain('Invalid email format');\n      expect(response.body.errors).toContain('Password must be at least 8 characters');\n    });\n    \n    test('should handle duplicate email registration gracefully', async () => {\n      // First create a user\n      await User.create({\n        email: 'duplicate@example.com',\n        password: 'Password123!',\n        firstName: 'Test',\n        lastName: 'User',\n        isVerified: true\n      });\n      \n      // Try to register with same email\n      const response = await request(app)\n        .post('/api/auth/register')\n        .send({\n          email: 'duplicate@example.com',\n          password: 'Password123!',\n          firstName: 'Another',\n          lastName: 'User'\n        });\n      \n      expect(response.status).toBe(400);\n      expect(response.body.message).toBe('Email already in use');\n    });\n  });\n  ```",
         "status": "cancelled",
         "dependencies": [
-          1,
-          2,
-          10
+          "1",
+          "2",
+          "10"
         ],
         "priority": "low",
         "subtasks": [
@@ -895,49 +966,57 @@
             "id": 1,
             "title": "Add auth config and dependencies (JWT, bcrypt, nodemailer)",
             "status": "cancelled",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 2,
             "title": "Implement User model & repository interface",
             "status": "cancelled",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 3,
             "title": "Implement tokenService (generate, verify, refresh)",
             "status": "cancelled",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 4,
             "title": "Implement emailService for verification & reset (with nodemailer stub)",
             "status": "cancelled",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 5,
             "title": "Implement auth controllers & server/api/auth endpoints (register, login, logout, verify-email, refresh-token, forgot, reset)",
             "status": "cancelled",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 6,
             "title": "Implement middleware for authentication and authorization (Nitro-compatible)",
             "status": "cancelled",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 7,
             "title": "Add Zod validation schemas for auth inputs",
             "status": "cancelled",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 8,
             "title": "Add unit/integration tests for tokenService, controllers, and routes",
             "status": "cancelled",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           }
         ]
       },
@@ -949,9 +1028,9 @@
         "testStrategy": "## Testing Strategy\n\n### 1. Pre-Migration Validation\n- Develop comprehensive data validation scripts\n- Verify integrity of existing local storage data\n- Document data quality issues that need resolution\n- Create data quality metrics baseline\n\n### 2. Migration Testing\n- Test migration scripts with sample datasets\n- Perform timed migration rehearsals to estimate production migration duration\n- Verify data integrity during transformation\n- Test incremental migration capabilities\n- Validate error handling and recovery during migration\n\n### 3. Post-Migration Validation\n- Compare record counts between source and destination\n- Validate data integrity with checksums\n- Perform spot checks on critical data\n- Verify relationships and references maintained correctly\n- Run automated validation scripts for all migrated data\n\n### 4. Integration Testing\n- Test all application features against new database\n- Verify CRUD operations function correctly\n- Validate query performance meets requirements\n- Test concurrent access patterns\n\n### =5. Performance Testing\n- Benchmark read/write operations\n- Test under various load conditions\n- Measure query response times\n- Validate connection pooling effectiveness\n- Test scaling capability with simulated data volume\n\n### 6. Security Testing\n- Verify authentication mechanisms\n- Test authorization rules and access controls\n- Validate data encryption for sensitive information\n- Perform penetration testing against database endpoints\n\n### 7. Rollback Testing\n- Test database rollback procedures\n- Validate ability to revert to local storage if needed\n- Time the rollback process for SLA planning\n- Verify application functions after rollback",
         "status": "deferred",
         "dependencies": [
-          1,
-          3,
-          12
+          "1",
+          "3",
+          "12"
         ],
         "priority": "low",
         "subtasks": []
@@ -964,7 +1043,7 @@
         "testStrategy": "Add smoke tests for MSW handler coverage, unit tests for helpers, and CI checkpoint that fails on live networks or console errors. Convert a representative set of tests to validate pattern and determinism.",
         "status": "pending",
         "dependencies": [
-          21
+          "21"
         ],
         "priority": "high",
         "subtasks": [
@@ -973,28 +1052,32 @@
             "title": "Standardize jest.setup.js and env for testing",
             "description": "Load .env.test, set deterministic NUXT_PUBLIC_* values, mock fetch, and wire up MSW server.",
             "dependencies": [],
-            "status": "pending"
+            "status": "pending",
+            "parentId": "undefined"
           },
           {
             "id": 2,
             "title": "Implement MSW handlers for in-app endpoints and providers",
             "description": "Add handler coverage for firebase, firebase-admin, AI providers, storage and other external services.",
             "dependencies": [],
-            "status": "pending"
+            "status": "pending",
+            "parentId": "undefined"
           },
           {
             "id": 3,
             "title": "Create test factories and fixtures",
             "description": "Provide reusable factories and fixtures to replace ad-hoc test data across tests.",
             "dependencies": [],
-            "status": "pending"
+            "status": "pending",
+            "parentId": "undefined"
           },
           {
             "id": 4,
             "title": "Add CI checks to forbid live networks and console errors",
             "description": "Set up a CI check that fails builds when tests perform live network calls or console.error is used by tests.",
             "dependencies": [],
-            "status": "pending"
+            "status": "pending",
+            "parentId": "undefined"
           }
         ]
       },
@@ -1006,7 +1089,7 @@
         "testStrategy": "Migrate a representative subset of tests to the new harness as examples. Add smoke tests to verify determinism, and fail CI on network calls or console errors.",
         "status": "pending",
         "dependencies": [
-          22
+          "22"
         ],
         "priority": "high",
         "subtasks": [
@@ -1015,21 +1098,24 @@
             "title": "Update jest.setup.js to load .env.test and set deterministic env values",
             "description": "Ensure NUXT_PUBLIC_* env variables deterministic for tests and mock fetch.",
             "status": "pending",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 2,
             "title": "Convert representative tests to use factories and fixtures",
             "description": "Migrate key tests to use centralized factories and fixtures to demonstrate pattern.",
             "status": "pending",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 3,
             "title": "Enforce mock cleanup in beforeEach",
             "description": "Update test setup to call jest.restoreAllMocks() and jest.clearAllMocks() in beforeEach across test suites.",
             "status": "pending",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           }
         ]
       },
@@ -1041,7 +1127,7 @@
         "testStrategy": "Create a small suite of tests showing MSW integration, server lifecycle functions, and toggles between success/failure responses. Add CI checks for handler coverage.",
         "status": "pending",
         "dependencies": [
-          22
+          "22"
         ],
         "priority": "high",
         "subtasks": [
@@ -1050,21 +1136,24 @@
             "title": "Create MSW handlers in tests/mocks and wire into harness",
             "description": "Implement handlers for firebase, AI provider, storage, and any server-side endpoints the app consumes.",
             "status": "pending",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 2,
             "title": "Implement tests/helpers/testServer.ts",
             "description": "Provide setup/reset/teardown utilities and a test API to toggle mocked responses for tests.",
             "status": "pending",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           },
           {
             "id": 3,
             "title": "Add example migrations for services to use harness",
             "description": "Update at least one service test to demonstrate migration from live calls to MSW mocks.",
             "status": "pending",
-            "dependencies": []
+            "dependencies": [],
+            "parentId": "undefined"
           }
         ]
       },
@@ -1074,11 +1163,11 @@
         "description": "Implement a comprehensive Firebase Authentication system that includes client/server integration, UI flows for user authentication, and proper security measures to replace the legacy JWT authentication implementation.",
         "details": "## Implementation Steps\n\n### 1. Firebase Configuration\n- Create and document Firebase project setup in `docs/auth.md`\n- Add environment variables for Firebase client and admin SDK:\n  ```\n  # .env example\n  NUXT_PUBLIC_FIREBASE_API_KEY=\n  NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN=\n  NUXT_PUBLIC_FIREBASE_PROJECT_ID=\n  FIREBASE_ADMIN_PROJECT_ID=\n  FIREBASE_ADMIN_PRIVATE_KEY=\n  FIREBASE_ADMIN_CLIENT_EMAIL=\n  ```\n- Document secure handling of Firebase credentials for both development and production\n\n### 2. Client Authentication Plugin\n- Implement `plugins/firebase.ts` for initializing Firebase client\n- Create `composables/useAuth.js` with the following functionality:\n  - Email/password authentication\n  - Google OAuth authentication\n  - Token refresh handling\n  - Persistence options (session/local)\n  - User state management\n  - Logout functionality\n\n### 3. Firebase Auth Service\n- Create `services/FirebaseAuthService.ts` that aligns with existing service architecture:\n  ```typescript\n  export class FirebaseAuthService {\n    async login(email: string, password: string): Promise<User>;\n    async loginWithGoogle(): Promise<User>;\n    async signup(email: string, password: string, userData: UserProfile): Promise<User>;\n    async logout(): Promise<void>;\n    async getCurrentUser(): Promise<User | null>;\n    async refreshToken(): Promise<string | null>;\n  }\n  ```\n\n### 4. Server-side Authentication\n- Set up Firebase Admin SDK in `server/utils/firebase-admin.ts`\n- Create verification utilities in `server/utils/auth.ts`:\n  ```typescript\n  export async function verifyAuthToken(token: string): Promise<DecodedIdToken>;\n  export function getAuthHeader(event: H3Event): string | null;\n  ```\n- Implement Nitro middleware in `server/middleware/auth.ts` for token verification\n- Create protected API endpoint `/api/auth/session` that returns current session data\n- Implement `server/utils/requireAuth.ts` helper for protecting API routes\n\n### 5. UI Implementation\n- Develop `pages/login.vue` with email/password and Google sign-in options\n- Create `pages/signup.vue` with appropriate validation\n- Implement `components/AuthBar.vue` for header controls (login/logout/profile)\n- Add route meta for authentication guards:\n  ```typescript\n  // router.options.ts\n  export default {\n    routes: [\n      {\n        path: '/protected',\n        meta: { requiresAuth: true }\n      }\n    ]\n  }\n  ```\n- Implement navigation guards that check auth state\n\n### 6. Documentation Updates\n- Create comprehensive `docs/auth.md` with architecture overview\n- Add Firebase authentication section to README.md\n- Include troubleshooting guide for common auth issues\n- Document authentication flow diagrams\n\n### 7. Code Validation and Hardening\n- Review existing code for security vulnerabilities\n- Implement CSRF protection and secure cookie handling\n- Add rate limiting for authentication endpoints\n- Ensure proper error handling for authentication failures\n<info added on 2025-11-20T15:35:40.692Z>\n## Current Implementation Status and Validation/Hardening Pass\n\n### Existing Implementation Summary\nThe following components are already in place and require validation and hardening:\n- Firebase client plugin (`plugins/firebase.client.ts`) for SDK initialization\n- Authentication composable (`composables/useAuth.ts`) with email/password and Google OAuth support\n- FirebaseAuthService class for standardized authentication operations\n- Server-side Firebase Admin SDK utilities (`server/utils/firebase-admin.ts`)\n- Authentication verification utilities (`server/utils/auth.ts`)\n- UI skeleton components for login, signup, and authentication display\n- Basic middleware for token verification\n\n### Phase 2: Validation and Hardening Pass\n\nThis phase focuses on ensuring all existing implementations align with security best practices documented in `docs/plans/20.authentication.md` and filling any remaining gaps:\n\n#### Security Hardening Requirements\n1. **Token Management and Refresh Logic**\n   - Verify ID token expiration handling (Firebase ID tokens expire after 1 hour)\n   - Ensure refresh token logic properly handles edge cases and failures\n   - Implement secure token storage to prevent XSS vulnerabilities (use httpOnly cookies where applicable)\n   - Add token revocation mechanisms for logout and account changes\n\n2. **Session Management**\n   - Validate session cookie implementation with appropriate security attributes (httpOnly, secure, sameSite)\n   - Implement session timeout and idle detection\n   - Ensure proper session cleanup on logout and account changes\n   - Test session persistence across page refreshes and browser restarts\n\n3. **Input Validation and Sanitization**\n   - Add password strength validation using established libraries (e.g., zxcvbn)\n   - Implement email validation and enumeration protection\n   - Ensure all authentication endpoints validate and sanitize inputs before processing\n   - Add rate limiting to authentication endpoints (maximum 20 requests per second per IP for general endpoints, stricter for sensitive operations)\n\n4. **CSRF and Security Headers Protection**\n   - Verify CSRF token implementation using nuxt-csurf module\n   - Ensure all state-changing requests include CSRF validation\n   - Implement proper security headers (Content-Security-Policy, X-Frame-Options, etc.)\n   - Test CSRF protection across different request methods and origins\n\n5. **Error Handling and User Feedback**\n   - Review error messages for information leakage (avoid revealing whether email exists)\n   - Implement consistent error handling across authentication flows\n   - Test error scenarios: invalid credentials, account disabled, weak passwords, network failures\n   - Ensure sensitive error details are logged server-side but not exposed to clients\n\n6. **Role-Based Access Control (RBAC)**\n   - Implement custom claims for user roles using Firebase Admin SDK\n   - Create security rules that enforce role-based access to protected resources\n   - Validate RBAC implementation with different user roles in tests\n   - Document role hierarchy and access control policies\n\n#### Implementation Gaps to Fill\n1. **Two-Factor Authentication (2FA)**\n   - Consider Firebase Identity Platform upgrade for MFA support if required by business logic\n   - Document MFA implementation path for future enhancement\n\n2. **Account Recovery and Password Reset**\n   - Implement email-based password reset with secure token generation\n   - Add account recovery mechanism with verification steps\n   - Ensure recovery tokens have appropriate expiration times\n\n3. **User Profile Management**\n   - Create API endpoints for updating user profiles (email, display name, password)\n   - Implement verification for sensitive operations (password change, email change)\n   - Add audit logging for account changes\n\n4. **Environment Configuration Validation**\n   - Verify all required Firebase environment variables are documented\n   - Ensure environment-specific configurations (development, staging, production) are properly isolated\n   - Document secure credential handling for different deployment environments\n\n5. **Monitoring and Logging**\n   - Implement authentication event logging (login attempts, failures, logouts)\n   - Add monitoring for suspicious authentication patterns (brute force attempts, unusual access times)\n   - Create alerts for authentication-related security events\n\n#### Subtask Status Updates\nReview and update each subtask's status based on current implementation:\n\n1. **Subtask 1 (Firebase Project Setup)** - Verify environment variables are properly configured for both development and production, check docs/auth.md for completeness\n2. **Subtask 2 (Client Auth Plugin)** - Validate plugin initialization, test token refresh mechanisms, verify composable state management\n3. **Subtask 3 (FirebaseAuthService)** - Audit service methods for error handling, test all authentication flows with mock Firebase responses\n4. **Subtask 4 (Server Admin SDK)** - Verify Admin SDK initialization, test token verification with valid/invalid/expired tokens\n5. **Subtask 5 (Middleware and Protected Routes)** - Test middleware with various token states, verify API endpoints reject unauthorized requests\n6. **Subtask 6 (UI Components)** - Review component implementations for accessibility, test form validation and error display\n7. **Subtask 7 (Navigation Guards)** - Test route protection, verify redirect logic for authenticated/unauthenticated states\n8. **Subtask 8 (Documentation and Security Review)** - Audit documentation accuracy, perform security review of entire authentication system\n\n#### Testing Requirements for Validation Pass\n- Run unit tests for all authentication components with mocked Firebase responses\n- Execute integration tests for complete authentication flows\n- Perform end-to-end testing with Playwright for user workflows\n- Conduct security testing: verify CSRF protection, rate limiting, session security\n- Test authentication state persistence and recovery scenarios\n- Validate error handling for edge cases and failure scenarios\n\n#### Alignment with docs/plans/20.authentication.md\n- Cross-reference all implementation details with documented architecture\n- Verify security best practices from Firebase security checklist are implemented\n- Ensure token management aligns with OAuth 2.0 refresh token best practices\n- Confirm RBAC implementation matches documented access control strategy\n- Validate custom claims implementation matches security rules documentation\n</info added on 2025-11-20T15:35:40.692Z>",
         "testStrategy": "## Testing Strategy\n\n### 1. Unit Testing\n- Test Firebase auth plugin:\n  ```typescript\n  // tests/plugins/firebase.test.ts\n  import { describe, it, expect, vi } from 'vitest';\n  import { useFirebase } from '~/plugins/firebase';\n  // Mock implementation and test initialization\n  ```\n- Test useAuth composable with mocked Firebase responses:\n  ```typescript\n  // tests/composables/useAuth.test.ts\n  import { describe, it, expect, vi } from 'vitest';\n  import { useAuth } from '~/composables/useAuth';\n  // Test login, signup, token refresh, and state management\n  ```\n- Test FirebaseAuthService implementation\n\n### 2. API and Middleware Testing\n- Create tests for API endpoints:\n  ```typescript\n  // tests/server/api/auth/session.test.ts\n  import { describe, it, expect } from 'vitest';\n  import { createEvent } from 'h3';\n  import { sessionHandler } from '~/server/api/auth/session';\n  // Test with various auth states and tokens\n  ```\n- Test authentication middleware with valid and invalid tokens\n- Test requireAuth helper with different scenarios\n\n### 3. Integration Testing\n- Test complete authentication flow with mocked Firebase responses\n- Verify proper state updates across components\n- Test route navigation guards with authenticated and unauthenticated states\n\n### 4. E2E Testing with Playwright\n- Create auth-flow.spec.ts that tests:\n  ```typescript\n  test('user can login and access protected route', async ({ page }) => {\n    // Navigate to login page\n    // Fill credentials and submit\n    // Verify redirect to dashboard\n    // Access protected route and verify content\n    // Logout and verify access restrictions\n  });\n  ```\n- Test error handling for invalid credentials\n- Test persistence across page refreshes\n\n### 5. Security Testing\n- Verify token expiration and refresh mechanisms\n- Test CSRF protection\n- Ensure sensitive data is not exposed in client-side state",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
-          1,
-          3,
-          22
+          "1",
+          "3",
+          "22"
         ],
         "priority": "medium",
         "subtasks": [
@@ -1089,7 +1178,8 @@
             "dependencies": [],
             "details": "Create a Firebase project in the Firebase console. Configure environment variables for both Firebase client SDK (NUXT_PUBLIC_FIREBASE_API_KEY, NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN, NUXT_PUBLIC_FIREBASE_PROJECT_ID) and Firebase Admin SDK (FIREBASE_ADMIN_PROJECT_ID, FIREBASE_ADMIN_PRIVATE_KEY, FIREBASE_ADMIN_CLIENT_EMAIL). Document the setup process in docs/auth.md including secure handling of credentials in development and production environments.",
             "status": "done",
-            "testStrategy": "Verify that environment variables are correctly loaded in both client and server contexts. Test that Firebase initialization succeeds without errors."
+            "testStrategy": "Verify that environment variables are correctly loaded in both client and server contexts. Test that Firebase initialization succeeds without errors.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1100,7 +1190,8 @@
             ],
             "details": "Implement `plugins/firebase.ts` to initialize the Firebase client SDK. Create `composables/useAuth.js` with functionality for email/password authentication, Google OAuth authentication, token refresh handling, user state management, and logout functionality. Ensure the composable provides reactive state for authentication status across the application.",
             "status": "done",
-            "testStrategy": "Create unit tests to verify the Firebase plugin initializes correctly. Test the useAuth composable for login, logout, and state management functionality using mock implementations of Firebase Auth."
+            "testStrategy": "Create unit tests to verify the Firebase plugin initializes correctly. Test the useAuth composable for login, logout, and state management functionality using mock implementations of Firebase Auth.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -1109,9 +1200,11 @@
             "dependencies": [
               2
             ],
-            "details": "Create `services/FirebaseAuthService.ts` with methods for login, loginWithGoogle, signup, logout, getCurrentUser, and refreshToken. Ensure service methods include proper error handling and type safety. The service should abstract Firebase authentication details and provide a consistent interface for the rest of the application.",
-            "status": "pending",
-            "testStrategy": "Write unit tests for FirebaseAuthService that verify each method's behavior with mock Firebase responses. Test error handling scenarios and successful authentication flows."
+            "details": "Create `services/FirebaseAuthService.ts` with methods for login, loginWithGoogle, signup, logout, getCurrentUser, and refreshToken. Ensure service methods include proper error handling and type safety. The service should abstract Firebase authentication details and provide a consistent interface for the rest of the application.\n<info added on 2025-11-22T15:53:01.759Z>\nImplementation Status:\n- Completed FirebaseAuthService.ts that implements AuthServiceInterface\n- Implemented methods: signInWithEmail, signInWithGoogle, signUpWithEmail, signOut, getIdToken, refreshIdToken, getCurrentUser\n- Added error handling via normalizeError method\n- Used dependency injection pattern for Auth instance\n- Implemented with full TypeScript type safety\n\nTesting:\n- Created comprehensive unit tests in tests/services/FirebaseAuthService.test.ts\n- All 8 tests passing, covering successful operations and error handling:\n  - signInWithEmail delegates to firebase and returns the user\n  - signInWithGoogle uses popup provider\n  - signUpWithEmail delegates to firebase and returns the user\n  - signOut invokes firebase signOut with the injected auth\n  - getIdToken returns null when no user is present\n  - getIdToken returns the token for the current user\n  - refreshIdToken forces a refresh on the current user\n  - getCurrentUser exposes the auth currentUser\n\nArchitecture:\n- Followed existing service patterns in the codebase\n- Implemented clean separation of concerns with AuthServiceInterface\n- Ensured compatibility with useAuth composable for Vue reactivity\n- Integrated with firebase.client.ts plugin for client initialization\n</info added on 2025-11-22T15:53:01.759Z>",
+            "status": "done",
+            "testStrategy": "Write unit tests for FirebaseAuthService that verify each method's behavior with mock Firebase responses. Test error handling scenarios and successful authentication flows.",
+            "updatedAt": "2025-11-22T15:53:08.169Z",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -1120,9 +1213,11 @@
             "dependencies": [
               1
             ],
-            "details": "Implement `server/utils/firebase-admin.ts` to initialize the Firebase Admin SDK using server-side environment variables. Create authentication utilities in `server/utils/auth.ts` for token verification, including verifyAuthToken and getAuthHeader functions. Ensure proper error handling for invalid tokens and expired sessions.",
-            "status": "pending",
-            "testStrategy": "Create unit tests for the server-side Firebase Admin initialization and authentication utilities. Use mock tokens to test verification functionality."
+            "details": "Implement `server/utils/firebase-admin.ts` to initialize the Firebase Admin SDK using server-side environment variables. Create authentication utilities in `server/utils/auth.ts` for token verification, including verifyAuthToken and getAuthHeader functions. Ensure proper error handling for invalid tokens and expired sessions.\n<info added on 2025-11-22T16:00:58.247Z>\nCOMPLETED: Implemented the Firebase Admin SDK server-side integration with enhanced utilities and security features:\n\nImplementation:\n- Created server/utils/firebaseAdmin.ts with ensureFirebaseAdmin() and verifyIdToken() utilities\n- Implemented flexible service account parsing supporting JSON file paths, raw JSON strings, and Base64-encoded JSON strings\n- Added server/plugins/firebase-admin.server.ts for automatic Firebase Admin initialization at server startup\n- Created server/utils/verifyToken.ts with getAuthTokenFromHeader() and requireAuth() utilities\n- Implemented server/middleware/verifyToken.ts as a no-op middleware for explicit per-endpoint auth verification\n- Added comprehensive error handling for missing/invalid tokens\n\nTesting:\n- Unit tests in tests/server/utils/verifyToken.test.ts cover bearer token extraction, verification, and error scenarios\n\nDocumentation:\n- Created complete authentication documentation in docs/auth.md covering configuration, setup, initialization, verification, CI/CD integration, troubleshooting, and migration\n\nSecurity Features:\n- Protected private keys with proper environment-based configuration\n- Implemented proper handling for expired/invalid tokens\n- Added optional auth bypass for development via authDisabled flag\n- Supported multiple credential formats for different deployment scenarios\n</info added on 2025-11-22T16:00:58.247Z>",
+            "status": "done",
+            "testStrategy": "Create unit tests for the server-side Firebase Admin initialization and authentication utilities. Use mock tokens to test verification functionality.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-22T16:01:04.672Z"
           },
           {
             "id": 5,
@@ -1132,8 +1227,9 @@
               4
             ],
             "details": "Create Nitro middleware in `server/middleware/auth.ts` to verify authentication tokens on protected routes. Implement a protected API endpoint at `/api/auth/session` that returns current session data. Develop `server/utils/requireAuth.ts` helper for protecting specific API routes. Ensure middleware catches and appropriately handles authentication errors.",
-            "status": "pending",
-            "testStrategy": "Test middleware with both valid and invalid authentication tokens. Verify protected routes correctly reject unauthenticated requests and allow authenticated ones."
+            "status": "done",
+            "testStrategy": "Test middleware with both valid and invalid authentication tokens. Verify protected routes correctly reject unauthenticated requests and allow authenticated ones.",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -1144,7 +1240,8 @@
             ],
             "details": "Develop `pages/login.vue` with email/password and Google sign-in options. Create `pages/signup.vue` with appropriate validation logic. Implement `components/AuthBar.vue` for header controls displaying login/logout buttons and user profile information. Ensure components provide clear feedback on authentication success and errors.",
             "status": "done",
-            "testStrategy": "Create component tests using Vue Test Utils or Testing Library to verify rendering and interaction behaviors. Test form validation, submission handling, and UI state changes based on authentication status."
+            "testStrategy": "Create component tests using Vue Test Utils or Testing Library to verify rendering and interaction behaviors. Test form validation, submission handling, and UI state changes based on authentication status.",
+            "parentId": "undefined"
           },
           {
             "id": 7,
@@ -1155,8 +1252,9 @@
               6
             ],
             "details": "Add route meta properties to identify protected routes in router.options.ts. Implement navigation guards that check authentication state before route transitions. Create redirection logic for unauthenticated users attempting to access protected routes, and for authenticated users accessing login/signup pages.",
-            "status": "pending",
-            "testStrategy": "Test navigation flows for both authenticated and unauthenticated users. Verify that protected routes redirect properly and that authentication state is correctly maintained during navigation."
+            "status": "done",
+            "testStrategy": "Test navigation flows for both authenticated and unauthenticated users. Verify that protected routes redirect properly and that authentication state is correctly maintained during navigation.",
+            "parentId": "undefined"
           },
           {
             "id": 8,
@@ -1172,10 +1270,13 @@
               7
             ],
             "details": "Create comprehensive `docs/auth.md` with architecture overview, setup instructions, and usage examples. Add Firebase authentication section to README.md including quickstart guide. Create troubleshooting guide for common authentication issues. Develop authentication flow diagrams. Conduct security review to identify and address potential vulnerabilities including CSRF protection, secure cookie handling, and rate limiting for authentication endpoints.",
-            "status": "pending",
-            "testStrategy": "Perform end-to-end testing of the entire authentication system. Test security measures such as CSRF protection and rate limiting. Verify documentation accuracy through peer review and test example code snippets."
+            "status": "done",
+            "testStrategy": "Perform end-to-end testing of the entire authentication system. Test security measures such as CSRF protection and rate limiting. Verify documentation accuracy through peer review and test example code snippets.",
+            "parentId": "undefined",
+            "updatedAt": "2025-11-22T16:09:54.017Z"
           }
-        ]
+        ],
+        "updatedAt": "2025-11-22T16:09:54.017Z"
       },
       {
         "id": 26,
@@ -1185,8 +1286,8 @@
         "testStrategy": "## Testing Strategy\n\n### 1. Storage Flow Verification\n- Create a test script that traces API calls with data payloads:\n  ```typescript\n  // tests/storage/flow-tracer.test.ts\n  describe('Storage Service Flow', () => {\n    it('should trace data through the complete storage flow', async () => {\n      // Initialize test data\n      const testData = { key: 'test-data', value: { test: true } };\n      \n      // Trace client storage\n      await traceClientStorage(testData);\n      \n      // Trace server API calls\n      const serverTraceResults = await traceServerStorage(testData);\n      \n      // Assert on flow results\n      expect(serverTraceResults.clientReceived).toEqual(testData);\n    });\n  });\n  ```\n\n### 2. Storage Debug Tools Testing\n- Verify debug endpoint security:\n  ```typescript\n  // tests/api/debug.test.ts\n  describe('Debug API endpoints', () => {\n    it('should reject debug access in production', async () => {\n      // Mock production environment\n      process.env.NODE_ENV = 'production';\n      \n      const response = await fetch('/api/debug/storage');\n      expect(response.status).toBe(403);\n    });\n  });\n  ```\n- Validate debug tools output accuracy:\n  - Compare direct storage access with debug tool results\n  - Ensure all relevant storage mechanisms are represented\n\n### 3. Migration Helper Testing\n- Test data extraction from localStorage:\n  - Verify all user-related data is captured\n  - Validate formatting and structure\n- Test Firebase upload functionality:\n  - Mock Firebase API to verify correct calls\n  - Test error handling and rollback mechanisms\n- Test end-to-end migration process:\n  - Create synthetic localStorage data\n  - Run migration process\n  - Verify data appears correctly in Firebase\n\n### 4. Cross-Storage Consistency Validation\n- Develop tests to verify data consistency across storage mechanisms:\n  ```typescript\n  // tests/storage/consistency.test.ts\n  describe('Storage Consistency', () => {\n    it('should maintain consistency between localStorage and server', async () => {\n      // Setup test data\n      const testData = generateTestData();\n      \n      // Write to localStorage\n      await writeToLocalStorage(testData);\n      \n      // Verify server sync\n      const serverData = await fetchServerData();\n      expect(serverData).toMatchObject(testData);\n    });\n  });\n  ```",
         "status": "pending",
         "dependencies": [
-          12,
-          25
+          "12",
+          "25"
         ],
         "priority": "medium",
         "subtasks": []
@@ -1208,7 +1309,7 @@
         "description": "Create utilities to synchronize server data with localStorage and ensure atomicity in cache updates",
         "status": "pending",
         "dependencies": [
-          27
+          "27"
         ],
         "priority": "high",
         "details": "1. Create a new method setAnalysesToLocalStorage(analyses: SavedAnalysis[]) to write analyses to localStorage\n2. Implement syncAnalysesToLocalStorage() to atomically update the local cache with server data\n3. Update the getAnalyses() method to call syncAnalysesToLocalStorage() after successful server fetch\n4. Ensure all components that save analyses use these shared helpers\n\nPseudo-code:\n```typescript\nsetAnalysesToLocalStorage(analyses: SavedAnalysis[]): void {\n  try {\n    localStorage.setItem('analyses', JSON.stringify(analyses));\n  } catch (error) {\n    console.error('Failed to save analyses to localStorage', error);\n  }\n}\n\nsyncAnalysesToLocalStorage(serverAnalyses: SavedAnalysis[]): void {\n  // Optionally compare checksums/timestamps before updating\n  this.setAnalysesToLocalStorage(serverAnalyses);\n  console.log('Successfully synchronized analyses to local cache');\n}\n\n// Update getAnalyses() to include:\ntry {\n  const serverData = await this.fetchWithBaseUrl('/api/storage');\n  if (serverData && Array.isArray(serverData)) {\n    await this.syncAnalysesToLocalStorage(serverData);\n    return serverData;\n  }\n}\n```",
@@ -1221,8 +1322,8 @@
         "description": "Update the useAnalysis composable to handle missing fields gracefully and prevent crashes with incomplete data",
         "status": "pending",
         "dependencies": [
-          27,
-          28
+          "27",
+          "28"
         ],
         "priority": "high",
         "details": "1. Update loadAnalyses() to handle the new StorageService behavior and maintain reactive state\n2. Modify loadSavedAnalysis() to check for required fields (jobPosting, resume) before processing\n3. Implement graceful handling for missing fields by showing appropriate error messages instead of crashing\n4. Add filtering to skip invalid entries when populating the analysis list\n\nPseudo-code:\n```typescript\nasync loadAnalyses() {\n  try {\n    const analyses = await storageService.getAnalyses();\n    this.analyses = analyses.filter(analysis => this.isValidAnalysis(analysis));\n    if (analyses.length !== this.analyses.length) {\n      console.warn(`Filtered out ${analyses.length - this.analyses.length} invalid analyses`);\n    }\n  } catch (error) {\n    console.error('Failed to load analyses', error);\n    this.analyses = [];\n  }\n}\n\nisValidAnalysis(analysis: SavedAnalysis): boolean {\n  // Basic validation to ensure required fields exist\n  return !!analysis && \n         !!analysis.id && \n         (!!analysis.jobPosting || !!analysis.resume);\n}\n\nasync loadSavedAnalysis(id: string) {\n  const analysis = this.analyses.find(a => a.id === id);\n  if (!analysis) {\n    showToast('Analysis not found');\n    return;\n  }\n  if (!analysis.jobPosting || !analysis.resume) {\n    showToast('This analysis is missing required data and cannot be displayed');\n    return;\n  }\n  // Continue with loading the valid analysis\n}\n```",
@@ -1235,7 +1336,7 @@
         "description": "Create validation utilities and implement comprehensive error handling for analysis operations",
         "status": "pending",
         "dependencies": [
-          29
+          "29"
         ],
         "priority": "medium",
         "details": "1. Create a validateSavedAnalysis() utility function to ensure required fields exist\n2. Implement proper error surfacing to users via toast notifications\n3. Add detailed logging for validation issues without overwhelming production logs\n4. Integrate validation into both StorageService and useAnalysis\n\nPseudo-code:\n```typescript\n// In a shared utilities file or StorageService\nexport function validateSavedAnalysis(analysis: SavedAnalysis): {\n  valid: boolean;\n  errors: string[];\n} {\n  const errors: string[] = [];\n  \n  if (!analysis) {\n    errors.push('Analysis object is null or undefined');\n    return { valid: false, errors };\n  }\n  \n  if (!analysis.id) {\n    errors.push('Analysis is missing ID');\n  }\n  \n  if (!analysis.jobPosting && !analysis.resume) {\n    errors.push('Analysis is missing both job posting and resume');\n  }\n  \n  return {\n    valid: errors.length === 0,\n    errors\n  };\n}\n\n// In useAnalysis\nfunction handleInvalidAnalysis(analysis: SavedAnalysis, validationResult: { errors: string[] }) {\n  // Log details to console but not overwhelming\n  console.warn(`Invalid analysis (${analysis.id}): ${validationResult.errors.join(', ')}`);\n  \n  // If user is actively trying to load this analysis, show UI notification\n  if (this.isUserInitiatedOperation) {\n    showToast(`Unable to load analysis: ${validationResult.errors[0]}`);\n  }\n}\n```",
@@ -1248,10 +1349,10 @@
         "description": "Create unit tests and composable tests to ensure the new functionality works as expected",
         "status": "pending",
         "dependencies": [
-          27,
-          28,
-          29,
-          30
+          "27",
+          "28",
+          "29",
+          "30"
         ],
         "priority": "medium",
         "details": "1. Add unit tests for StorageService.getAnalyses() covering server fetch success, failure, and fallback scenarios\n2. Create tests for the local cache synchronization functionality\n3. Add composable tests for useAnalysis to verify proper handling of valid and invalid data\n4. Test error handling and user feedback mechanisms\n\nPseudo-code for test cases:\n```typescript\n// StorageService tests\ndescribe('StorageService', () => {\n  describe('getAnalyses', () => {\n    it('should fetch from server and return data on success', async () => {\n      // Mock successful server response\n      mockFetchWithBaseUrl.mockResolvedValue([validAnalysis1, validAnalysis2]);\n      \n      const result = await storageService.getAnalyses();\n      \n      expect(mockFetchWithBaseUrl).toHaveBeenCalledWith('/api/storage');\n      expect(mockSyncAnalysesToLocalStorage).toHaveBeenCalled();\n      expect(result).toEqual([validAnalysis1, validAnalysis2]);\n    });\n    \n    it('should fall back to localStorage when server fetch fails', async () => {\n      // Mock server fetch failure\n      mockFetchWithBaseUrl.mockRejectedValue(new Error('Network error'));\n      mockGetAnalysesFromLocalStorage.mockReturnValue([localAnalysis1]);\n      \n      const result = await storageService.getAnalyses();\n      \n      expect(mockGetAnalysesFromLocalStorage).toHaveBeenCalled();\n      expect(result).toEqual([localAnalysis1]);\n    });\n  });\n});\n\n// useAnalysis tests\ndescribe('useAnalysis', () => {\n  it('should filter out invalid analyses', async () => {\n    const { loadAnalyses, analyses } = useAnalysis();\n    \n    // Mock getAnalyses to return mix of valid and invalid data\n    mockGetAnalyses.mockResolvedValue([validAnalysis, invalidAnalysis]);\n    \n    await loadAnalyses();\n    \n    expect(analyses.value).toHaveLength(1);\n    expect(analyses.value[0]).toEqual(validAnalysis);\n  });\n  \n  it('should show error when loading analysis with missing fields', async () => {\n    const { loadSavedAnalysis } = useAnalysis();\n    const mockShowToast = vi.fn();\n    \n    // Setup with an invalid analysis\n    analyses.value = [{ id: '123', title: 'Missing Fields' }];\n    \n    await loadSavedAnalysis('123');\n    \n    expect(mockShowToast).toHaveBeenCalledWith(expect.stringContaining('missing required data'));\n  });\n});\n```",
@@ -1264,11 +1365,11 @@
         "description": "Document the new source-of-truth behavior, update related documentation, and ensure edge cases are handled",
         "status": "pending",
         "dependencies": [
-          27,
-          28,
-          29,
-          30,
-          31
+          "27",
+          "28",
+          "29",
+          "30",
+          "31"
         ],
         "priority": "low",
         "details": "1. Update docs/ or add inline comments describing the new source-of-truth behavior\n2. Document offline fallback expectations and error handling\n3. Review the implementation for edge cases:\n   - Empty server responses\n   - Partial server failures\n   - Version conflicts between server and local data\n   - localStorage quota exceeded\n4. Add clear console warnings for development mode\n5. Ensure all TODOs from implementation are addressed\n\nDocumentation example:\n```markdown\n## Analysis History Synchronization\n\n### Overview\nThe application now follows a server-first approach for analysis history:\n- Server data (/api/storage endpoint) is considered the source of truth\n- Local storage is used as a fallback for offline usage\n- Server data automatically syncs to local cache when available\n\n### Error Handling\n- Network failures: Fall back to local cache with console warning\n- Invalid analyses: Filtered out with user notification\n- Missing fields: Handled gracefully with helpful error messages\n\n### Development Notes\n- Monitor console for warnings about fallbacks or invalid data\n- Local cache is always overwritten by server data when available\n- Legacy data lacking fields will show appropriate error messages\n```",
@@ -1277,9 +1378,16 @@
       }
     ],
     "metadata": {
-      "created": "2025-11-01T03:42:40.547Z",
-      "updated": "2025-11-20T20:40:18.452Z",
-      "description": "Tasks for master context"
+      "version": "1.0.0",
+      "lastModified": "2025-11-22T16:09:54.017Z",
+      "taskCount": 28,
+      "completedCount": 4,
+      "tags": [
+        "master"
+      ],
+      "created": "2025-11-22T16:12:31.754Z",
+      "description": "Tasks for master context",
+      "updated": "2025-11-22T19:05:54.137Z"
     }
   }
 }

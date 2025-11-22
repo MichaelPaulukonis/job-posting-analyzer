@@ -1,9 +1,11 @@
 import { FileStorageService } from '../../../services/FileStorageService';
 import { join } from 'node:path';
 import { readdirSync } from 'node:fs';
+import { requireAuth } from '~/server/utils/verifyToken';
 
 export default defineEventHandler(async (event) => {
   try {
+    await requireAuth(event);
     // Use the .data directory from FileStorageService
     const dataDir = join(process.cwd(), '.data');
     

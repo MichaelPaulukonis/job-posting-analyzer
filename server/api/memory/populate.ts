@@ -16,6 +16,8 @@ interface PopulateMemoryRequest {
   category?: string;
 }
 
+import { requireAuth } from '~/server/utils/verifyToken';
+
 interface PopulateMemoryResponse {
   success: boolean;
   message: string;
@@ -27,6 +29,7 @@ let memoryCache: Map<string, MemoryData[]> = new Map();
 
 export default defineEventHandler(async (event): Promise<PopulateMemoryResponse> => {
   try {
+    await requireAuth(event);
     const method = getMethod(event);
 
     if (method === 'POST') {

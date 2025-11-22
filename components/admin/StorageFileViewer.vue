@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useAPIFetch } from '~/composables/useAPIFetch';
 
 const props = defineProps<{
   fileName: string;
@@ -12,7 +13,7 @@ const error = ref<string | null>(null);
 
 onMounted(async () => {
   try {
-    const { data, error: fetchError } = await useFetch(`/api/admin/storage-files/${props.fileName}`);
+    const { data, error: fetchError } = await useAPIFetch(`/api/admin/storage-files/${props.fileName}`);
     
     if (fetchError.value) {
       throw new Error(fetchError.value.message);

@@ -1,4 +1,5 @@
 import { FileStorageService, StorageItem } from '../../../services/FileStorageService';
+import { requireAuth } from '~/server/utils/verifyToken';
 
 interface SampleItem extends StorageItem {
   name: string;
@@ -12,6 +13,7 @@ interface SampleItem extends StorageItem {
 
 export default defineEventHandler(async (event) => {
   try {
+    await requireAuth(event);
     // Create a FileStorageService instance for the sample file
     const storageService = new FileStorageService<SampleItem>('sample-data.json');
     

@@ -90,12 +90,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
+import { useAPIFetch } from '~/composables/useAPIFetch';
 // Explicitly import the component
 import StorageFileViewerComponent from '../components/admin/StorageFileViewer.vue';
 
 definePageMeta({
   middleware: ['auth'],
-  requiresAuth: true
+  meta: { requiresAuth: true }
 });
 
 const storageFiles = ref<string[]>([]);
@@ -124,7 +125,7 @@ const fetchStorageFiles = async () => {
   error.value = null;
   
   try {
-    const { data, error: fetchError } = await useFetch('/api/admin/storage-files');
+    const { data, error: fetchError } = await useAPIFetch('/api/admin/storage-files');
     fetchResponse.value = { data: data.value, error: fetchError.value };
     
     if (fetchError.value) {
@@ -147,7 +148,7 @@ const createSampleFile = async () => {
   isCreatingSample.value = true;
   
   try {
-    const { data, error: fetchError } = await useFetch('/api/admin/storage-files/create-sample', { method: 'POST' });
+    const { data, error: fetchError } = await useAPIFetch('/api/admin/storage-files/create-sample', { method: 'POST' });
     
     if (fetchError.value) {
       throw new Error(fetchError.value.message || 'Unknown error occurred');

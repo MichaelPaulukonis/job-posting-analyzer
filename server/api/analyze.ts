@@ -2,10 +2,12 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createAnalysisPrompt } from '~/utils/promptUtils';
 import { parseGeminiResponse } from '~/utils/responseParser';
 import { anthropic } from '@ai-sdk/anthropic';
-import { generateText } from 'ai'
+import { generateText } from 'ai';
+import { requireAuth } from '~/server/utils/verifyToken';
 
 export default defineEventHandler(async (event) => {
   try {
+    await requireAuth(event);
     // Get runtime config with API keys (server side only)
     const config = useRuntimeConfig();
     

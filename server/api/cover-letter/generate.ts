@@ -6,9 +6,11 @@ import { StorageService } from '~/services/StorageService';
 import type { SavedAnalysis, ServiceName } from '~/types';
 import type { CoverLetterConversation, ConversationMessage } from '~/types/conversation';
 import { generateText } from 'ai';
+import { requireAuth } from '~/server/utils/verifyToken';
 
 export default defineEventHandler(async (event) => {
   try {
+    await requireAuth(event);
     const config = useRuntimeConfig();
     const body = await readBody(event);
     const { 

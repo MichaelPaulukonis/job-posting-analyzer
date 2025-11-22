@@ -1,7 +1,9 @@
 import { FileStorageService, StorageItem } from '../../../services/FileStorageService';
+import { requireAuth } from '~/server/utils/verifyToken';
 
 export default defineEventHandler(async (event) => {
   try {
+    await requireAuth(event);
     const fileName = getRouterParam(event, 'fileName');
     
     if (!fileName) {
