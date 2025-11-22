@@ -1,6 +1,8 @@
 import coverLetterSampleRepository from '../../repositories/CoverLetterSampleRepository';
+import { requireAuth } from '~/server/utils/verifyToken';
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event);
   const method = event.method;
   
   // GET request to retrieve all samples

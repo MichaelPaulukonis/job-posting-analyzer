@@ -3,9 +3,11 @@ import { generateText } from 'ai';
 import MemoryService from '~/services/MemoryService';
 import { StorageService } from '~/services/StorageService';
 import resumeRepository from '../../repositories/ResumeRepository';
+import { requireAuth } from '~/server/utils/verifyToken';
 
 export default defineEventHandler(async (event) => {
   try {
+    await requireAuth(event);
     // Get runtime config with API keys (server side only)
     const config = useRuntimeConfig();
     

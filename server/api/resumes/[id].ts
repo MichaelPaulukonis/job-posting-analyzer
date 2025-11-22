@@ -1,6 +1,8 @@
 import resumeRepository from '../../repositories/ResumeRepository';
+import { requireAuth } from '~/server/utils/verifyToken';
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event);
   const id = getRouterParam(event, 'id');
   const method = event.method;
   

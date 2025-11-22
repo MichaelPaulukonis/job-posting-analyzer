@@ -1,7 +1,11 @@
+import type { User } from 'firebase/auth';
+
 export interface AuthServiceInterface {
-  signInWithEmail(email: string, password: string): Promise<any>;
-  signUpWithEmail(email: string, password: string): Promise<any>;
+  signInWithEmail(email: string, password: string): Promise<User>;
+  signInWithGoogle(): Promise<User>;
+  signUpWithEmail(email: string, password: string): Promise<User>;
   signOut(): Promise<void>;
-  getIdToken(): Promise<string | null>;
-  getCurrentUser(): any | null;
+  getIdToken(forceRefresh?: boolean): Promise<string | null>;
+  refreshIdToken(): Promise<string | null>;
+  getCurrentUser(): User | null;
 }

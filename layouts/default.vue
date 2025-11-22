@@ -39,28 +39,30 @@ const route = useRoute();
 const currentAnalysisId = ref<string | undefined>(undefined);
 
 // Watch for route changes to update the current analysis ID
-watch(() => route.params.id || route.query.analysisId, async (newId: LocationQueryValue | LocationQueryValue[]) => {
-  // If newId is explicitly undefined or empty, clear the current analysis ID
-  if (!newId) {
-    currentAnalysisId.value = undefined;
-    return;
-  }
+if (import.meta.client) {
+  watch(() => route.params.id || route.query.analysisId, async (newId: LocationQueryValue | LocationQueryValue[]) => {
+    // If newId is explicitly undefined or empty, clear the current analysis ID
+    if (!newId) {
+      currentAnalysisId.value = undefined;
+      return;
+    }
 
-  if (typeof newId === 'string') {
-    currentAnalysisId.value = newId;
-  } else {
-    try {
-      // If no ID in route, try to get the most recent analysis
-      const analyses = await StorageService.getAnalyses();
-      if (analyses.length > 0) {
-        currentAnalysisId.value = analyses[0].id;
-      } else {
+    if (typeof newId === 'string') {
+      currentAnalysisId.value = newId;
+    } else {
+      try {
+        // If no ID in route, try to get the most recent analysis
+        const analyses = await StorageService.getAnalyses();
+        if (analyses.length > 0) {
+          currentAnalysisId.value = analyses[0].id;
+        } else {
+          currentAnalysisId.value = undefined;
+        }
+      } catch (error) {
+        console.warn('Error fetching analyses:', error);
         currentAnalysisId.value = undefined;
       }
-    } catch (error) {
-      console.warn('Error fetching analyses:', error);
-      currentAnalysisId.value = undefined;
     }
-  }
-}, { immediate: true });
+  }, { immediate: true });
+}
 </script>

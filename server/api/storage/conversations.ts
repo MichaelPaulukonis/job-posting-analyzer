@@ -1,7 +1,9 @@
 import type { CoverLetterConversation } from '~/types/conversation';
 import conversationRepository from '../../repositories/ConversationRepository';
+import { requireAuth } from '~/server/utils/verifyToken';
 
 export default defineEventHandler(async (event) => {
+  await requireAuth(event);
   const method = getMethod(event);
   
   switch (method) {
