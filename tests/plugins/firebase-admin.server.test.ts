@@ -1,11 +1,22 @@
+const originalServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+
 describe('Firebase admin plugin', () => {
   beforeEach(() => {
     jest.resetModules();
   });
 
+  afterEach(() => {
+    if (originalServiceAccount === undefined) {
+      delete process.env.FIREBASE_SERVICE_ACCOUNT;
+    } else {
+      process.env.FIREBASE_SERVICE_ACCOUNT = originalServiceAccount;
+    }
+  });
+
   test('does not initialize when FIREBASE_SERVICE_ACCOUNT is missing', async () => {
     const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     jest.doMock('#imports', () => ({ defineNitroPlugin: (fn: any) => fn, useRuntimeConfig: () => ({}) }));
+    delete process.env.FIREBASE_SERVICE_ACCOUNT;
     const admin = await import('firebase-admin');
     admin.initializeApp.mockClear();
 
@@ -13,7 +24,7 @@ describe('Firebase admin plugin', () => {
     // call plugin with dummy nitro app
     await plugin({});
     expect(admin.initializeApp).not.toHaveBeenCalled();
-    expect(consoleWarnSpy).not.toHaveBeenCalled(); // it returns early silently for missing config
+    expect(consoleWarnSpy).toHaveBeenCalledWith('Firebase Admin initialization failed', expect.any(Error));
     consoleWarnSpy.mockRestore();
   });
 
@@ -26,6 +37,7 @@ describe('Firebase admin plugin', () => {
       client_email: 'firebase-admin@test.iam.gserviceaccount.com',
     });
     jest.doMock('#imports', () => ({ defineNitroPlugin: (fn: any) => fn, useRuntimeConfig: () => ({ FIREBASE_SERVICE_ACCOUNT: serviceAccount }) }));
+    delete process.env.FIREBASE_SERVICE_ACCOUNT;
     const admin = await import('firebase-admin');
     admin.initializeApp.mockClear();
 

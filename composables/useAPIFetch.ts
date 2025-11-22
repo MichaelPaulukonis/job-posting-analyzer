@@ -4,6 +4,8 @@ import { useAuth } from '~/composables/useAuth';
 
 type UseFetchType = typeof useFetch;
 type UseFetchArgs = Parameters<UseFetchType>;
+const AUTH_FORCE_REFRESH_FLAG = '__authForceRefresh';
+const AUTH_RETRY_FLAG = '__authRetryAttempted';
 
 const toHeaders = (headers?: HeadersInit): Headers => {
   if (headers instanceof Headers) {
@@ -33,13 +35,30 @@ export const useAPIFetch: UseFetchType = (path, options: UseFetchArgs[1] = {}) =
   }
 
   const originalOnRequest = options.onRequest;
+  const originalOnResponse = options.onResponse;
+  const originalOnResponseError = options.onResponseError;
+
+  if (process.client) {
+    if (typeof mergedOptions.retry === 'undefined') {
+      mergedOptions.retry = 1;
+    }
+
+    if (typeof mergedOptions.retryStatusCodes === 'undefined') {
+      mergedOptions.retryStatusCodes = [401];
+    } else if (Array.isArray(mergedOptions.retryStatusCodes) && !mergedOptions.retryStatusCodes.includes(401)) {
+      mergedOptions.retryStatusCodes = [...mergedOptions.retryStatusCodes, 401];
+    }
+  }
 
   if (process.client) {
     mergedOptions.onRequest = async (ctx) => {
       if (!authBypassEnabled) {
         try {
-          const { getIdToken } = useAuth();
-          const token = await getIdToken?.();
+          const { getIdToken, waitForAuthReady } = useAuth();
+          await waitForAuthReady?.();
+          const mutableOptions = ctx.options as Record<string, unknown>;
+          const forceRefresh = Boolean(mutableOptions[AUTH_FORCE_REFRESH_FLAG]);
+          const token = await getIdToken?.({ forceRefresh });
           if (token) {
             const headers = toHeaders(ctx.options.headers as HeadersInit | undefined);
             if (!headers.has('Authorization')) {
@@ -47,6 +66,7 @@ export const useAPIFetch: UseFetchType = (path, options: UseFetchArgs[1] = {}) =
               ctx.options.headers = headers;
             }
           }
+          mutableOptions[AUTH_FORCE_REFRESH_FLAG] = false;
         } catch (error) {
           console.warn('Unable to attach auth token to request', error);
         }
@@ -56,8 +76,40 @@ export const useAPIFetch: UseFetchType = (path, options: UseFetchArgs[1] = {}) =
         await originalOnRequest(ctx);
       }
     };
-  } else if (typeof originalOnRequest === 'function') {
-    mergedOptions.onRequest = originalOnRequest;
+
+    mergedOptions.onResponse = async (ctx) => {
+      const mutableOptions = ctx.options as Record<string, unknown>;
+      mutableOptions[AUTH_RETRY_FLAG] = false;
+      mutableOptions[AUTH_FORCE_REFRESH_FLAG] = false;
+
+      if (typeof originalOnResponse === 'function') {
+        await originalOnResponse(ctx);
+      }
+    };
+
+    mergedOptions.onResponseError = async (ctx) => {
+      if (!authBypassEnabled && ctx.response?.status === 401) {
+        const mutableOptions = ctx.options as Record<string, unknown>;
+        if (!mutableOptions[AUTH_RETRY_FLAG]) {
+          mutableOptions[AUTH_RETRY_FLAG] = true;
+          mutableOptions[AUTH_FORCE_REFRESH_FLAG] = true;
+        }
+      }
+
+      if (typeof originalOnResponseError === 'function') {
+        await originalOnResponseError(ctx);
+      }
+    };
+  } else {
+    if (typeof originalOnRequest === 'function') {
+      mergedOptions.onRequest = originalOnRequest;
+    }
+    if (typeof originalOnResponse === 'function') {
+      mergedOptions.onResponse = originalOnResponse;
+    }
+    if (typeof originalOnResponseError === 'function') {
+      mergedOptions.onResponseError = originalOnResponseError;
+    }
   }
 
   return useFetch(path, mergedOptions);
