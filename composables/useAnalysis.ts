@@ -6,6 +6,7 @@ import { LLMServiceFactory } from '~/services/LLMServiceFactory';
 import { nextTick } from 'vue';
 
 const SELECTED_SERVICE_STORAGE_KEY = 'selected-llm-service';
+const FALLBACK_SERVICE: ServiceName = 'gemini';
 
 export function useAnalysis() {
   const jobPosting = reactive<JobPosting>({ title: '', content: '' });
@@ -15,7 +16,7 @@ export function useAnalysis() {
   const error = ref('');
   const analysisResults = ref<AnalysisResult | null>(null);
   const savedAnalyses = ref<SavedAnalysis[]>([]);
-  const selectedService = ref<ServiceName>(getDefaultService());
+  const selectedService = ref<ServiceName>(FALLBACK_SERVICE);
   const currentAnalysisId = ref<string | null>(null);
   const selectedResumeId = ref<string | null>(null);
   const savedResumes = ref<ResumeEntry[]>([]);
@@ -34,14 +35,17 @@ export function useAnalysis() {
     savedResumes.value = await StorageService.getResumes();
   }
 
-  function getDefaultService(): ServiceName {
-    if (typeof window !== 'undefined') {
-      const storedService = localStorage.getItem(SELECTED_SERVICE_STORAGE_KEY);
-      if (storedService && ['gemini', 'anthropic', 'openai', 'mock'].includes(storedService)) {
-        return storedService as ServiceName;
-      }
+  function getStoredService(): ServiceName | null {
+    if (typeof window === 'undefined') {
+      return null;
     }
-    return 'gemini';
+
+    const storedService = localStorage.getItem(SELECTED_SERVICE_STORAGE_KEY);
+    if (storedService && ['gemini', 'anthropic', 'openai', 'mock'].includes(storedService)) {
+      return storedService as ServiceName;
+    }
+
+    return null;
   }
 
   watch(selectedService, (newService) => {
@@ -223,7 +227,7 @@ export function useAnalysis() {
       timestamp: analysis.timestamp,
     };
     currentAnalysisId.value = analysis.id;
-    selectedService.value = getDefaultService();
+    selectedService.value = getStoredService() ?? FALLBACK_SERVICE;
 
     jobPostingContainer.value?.expand();
     resumeContainer.value?.expand();
@@ -298,7 +302,7 @@ export function useAnalysis() {
   };
 
   onMounted(async () => {
-    selectedService.value = getDefaultService();
+    selectedService.value = getStoredService() ?? FALLBACK_SERVICE;
     await loadAnalyses();
     await loadResumes();
   });

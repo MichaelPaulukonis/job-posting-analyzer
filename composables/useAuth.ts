@@ -177,12 +177,12 @@ export function useAuth() {
     });
   }
 
-  async function getIdToken() {
+  async function getIdToken(options?: { forceRefresh?: boolean }) {
     if (!isClient()) return null;
     const current = user.value ?? resolveFirebaseAuth()?.currentUser;
     if (!current) return null;
     try {
-      const token = await current.getIdToken?.();
+      const token = await current.getIdToken?.(options?.forceRefresh);
       return token ?? null;
     } catch (error) {
       console.warn('Unable to fetch ID token', error);
