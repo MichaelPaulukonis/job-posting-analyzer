@@ -115,7 +115,7 @@ export default defineEventHandler(async (event) => {
       }
       case 'anthropic': {
         if (!config.anthropicApiKey) throw new Error('Anthropic API key is not configured');
-        const claudeLanguageModel = anthropic(config.anthropicModel || "claude-3-haiku-20240307");
+        const claudeLanguageModel = anthropic(config.anthropicModel || 'claude-3-sonnet-20240229');
         const { text: claudeText } = await generateText({
           model: claudeLanguageModel,
           system: formattedMessages.systemInstruction,
@@ -163,11 +163,27 @@ export default defineEventHandler(async (event) => {
     };
 
   } catch (error: unknown) {
+    // Always log full error object
+    // eslint-disable-next-line no-console
     console.error('Error in cover letter generation API:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Error generating cover letter';
+    const isDev = process.env.NODE_ENV !== 'production';
+    let errorPayload: any = {
+      message: error instanceof Error ? error.message : String(error),
+    };
+    if (isDev && error instanceof Error) {
+      errorPayload.stack = error.stack;
+      if ((error as any).cause) errorPayload.cause = (error as any).cause;
+      // Optionally include other fields
+      Object.getOwnPropertyNames(error).forEach(key => {
+        if (!(key in errorPayload)) {
+          errorPayload[key] = (error as any)[key];
+        }
+      });
+    }
     throw createError({
       statusCode: 500,
-      message: errorMessage
+      data: errorPayload,
+      message: errorPayload.message
     });
   }
 });
