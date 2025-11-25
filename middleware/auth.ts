@@ -1,21 +1,13 @@
-// Only export the plain authGuard function for testing and composable use
-export async function authGuard(to: any, { isAuthenticated, waitForAuthReady }: { isAuthenticated: { value: boolean }, waitForAuthReady?: () => Promise<void> }) {
-  // SSR guard: skip client-only logic during server-side rendering
-  if (typeof window === 'undefined') {
-    return;
-  }
+import { defineNuxtRouteMiddleware, navigateTo } from '#imports';
+import { useAuth } from '~/composables/useAuth';
+import { authGuard } from '~/middleware/auth-guard';
 
-  if (waitForAuthReady) {
-    await waitForAuthReady();
+const nuxtAuthMiddleware = async (to: any) => {
+  const { isAuthenticated, waitForAuthReady } = useAuth();
+  const result = await authGuard(to, { isAuthenticated, waitForAuthReady });
+  if (result) {
+    return navigateTo(result);
   }
+};
 
-  const redirectQuery = typeof to.query?.redirect === 'string' ? to.query.redirect : null;
-
-  if (to.meta?.requiresAuth && !isAuthenticated?.value) {
-    return { path: '/login', query: { redirect: to.fullPath } };
-  }
-
-  if (to.meta?.requiresGuest && isAuthenticated?.value) {
-    return redirectQuery || '/';
-  }
-}
+export default defineNuxtRouteMiddleware(nuxtAuthMiddleware);

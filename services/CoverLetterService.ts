@@ -1,6 +1,7 @@
 import type { SavedAnalysis, CoverLetter, ServiceName } from '../types';
 import type { CoverLetterConversation } from '../types/conversation';
 import { StorageService } from './StorageService';
+import { useAuth } from '~/composables/useAuth'; // Adjust path if needed
 
 export class CoverLetterService {
   private static getBaseUrl() {
@@ -19,9 +20,33 @@ export class CoverLetterService {
     }
   }
 
+  private static async getAuthHeaderAsync() {
+    try {
+      const { getIdToken } = useAuth();
+      const token = await getIdToken();
+      if (token) {
+        return { Authorization: `Bearer ${token}` };
+      }
+    } catch {
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          return { Authorization: `Bearer ${token}` };
+        }
+      }
+    }
+    return {};
+  }
+
   private static async fetchWithBaseUrl(path: string, options?: RequestInit) {
     const baseUrl = CoverLetterService.getBaseUrl();
     const url = `${baseUrl}${path}`;
+    const authHeader = await CoverLetterService.getAuthHeaderAsync();
+    options = options || {};
+    options.headers = {
+      ...(options.headers || {}),
+      ...authHeader,
+    };
     return fetch(url, options);
   }
 
