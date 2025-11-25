@@ -1749,6 +1749,82 @@ Proceed
 
 _**Agent (model copilot/gpt-4.1)**_
 
+### Key Findings from Analysis vs. Cover Letter Anthropic Usage
+
+**Analysis Endpoint (`analyze.ts`):**
+- Calls `generateText` with:
+  - `model: anthropic(config.anthropicModel || 'claude-3-sonnet-20240229')`
+  - `system: "You are a professional resume analysis assistant. ..."`
+  - `messages: [{ role: 'user', content: prompt }]`
+- `config.anthropicModel` is set from runtime config/environment.
+- Works with `claude-3-sonnet-20240229` for analysis.
+
+**Cover Letter Endpoint (`generate.ts`):**
+- Calls `generateText` with:
+  - `model: anthropic(config.anthropicModel || 'claude-3-sonnet-20240229')`
+  - `system: formattedMessages.systemInstruction`
+  - `messages: formattedMessages.messages.map(m => ({ role, content }))`
+  - `maxTokens: 2048`
+- Fails with `not_found_error` for `claude-3-sonnet-20240229`.
+
+**Payload Comparison:**
+- Both endpoints use the same model string and Anthropic SDK.
+- The analysis endpoint sends a single user message.
+- The cover letter endpoint sends a system message and a sequence of user/assistant messages (conversation history).
+
+**Diagnosis:**
+- Anthropic's `/v1/messages` endpoint may not support conversation history or expects a specific message format.
+- The analysis endpoint works because it sends a single user message.
+- The cover letter endpoint fails because it sends a conversation array, which may not be supported for the selected model or endpoint.
+
+---
+
+### Next Step: Patch Cover Letter Endpoint to Match Analysis Format
+
+**Action Plan:**
+- For Anthropic, send only a single user message (the cover letter prompt) and the system instruction, not the full conversation history.
+- This matches the working analysis payload and avoids unsupported features.
+
+**Patch Proposal:**
+- In `generate.ts`, update the Anthropic case to:
+  - Pass only the latest user message (cover letter prompt) in `messages`.
+  - Pass the system instruction as `system`.
+  - Remove conversation history from the payload for Anthropic.
+
+Would you like to proceed with this patch to align the cover letter Anthropic payload with the working analysis format?
+
+---
+
+_**User (2025-11-25 03:21Z)**_
+
+Let's commit what we have.
+
+---
+
+_**Agent (model copilot/gpt-4.1)**_
+
+Here’s a summary of the staged changes:
+
+- `generate.ts`: Error handler patched to return detailed error payload in development mode.
+- `CoverLetterService.ts`: Authorization header fix applied; now uses async token retrieval for API requests.
+- `auth.ts`: Middleware refactored for Nuxt compatibility.
+- `package-lock.json` and `2025-11-22_15-45Z-task-25-firebase-auth-hardening-next-steps.md`: Version and documentation updates.
+
+These changes include a new feature (detailed error diagnostics for cover letter generation), a bug fix (authorization header for API requests), and a middleware refactor.
+
+**Should I create a changelog entry for these changes?**  
+This is a feature and bug fix, so a changelog entry is recommended. Let me know if you want to proceed.
+
+---
+
+_**User (2025-11-25 03:30Z)**_
+
+No changelog, commit
+
+---
+
+_**Agent (model copilot/gpt-4.1)**_
+
 
 
 ---
