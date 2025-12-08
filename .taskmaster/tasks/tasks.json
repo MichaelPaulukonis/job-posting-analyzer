@@ -1375,6 +1375,21 @@
         "details": "1. Update docs/ or add inline comments describing the new source-of-truth behavior\n2. Document offline fallback expectations and error handling\n3. Review the implementation for edge cases:\n   - Empty server responses\n   - Partial server failures\n   - Version conflicts between server and local data\n   - localStorage quota exceeded\n4. Add clear console warnings for development mode\n5. Ensure all TODOs from implementation are addressed\n\nDocumentation example:\n```markdown\n## Analysis History Synchronization\n\n### Overview\nThe application now follows a server-first approach for analysis history:\n- Server data (/api/storage endpoint) is considered the source of truth\n- Local storage is used as a fallback for offline usage\n- Server data automatically syncs to local cache when available\n\n### Error Handling\n- Network failures: Fall back to local cache with console warning\n- Invalid analyses: Filtered out with user notification\n- Missing fields: Handled gracefully with helpful error messages\n\n### Development Notes\n- Monitor console for warnings about fallbacks or invalid data\n- Local cache is always overwritten by server data when available\n- Legacy data lacking fields will show appropriate error messages\n```",
         "testStrategy": "1. Perform manual QA testing to verify the documented behavior\n2. Test edge cases like empty responses and network failures\n3. Review documentation for clarity and completeness\n4. Ensure console messages are clear and helpful\n5. Verify backward compatibility with existing data formats",
         "subtasks": []
+      },
+      {
+        "id": 33,
+        "title": "Restore Cover Letter Generation Functionality",
+        "description": "Restore the previously implemented cover letter generation feature by first getting basic prompting functionality working without history, then reintegrating the history capabilities.",
+        "details": "## Implementation Steps\n\n1. **Assessment and Diagnostic Phase**\n   - Review existing cover letter generation code and identify failure points\n   - Determine if issues are in the core generation logic or history-related components\n   - Document current implementation architecture\n\n2. **Basic Functionality Restoration**\n   - Temporarily disable or isolate history-related functionality\n   - Focus on restoring the core AI prompting mechanism:\n     - Ensure prompt templates are correctly formatted\n     - Verify API connections to LLM service are working properly\n     - Fix any issues with context building or prompt construction\n   - Implement a simplified version that accepts inputs and generates cover letters without saving history\n   - Add appropriate error handling and loading states\n\n3. **History Functionality Reintegration**\n   - Once basic generation works, reintegrate history features:\n     - Storage of generated cover letters\n     - Listing of previous cover letters\n     - Ability to view and edit past cover letters\n   - Ensure proper synchronization between local storage and server (similar to analysis history pattern)\n   - Implement proper validation for saved cover letters\n\n4. **UI Integration and Polish**\n   - Restore UI components for browsing cover letter history\n   - Ensure proper state management throughout the generation workflow\n   - Add appropriate loading indicators and error messages\n   - Test the complete user journey from creation to saving to retrieval",
+        "testStrategy": "1. **Functionality Testing**\n   - Test basic cover letter generation with various job descriptions and resumes\n   - Verify generation produces appropriate content based on inputs\n   - Test edge cases: empty inputs, very long inputs, special characters\n\n2. **History Testing**\n   - Verify cover letters are properly saved after generation\n   - Test retrieval of cover letters from history\n   - Verify editing and regeneration of existing cover letters\n   - Test synchronization between local cache and server storage\n\n3. **Error Handling**\n   - Test behavior when API calls fail\n   - Verify appropriate error messages are shown to users\n   - Test recovery mechanisms after errors\n\n4. **Integration Testing**\n   - Verify end-to-end workflow from inputs to generation to saving\n   - Test interaction with other application features\n   - Ensure no regressions in related functionality\n\n5. **Performance Testing**\n   - Verify reasonable load times when accessing history\n   - Test with a large number of saved cover letters",
+        "status": "pending",
+        "dependencies": [
+          17,
+          28,
+          29
+        ],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
@@ -1387,7 +1402,7 @@
       ],
       "created": "2025-11-22T16:12:31.754Z",
       "description": "Tasks for master context",
-      "updated": "2025-11-22T19:05:54.137Z"
+      "updated": "2025-12-08T22:08:49.050Z"
     }
   }
 }
