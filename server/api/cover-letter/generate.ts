@@ -116,6 +116,7 @@ export default defineEventHandler(async (event) => {
       case 'anthropic': {
         if (!config.anthropicApiKey) throw new Error('Anthropic API key is not configured');
         const claudeLanguageModel = anthropic(config.anthropicModel || 'claude-3-sonnet-20240229');
+        
         const { text: claudeText } = await generateText({
           model: claudeLanguageModel,
           system: formattedMessages.systemInstruction,

@@ -9,7 +9,8 @@ export default {
     '^firebase/(.*)$': '<rootDir>/__mocks__/firebase/$1.ts',
     '^firebase-admin$': '<rootDir>/__mocks__/firebase-admin/index.ts',
     '^firebase-admin/(.*)$': '<rootDir>/__mocks__/firebase-admin/$1.ts',
-    '^#imports$': '<rootDir>/tests/mocks/nuxt-imports.ts'
+    '^#imports$': '<rootDir>/tests/mocks/nuxt-imports.ts',
+    '^#app$': '<rootDir>/tests/mocks/nuxt-app.ts'
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   testMatch: ['<rootDir>/tests/**/*.test.ts'], // Only run unit tests
