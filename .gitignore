@@ -41,7 +41,6 @@ dev-debug.log
 node_modules/
 # Environment variables
 # Editor directories and files
-.vscode
 *.suo
 *.ntvs*
 *.njsproj
