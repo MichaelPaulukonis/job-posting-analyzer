@@ -12,6 +12,118 @@ index this codebase
 
 _**Agent (model copilot/claude-sonnet-4)**_
 
+<tool-use data-tool-type="unknown" data-tool-name="mcp_deepcontext_index_codebase">
+<details>
+<summary>Tool use: **mcp_deepcontext_index_codebase**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "input",
+  "rawInput": {
+    "codebase_path": "/Users/michaelpaulukonis/projects/job-posting-analyzer"
+  }
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "mcp_deepcontext_index_codebase",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Running &#96;index_codebase&#96;",
+  "pastTenseMessage": "Ran &#96;index_codebase&#96; ",
+  "resultDetails": {
+    "input": "{\n  \"codebase_path\": \"/Users/michaelpaulukonis/projects/job-posting-analyzer\"\n}",
+    "output": [
+      {
+        "type": "embed",
+        "isText": true,
+        "value": "🚀 **Background Indexing Started** - Log: &#96;background-indexing-job-posting-analyzer-2025-10-22T14-33-20.383Z.log&#96;\n\n**Codebase**: /Users/michaelpaulukonis/projects/job-posting-analyzer\n**Process**: Running in detached background mode\n\n**📋 How to Monitor Progress:**\n- **Check Status**: Use &#96;get_indexing_status&#96; tool to see completion progress\n- **View Live Logs**: &#96;tail -f background-indexing-job-posting-analyzer-2025-10-22T14-33-20.383Z.log&#96;\n- **Final Results**: Status tool will show success rate when complete\n\n💡 **Tip**: The log file is saved in your current directory for easy access.\n\n📝 **For AI Assistant**: Please mention that users can monitor progress with: tail -f background-indexing-job-posting-analyzer-2025-10-22T14-33-20.383Z.log (include the dash)"
+      }
+    ],
+    "isError": false
+  },
+  "isConfirmed": {
+    "type": 4
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp_deepcontext_get_indexing_status">
+<details>
+<summary>Tool use: **mcp_deepcontext_get_indexing_status**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "input",
+  "rawInput": {
+    "codebase_path": "/Users/michaelpaulukonis/projects/job-posting-analyzer"
+  }
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "mcp_deepcontext_get_indexing_status",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Running &#96;get_indexing_status&#96;",
+  "pastTenseMessage": "Ran &#96;get_indexing_status&#96; ",
+  "resultDetails": {
+    "input": "{\n  \"codebase_path\": \"/Users/michaelpaulukonis/projects/job-posting-analyzer\"\n}",
+    "output": [
+      {
+        "type": "embed",
+        "isText": true,
+        "value": "📊 **Indexing Status**\n\n## 📚 **No Indexed Codebases Found**\n\nUse the &#96;index_codebase&#96; tool to index a codebase first.\n"
+      }
+    ],
+    "isError": false
+  },
+  "isConfirmed": {
+    "type": 4
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
 I'll index your job-posting-analyzer codebase using the Deep Context tool. This will create a searchable index that enables semantic search across your codebase. The indexing process has started in the background! The codebase is being processed and will be available for semantic search once complete.
 
 **To monitor the progress:**
@@ -37,6 +149,62 @@ How will I know when indexing is complete?
 ---
 
 _**Agent (model copilot/claude-sonnet-4)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp_deepcontext_get_indexing_status">
+<details>
+<summary>Tool use: **mcp_deepcontext_get_indexing_status**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "input",
+  "rawInput": {
+    "codebase_path": "/Users/michaelpaulukonis/projects/job-posting-analyzer"
+  }
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "mcp_deepcontext_get_indexing_status",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Running &#96;get_indexing_status&#96;",
+  "pastTenseMessage": "Ran &#96;get_indexing_status&#96; ",
+  "resultDetails": {
+    "input": "{\n  \"codebase_path\": \"/Users/michaelpaulukonis/projects/job-posting-analyzer\"\n}",
+    "output": [
+      {
+        "type": "embed",
+        "isText": true,
+        "value": "📊 **Indexing Status**\n\n**Current Codebase**: /Users/michaelpaulukonis/projects/job-posting-analyzer\n**Namespace**: mcp_9e41d327b109100c\n**Files**: undefined\n**Last Indexed**: Invalid Date\n**Status**: ✅ Indexed\n\n**Success Rate**: 100% (84/84 chunks)\n**Log File**: &#96;background-indexing-job-posting-analyzer-2025-10-22T14-33-20.383Z.log&#96;\n\n## 📚 **All Indexed Codebases** (1)\n\n1. **/Users/michaelpaulukonis/projects/job-posting-analyzer**\n   - Chunks: 84, Last indexed: 10/22/2025\n   - **Success Rate**: 100% (84/84 chunks)\n   - **Processing Time**: 29.5s\n   - **Log**: &#96;background-indexing-job-posting-analyzer-2025-10-22T14-33-20.383Z.log&#96;\n\n"
+      }
+    ],
+    "isError": false
+  },
+  "isConfirmed": {
+    "type": 4
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
 
 You can check if the indexing is complete in a few ways:
 
@@ -71,6 +239,64 @@ deepcontext - how is memory used ?
 ---
 
 _**Agent (model copilot/claude-sonnet-4)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp_deepcontext_search_codebase">
+<details>
+<summary>Tool use: **mcp_deepcontext_search_codebase**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "input",
+  "rawInput": {
+    "query": "memory usage storage indexing chunks embeddings",
+    "codebase_path": "/Users/michaelpaulukonis/projects/job-posting-analyzer",
+    "max_results": 3
+  }
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "mcp_deepcontext_search_codebase",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Running &#96;search_codebase&#96;",
+  "pastTenseMessage": "Ran &#96;search_codebase&#96; ",
+  "resultDetails": {
+    "input": "{\n  \"query\": \"memory usage storage indexing chunks embeddings\",\n  \"codebase_path\": \"/Users/michaelpaulukonis/projects/job-posting-analyzer\",\n  \"max_results\": 3\n}",
+    "output": [
+      {
+        "type": "embed",
+        "isText": true,
+        "value": "{\n  \"total_results\": 3,\n  \"search_time_ms\": 3201,\n  \"results\": [\n    {\n      \"file_path\": \"utils/archive/langchainUtils.example.ts\",\n      \"start_line\": 7,\n      \"end_line\": 11,\n      \"language\": \"typescript\",\n      \"content\": \"interface LangChainContextManager {\\n  memory: ConversationSummaryBufferMemory;\\n  chatModel: ChatOpenAI;\\n  analysisContext: string;\\n}\",\n      \"score\": 1,\n      \"symbols\": [\n        \"LangChainContextManager\"\n      ],\n      \"connections\": {\n        \"imports\": [\n          \"langchain/memory\",\n          \"langchain/chat_models/openai\"\n        ],\n        \"exports\": [\n          \"LangChainContextManager\",\n          \"createLangChainContext\",\n          \"generateWithMemory\"\n        ],\n        \"relatedFiles\": [\n          \"langchain/memory\",\n          \"langchain/chat_models/openai\"\n        ]\n      }\n    },\n    {\n      \"file_path\": \"server/api/admin/storage-files/create-sample.ts\",\n      \"start_line\": 3,\n      \"end_line\": 11,\n      \"language\": \"typescript\",\n      \"content\": \"interface SampleItem extends StorageItem {\\n  name: string;\\n  createdAt: string;\\n  items: Array&lt;{\\n    id: number;\\n    name: string;\\n    value: string;\\n  }&gt;;\\n}\",\n      \"score\": 0.8363636363636362,\n      \"symbols\": [\n        \"SampleItem\"\n      ],\n      \"connections\": {\n        \"imports\": [\n          \"../../../services/FileStorageService\"\n        ],\n        \"exports\": [],\n        \"relatedFiles\": [\n          \"../../../services/FileStorageService\"\n        ]\n      }\n    },\n    {\n      \"file_path\": \"server/services/FileStorageService.ts\",\n      \"start_line\": 4,\n      \"end_line\": 7,\n      \"language\": \"typescript\",\n      \"content\": \"interface StorageItem {\\n  id: string;\\n  [key: string]: any;\\n}\",\n      \"score\": 0.7174825174825175,\n      \"symbols\": [\n        \"StorageItem\"\n      ],\n      \"connections\": {\n        \"imports\": [\n          \"node:fs\",\n          \"node:path\"\n        ],\n        \"exports\": [\n          \"StorageItem\",\n          \"FileStorageService\"\n        ],\n        \"relatedFiles\": [\n          \"node:fs\",\n          \"node:path\"\n        ]\n      }\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "isConfirmed": {
+    "type": 4
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
 
 Let me search for information about how memory is used in the Deep Context system by looking at the available tools and their documentation. Based on the Deep Context tool documentation and functionality, here's how memory is used in the Deep Context system:
 
@@ -123,6 +349,136 @@ How is "memory" used in the job-posting-analyzer?
 ---
 
 _**Agent (model copilot/claude-sonnet-4)**_
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp_deepcontext_search_codebase">
+<details>
+<summary>Tool use: **mcp_deepcontext_search_codebase**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "input",
+  "rawInput": {
+    "codebase_path": "/Users/michaelpaulukonis/projects/job-posting-analyzer",
+    "max_results": 5,
+    "query": "memory conversation context storage state management"
+  }
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "mcp_deepcontext_search_codebase",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Running &#96;search_codebase&#96;",
+  "pastTenseMessage": "Ran &#96;search_codebase&#96; ",
+  "resultDetails": {
+    "input": "{\n  \"codebase_path\": \"/Users/michaelpaulukonis/projects/job-posting-analyzer\",\n  \"max_results\": 5,\n  \"query\": \"memory conversation context storage state management\"\n}",
+    "output": [
+      {
+        "type": "embed",
+        "isText": true,
+        "value": "{\n  \"total_results\": 5,\n  \"search_time_ms\": 2100,\n  \"results\": [\n    {\n      \"file_path\": \"utils/archive/langchainUtils.example.ts\",\n      \"start_line\": 12,\n      \"end_line\": 74,\n      \"language\": \"typescript\",\n      \"content\": \"/**\\n * Creates a LangChain-based context manager\\n */\\nexport const createLangChainContext = async (\\n  analysis: SavedAnalysis,\\n  sampleLetter?: string\\n): Promise&lt;LangChainContextManager&gt; =&gt; {\\n  const chatModel = new ChatOpenAI({\\n    modelName: \\\"gpt-3.5-turbo\\\",\\n    temperature: 0.7,\\n  });\\n\\n  const memory = new ConversationSummaryBufferMemory({\\n    llm: chatModel,\\n    maxTokenLimit: 2000,\\n    returnMessages: true,\\n  });\\n\\n  // Initialize with analysis context\\n  const analysisContext = createInitialAnalysisPrompt(analysis, sampleLetter);\\n  \\n  await memory.saveContext(\\n    { input: analysisContext },\\n    { output: \\\"I'm ready to generate a cover letter based on this analysis.\\\" }\\n  );\\n\\n  return {\\n    memory,\\n    chatModel,\\n    analysisContext\\n  };\\n};\\n\\n/**\\n * Generates cover letter with memory-aware context\\n */\\nexport const generateWithMemory = async (\\n  contextManager: LangChainContextManager,\\n  instruction: string\\n): Promise&lt;string&gt; =&gt; {\\n  const { memory, chatModel } = contextManager;\\n  \\n  // Get conversation history from memory\\n  const history = await memory.chatHistory.getMessages();\\n  \\n  // Generate response with full context\\n  const response = await chatModel.predict(instruction, {\\n    memory: memory,\\n  });\\n\\n  // Save the interaction to memory\\n  await memory.saveContext(\\n    { input: instruction },\\n    { output: response }\\n  );\\n\\n  return response;\\n};\\n\\n// Note: This would require adding LangChain dependencies:\\n// npm install langchain @langchain/openai\",\n      \"score\": 1,\n      \"symbols\": [\n        \"createLangChainContext\",\n        \"generateWithMemory\"\n      ],\n      \"connections\": {\n        \"imports\": [\n          \"langchain/memory\",\n          \"langchain/chat_models/openai\"\n        ],\n        \"exports\": [\n          \"LangChainContextManager\",\n          \"createLangChainContext\",\n          \"generateWithMemory\"\n        ],\n        \"relatedFiles\": [\n          \"langchain/memory\",\n          \"langchain/chat_models/openai\"\n        ]\n      }\n    },\n    {\n      \"file_path\": \"utils/archive/langchainUtils.example.ts\",\n      \"start_line\": 7,\n      \"end_line\": 11,\n      \"language\": \"typescript\",\n      \"content\": \"interface LangChainContextManager {\\n  memory: ConversationSummaryBufferMemory;\\n  chatModel: ChatOpenAI;\\n  analysisContext: string;\\n}\",\n      \"score\": 1,\n      \"symbols\": [\n        \"LangChainContextManager\"\n      ],\n      \"connections\": {\n        \"imports\": [\n          \"langchain/memory\",\n          \"langchain/chat_models/openai\"\n        ],\n        \"exports\": [\n          \"LangChainContextManager\",\n          \"createLangChainContext\",\n          \"generateWithMemory\"\n        ],\n        \"relatedFiles\": [\n          \"langchain/memory\",\n          \"langchain/chat_models/openai\"\n        ]\n      }\n    },\n    {\n      \"file_path\": \"types/compressed-context.ts\",\n      \"start_line\": 1,\n      \"end_line\": 16,\n      \"language\": \"typescript\",\n      \"content\": \"interface CompressedContext {\\n  id: string;\\n  analysisId: string;\\n  \\n  // Core context (always preserved)\\n  coreContext: {\\n    analysis: import('../types').SavedAnalysis;\\n    sampleLetter?: string;\\n    systemInstructions: string;\\n  };\\n  \\n  // Compressed conversation history\\n  contextSummary: string;\\n  \\n  // Recent conversation (last N messages)\\n  recentMessages: import('./conversation').ConversationMessage\",\n      \"score\": 1,\n      \"symbols\": [\n        \"CompressedContext\"\n      ],\n      \"connections\": {\n        \"imports\": [],\n        \"exports\": [\n          \"CompressedContext\",\n          \"CompressionConfig\"\n        ],\n        \"relatedFiles\": []\n      }\n    },\n    {\n      \"file_path\": \"services/StorageService.ts\",\n      \"start_line\": 538,\n      \"end_line\": 576,\n      \"language\": \"typescript\",\n      \"content\": \"static async getConversations(): Promise&lt;CoverLetterConversation[]&gt; {\\n    try {\\n      const response = await StorageService.fetchWithBaseUrl('/api/storage/conversations');\\n      if (response.ok) {\\n        return await response.json();\\n      } else {\\n        console.warn('Server storage not available for conversations, falling back to localStorage');\\n        return StorageService.getConversationsFromLocalStorage();\\n      }\\n    } catch (error) {\\n      console.error('Error getting conversations from server, falling back to localStorage:', error);\\n      return StorageService.getConversationsFromLocalStorage();\\n    }\\n  }\\n\\n  /**\\n   * Delete a conversation\\n   */\\n  static async deleteConversation(id: string): Promise&lt;void&gt; {\\n    try {\\n      const conversations = await StorageService.getConversations();\\n      const filtered = conversations.filter(c =&gt; c.id !== id);\\n      \\n      const response = await StorageService.fetchWithBaseUrl('/api/storage/conversations', {\\n        method: 'POST',\\n        headers: {\\n          'Content-Type': 'application/json',\\n        },\\n        body: JSON.stringify(filtered)\\n      });\\n      \\n      if (!response.ok) {\\n        throw new Error(&#96;Failed to delete conversation: ${response.statusText}&#96;);\\n      }\\n    } catch (error) {\\n      console.error('Error deleting conversation from server, falling back to localStorage:', error);\\n      StorageService.deleteConversationFromLocalStorage(id);\\n    }\\n  }\",\n      \"score\": 0.7800438596491228,\n      \"symbols\": [],\n      \"connections\": {\n        \"imports\": [\n          \"../types\",\n          \"../types/conversation\"\n        ],\n        \"exports\": [\n          \"StorageService\"\n        ],\n        \"relatedFiles\": [\n          \"../types\",\n          \"../types/conversation\"\n        ]\n      }\n    },\n    {\n      \"file_path\": \"types/conversation.ts\",\n      \"start_line\": 1,\n      \"end_line\": 25,\n      \"language\": \"typescript\",\n      \"content\": \"interface ConversationMessage {\\n  role: 'system' | 'user' | 'assistant';\\n  content: string;\\n  timestamp: string;\\n  metadata?: {\\n    instructions?: string;\\n    sampleLetter?: string;\\n    referenceContent?: string;\\n  };\\n}\\n\\nexport interface CoverLetterConversation {\\n  id: string;\\n  analysisId: string;\\n  messages: ConversationMessage[];\\n  currentContent: string;\\n  createdAt: string;\\n  updatedAt: string;\\n}\\n\\nexport interface ConversationContext {\\n  systemMessage: ConversationMessage;\\n  analysisContext: ConversationMessage;\\n  conversationHistory: ConversationMessage[];\\n}\",\n      \"score\": 0.6462406015037594,\n      \"symbols\": [\n        \"ConversationMessage\",\n        \"CoverLetterConversation\",\n        \"ConversationContext\"\n      ],\n      \"connections\": {\n        \"imports\": [],\n        \"exports\": [\n          \"ConversationMessage\",\n          \"CoverLetterConversation\",\n          \"ConversationContext\"\n        ],\n        \"relatedFiles\": []\n      }\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "isConfirmed": {
+    "type": 3,
+    "scope": "profile"
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="mcp_deepcontext_search_codebase">
+<details>
+<summary>Tool use: **mcp_deepcontext_search_codebase**</summary>
+
+
+Parameters:
+
+```json
+{
+  "kind": "input",
+  "rawInput": {
+    "codebase_path": "/Users/michaelpaulukonis/projects/job-posting-analyzer",
+    "max_results": 5,
+    "query": "localStorage sessionStorage useState reactive state"
+  }
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "mcp_deepcontext_search_codebase",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Running &#96;search_codebase&#96;",
+  "pastTenseMessage": "Ran &#96;search_codebase&#96; ",
+  "resultDetails": {
+    "input": "{\n  \"codebase_path\": \"/Users/michaelpaulukonis/projects/job-posting-analyzer\",\n  \"max_results\": 5,\n  \"query\": \"localStorage sessionStorage useState reactive state\"\n}",
+    "output": [
+      {
+        "type": "embed",
+        "isText": true,
+        "value": "{\n  \"total_results\": 5,\n  \"search_time_ms\": 2500,\n  \"results\": [\n    {\n      \"file_path\": \"services/StorageService.ts\",\n      \"start_line\": 346,\n      \"end_line\": 379,\n      \"language\": \"typescript\",\n      \"content\": \"private static getAnalysesFromLocalStorage(): SavedAnalysis[] {\\n    if (typeof localStorage === 'undefined') {\\n      // This might be called during SSR if the primary fetch fails.\\n      // console.warn('localStorage not available, cannot get analyses from localStorage fallback.');\\n      return [];\\n    }\\n    const data = localStorage.getItem(this.STORAGE_KEY);\\n    if (!data) return [];\\n    \\n    try {\\n      return JSON.parse(data);\\n    } catch (e) {\\n      console.error('Failed to parse saved analyses from localStorage:', e);\\n      return [];\\n    }\\n  }\\n  \\n  private static deleteAnalysisFromLocalStorage(id: string): void {\\n    if (typeof localStorage === 'undefined') {\\n      console.warn('localStorage not available, cannot delete analysis from localStorage fallback.');\\n      return;\\n    }\\n    const savedAnalyses = this.getAnalysesFromLocalStorage();\\n    const updatedAnalyses = savedAnalyses.filter(analysis =&gt; analysis.id !== id);\\n    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(updatedAnalyses));\\n  }\\n  \\n  private static clearAnalysesFromLocalStorage(): void {\\n    if (typeof localStorage === 'undefined') {\\n      console.warn('localStorage not available, cannot clear analyses from localStorage fallback.');\\n      return;\\n    }\\n    localStorage.removeItem(this.STORAGE_KEY);\\n  }\",\n      \"score\": 1,\n      \"symbols\": [],\n      \"connections\": {\n        \"imports\": [\n          \"../types\",\n          \"../types/conversation\"\n        ],\n        \"exports\": [\n          \"StorageService\"\n        ],\n        \"relatedFiles\": [\n          \"../types\",\n          \"../types/conversation\"\n        ]\n      }\n    },\n    {\n      \"file_path\": \"services/StorageService.ts\",\n      \"start_line\": 417,\n      \"end_line\": 433,\n      \"language\": \"typescript\",\n      \"content\": \"private static deleteResumeFromLocalStorage(id: string): void {\\n    if (typeof localStorage === 'undefined') {\\n      console.warn('localStorage not available, cannot delete resume from localStorage fallback.');\\n      return;\\n    }\\n    const savedResumes = StorageService.getResumesFromLocalStorage();\\n    const updatedResumes = savedResumes.filter(resume =&gt; resume.id !== id);\\n    localStorage.setItem(StorageService.RESUMES_STORAGE_KEY, JSON.stringify(updatedResumes));\\n  }\\n  \\n  private static clearResumesFromLocalStorage(): void {\\n    if (typeof localStorage === 'undefined') {\\n      console.warn('localStorage not available, cannot clear resumes from localStorage fallback.');\\n      return;\\n    }\\n    localStorage.removeItem(StorageService.RESUMES_STORAGE_KEY);\\n  }\",\n      \"score\": 1,\n      \"symbols\": [],\n      \"connections\": {\n        \"imports\": [\n          \"../types\",\n          \"../types/conversation\"\n        ],\n        \"exports\": [\n          \"StorageService\"\n        ],\n        \"relatedFiles\": [\n          \"../types\",\n          \"../types/conversation\"\n        ]\n      }\n    },\n    {\n      \"file_path\": \"composables/useAnalysis.ts\",\n      \"start_line\": 10,\n      \"end_line\": 45,\n      \"language\": \"typescript\",\n      \"content\": \"function useAnalysis() {\\n  const jobPosting = reactive&lt;JobPosting&gt;({ title: '', content: '' });\\n  const resume = reactive&lt;Resume&gt;({ content: '' });\\n  const errors = reactive({ jobPosting: '', jobPostingFile: '', resume: '', resumeFile: '' });\\n  const isAnalyzing = ref(false);\\n  const error = ref('');\\n  const analysisResults = ref&lt;AnalysisResult | null&gt;(null);\\n  const savedAnalyses = ref&lt;SavedAnalysis[]&gt;([]);\\n  const selectedService = ref&lt;ServiceName&gt;(getDefaultService());\\n  const currentAnalysisId = ref&lt;string | null&gt;(null);\\n  const selectedResumeId = ref&lt;string | null&gt;(null);\\n  const savedResumes = ref&lt;ResumeEntry[]&gt;([]);\\n\\n  const showResumeNameDialog = ref(false);\\n\\n  // Refs for InputContainer components\\n  const jobPostingContainer = ref&lt;any&gt;(null); // Use 'any' or a more specific type if available\\n  const resumeContainer = ref&lt;any&gt;(null);\\n  const settingsContainer = ref&lt;any&gt;(null);\\n\\n  const router = useRouter();\\n  const route = useRoute();\\n\\n  async function loadResumes() {\\n    savedResumes.value = await StorageService.getResumes();\\n  }\\n\\n  function getDefaultService(): ServiceName {\\n    if (typeof window !== 'undefined') {\\n      const storedService = localStorage.getItem(SELECTED_SERVICE_STORAGE_KEY);\\n      if (storedService &amp;&amp; ['gemini', 'anthropic', 'openai', 'mock'].includes(storedService)) {\\n        return storedService as ServiceName;\\n      }\\n    }\\n    return 'gemini';\\n  }\",\n      \"score\": 1,\n      \"symbols\": [],\n      \"connections\": {\n        \"imports\": [\n          \"vue\",\n          \"vue-router\",\n          \"../types\",\n          \"../services/StorageService\",\n          \"~/services/LLMServiceFactory\"\n        ],\n        \"exports\": [\n          \"useAnalysis\"\n        ],\n        \"relatedFiles\": [\n          \"vue\",\n          \"vue-router\",\n          \"../types\",\n          \"../services/StorageService\",\n          \"~/services/LLMServiceFactory\"\n        ]\n      }\n    },\n    {\n      \"file_path\": \"services/StorageService.ts\",\n      \"start_line\": 638,\n      \"end_line\": 667,\n      \"language\": \"typescript\",\n      \"content\": \"private static getConversationsFromLocalStorage(): CoverLetterConversation[] {\\n    if (typeof localStorage === 'undefined') {\\n      console.warn('localStorage not available, returning empty conversations array.');\\n      return [];\\n    }\\n    \\n    try {\\n      const data = localStorage.getItem(StorageService.CONVERSATIONS_STORAGE_KEY);\\n      return data ? JSON.parse(data) : [];\\n    } catch (error) {\\n      console.error('Error reading conversations from localStorage:', error);\\n      return [];\\n    }\\n  }\\n\\n  private static deleteConversationFromLocalStorage(id: string): void {\\n    if (typeof localStorage === 'undefined') {\\n      console.warn('localStorage not available, cannot delete conversation from localStorage fallback.');\\n      return;\\n    }\\n    \\n    try {\\n      const conversations = StorageService.getConversationsFromLocalStorage();\\n      const filtered = conversations.filter(c =&gt; c.id !== id);\\n      localStorage.setItem(StorageService.CONVERSATIONS_STORAGE_KEY, JSON.stringify(filtered));\\n    } catch (error) {\\n      console.error('Error deleting conversation from localStorage:', error);\\n      // Don't throw - gracefully handle localStorage errors\\n    }\\n  }\",\n      \"score\": 1,\n      \"symbols\": [],\n      \"connections\": {\n        \"imports\": [\n          \"../types\",\n          \"../types/conversation\"\n        ],\n        \"exports\": [\n          \"StorageService\"\n        ],\n        \"relatedFiles\": [\n          \"../types\",\n          \"../types/conversation\"\n        ]\n      }\n    },\n    {\n      \"file_path\": \"services/StorageService.ts\",\n      \"start_line\": 610,\n      \"end_line\": 636,\n      \"language\": \"typescript\",\n      \"content\": \"private static saveConversationToLocalStorage(conversation: CoverLetterConversation): void {\\n    if (typeof localStorage === 'undefined') {\\n      console.warn('localStorage not available, cannot save conversation to localStorage fallback.');\\n      return;\\n    }\\n    \\n    try {\\n      const conversations = StorageService.getConversationsFromLocalStorage();\\n      const index = conversations.findIndex(c =&gt; c.id === conversation.id);\\n      \\n      if (index &gt;= 0) {\\n        conversations[index] = conversation;\\n      } else {\\n        conversations.push(conversation);\\n      }\\n      \\n      localStorage.setItem(StorageService.CONVERSATIONS_STORAGE_KEY, JSON.stringify(conversations));\\n    } catch (error) {\\n      console.error('Error saving conversation to localStorage:', error);\\n      // Don't throw - gracefully handle localStorage errors\\n    }\\n  }\\n\\n  private static getConversationFromLocalStorage(id: string): CoverLetterConversation | null {\\n    const conversations = StorageService.getConversationsFromLocalStorage();\\n    return conversations.find(c =&gt; c.id === id) || null;\\n  }\",\n      \"score\": 0.8417402269861287,\n      \"symbols\": [],\n      \"connections\": {\n        \"imports\": [\n          \"../types\",\n          \"../types/conversation\"\n        ],\n        \"exports\": [\n          \"StorageService\"\n        ],\n        \"relatedFiles\": [\n          \"../types\",\n          \"../types/conversation\"\n        ]\n      }\n    }\n  ]\n}"
+      }
+    ],
+    "isError": false
+  },
+  "isConfirmed": {
+    "type": 3,
+    "scope": "profile"
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="copilot_findTextInFiles">
+<details>
+<summary>Tool use: **copilot_findTextInFiles** • Searching text for `useState|reactive|ref\(|memory|conversation|storage` (`**/*.{ts,vue,js}`)</summary>
+
+
+Searched text for `useState|reactive|ref\(|memory|conversation|storage` (`**/*.{ts,vue,js}`), 10 results
+
+</details>
+</tool-use>
+
+---
 
 Let me search your job-posting-analyzer codebase to see how "memory" is used throughout the application. Let me search for more specific uses of memory and state management in the application: Now let me search for any reactive state or server-side memory usage: Based on my search through your job-posting-analyzer codebase, here's how "memory" is used in your application:
 

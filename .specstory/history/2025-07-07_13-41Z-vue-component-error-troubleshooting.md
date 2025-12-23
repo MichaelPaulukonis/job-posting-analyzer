@@ -46,6 +46,51 @@ Promise.then
 
 _**Agent**_
 
+<tool-use data-tool-type="search" data-tool-name="copilot_searchCodebase">
+<details>
+<summary>Tool use: **copilot_searchCodebase** • Searching .data for "There are no server-side errors logged to the console, but the browser's dev-console shows the below errors:
+
+[Vue warn]: Unhandled error during execution of mounted hook 
+  at <CoverLetterSampleSelector modelValue="" onUpdate:modelValue=fn onSelect=fn<handleSampleSelect> > 
+  at <[id] onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< 
+Proxy(Object) {__v_skip: true}
+ > > 
+  at <RouteProvider key="/cover-letter/53051969-5fd7-4332-829d-29c48ba051bc()" vnode= 
+{__v_isVNode: true, __v_skip: true, type: {…}, props: {…}, key: null, …}
+ route= 
+{fullPath: '/cover-letter/53051969-5fd7-4332-829d-29c48ba051bc', path: '/cover-letter/53051969-5fd7-4332-829d-29c48ba051bc', query: {…}, hash: '', name: 'cover-letter-id', …}
+  ... > 
+  at <RouterView name=undefined route=undefined > 
+  at <NuxtPage > 
+  at <Default ref=Ref< 
+Proxy(Object) {__v_skip: true}
+ > > 
+  at <AsyncComponentWrapper ref=Ref< 
+Proxy(Object) {__v_skip: true}
+ > > 
+  at <LayoutLoader key="default" layoutProps= 
+{ref: RefImpl}
+ name="default" > 
+  at <NuxtLayoutProvider layoutProps= 
+{ref: RefImpl}
+ key="default" name="default"  ... > 
+  at <NuxtLayout > 
+  at <App key=4 > 
+  at <NuxtRoot>
+
+CoverLetterSampleSelector.vue:51 Uncaught (in promise) TypeError: StorageService.getCoverLetterSamples is not a function
+    at CoverLetterSampleSelector.vue:51:45
+(anonymous)	@	CoverLetterSampleSelector.vue:51
+Promise.then		
+(anonymous)	@	[id].vue:284"</summary>
+
+
+No results found
+</details>
+</tool-use>
+
+---
+
 Hello! I see you're encountering a runtime error in your `CoverLetterSampleSelector` component. Based on the error message and the code you've provided, it seems there's a problem with how the client-side `StorageService` is being used.
 
 The error `TypeError: StorageService.getCoverLetterSamples is not a function` indicates that the `StorageService` you're importing in `CoverLetterSampleSelector.vue` doesn't have the static methods you're trying to call.

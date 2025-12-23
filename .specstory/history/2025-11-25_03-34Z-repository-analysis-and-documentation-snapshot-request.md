@@ -116,6 +116,527 @@ Focus on being comprehensive but concise - provide enough detail to understand t
 
 _**Agent (model copilot/gpt-4.1)**_
 
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/README.md#1-1), lines 1 to 60</summary>
+
+
+Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/README.md#1-1), lines 1 to 60
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/nuxt.config.ts)</summary>
+
+
+Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/nuxt.config.ts)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/package.json)</summary>
+
+
+Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/package.json)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/CHANGELOG.md)</summary>
+
+
+Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/CHANGELOG.md)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_listDirectory">
+<details>
+<summary>Tool use: **copilot_listDirectory**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "Users/michaelpaulukonis/projects/job-posting-analyzer/docs",
+  "relativeWorkspacePath": "docs"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_listDirectory",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/docs)",
+  "pastTenseMessage": "Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/docs)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_listDirectory">
+<details>
+<summary>Tool use: **copilot_listDirectory**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "Users/michaelpaulukonis/projects/job-posting-analyzer/server/api",
+  "relativeWorkspacePath": "api"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_listDirectory",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/server/api)",
+  "pastTenseMessage": "Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/server/api)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_listDirectory">
+<details>
+<summary>Tool use: **copilot_listDirectory**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "Users/michaelpaulukonis/projects/job-posting-analyzer/services",
+  "relativeWorkspacePath": "services"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_listDirectory",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/services)",
+  "pastTenseMessage": "Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/services)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_listDirectory">
+<details>
+<summary>Tool use: **copilot_listDirectory**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "Users/michaelpaulukonis/projects/job-posting-analyzer/types",
+  "relativeWorkspacePath": "types"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_listDirectory",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/types)",
+  "pastTenseMessage": "Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/types)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_listDirectory">
+<details>
+<summary>Tool use: **copilot_listDirectory**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "Users/michaelpaulukonis/projects/job-posting-analyzer/components",
+  "relativeWorkspacePath": "components"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_listDirectory",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/components)",
+  "pastTenseMessage": "Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/components)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_listDirectory">
+<details>
+<summary>Tool use: **copilot_listDirectory**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "Users/michaelpaulukonis/projects/job-posting-analyzer/tests",
+  "relativeWorkspacePath": "tests"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_listDirectory",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/tests)",
+  "pastTenseMessage": "Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/tests)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_listDirectory">
+<details>
+<summary>Tool use: **copilot_listDirectory**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "Users/michaelpaulukonis/projects/job-posting-analyzer/server",
+  "relativeWorkspacePath": "server"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_listDirectory",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/server)",
+  "pastTenseMessage": "Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/server)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_listDirectory">
+<details>
+<summary>Tool use: **copilot_listDirectory**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "Users/michaelpaulukonis/projects/job-posting-analyzer/pages",
+  "relativeWorkspacePath": "pages"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_listDirectory",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/pages)",
+  "pastTenseMessage": "Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/pages)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_listDirectory">
+<details>
+<summary>Tool use: **copilot_listDirectory**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "Users/michaelpaulukonis/projects/job-posting-analyzer/composables",
+  "relativeWorkspacePath": "composables"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_listDirectory",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/composables)",
+  "pastTenseMessage": "Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/composables)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_listDirectory">
+<details>
+<summary>Tool use: **copilot_listDirectory**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "Users/michaelpaulukonis/projects/job-posting-analyzer/middleware",
+  "relativeWorkspacePath": "middleware"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_listDirectory",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/middleware)",
+  "pastTenseMessage": "Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/middleware)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_createFile">
+<details>
+<summary>Tool use: **copilot_createFile**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "/Users/michaelpaulukonis/projects/job-posting-analyzer/docs/reference/repository-snapshot.md",
+  "relativeWorkspacePath": "repository-snapshot.md"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_createFile",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Creating [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/docs/reference/repository-snapshot.md)",
+  "pastTenseMessage": "Created [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/docs/reference/repository-snapshot.md)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "# Job Posting Analyzer – Repository Snapshot\n\n---\n\n## 1. Project Overview\n**Project Name:** Job Posting Analyzer\n**Purpose:** Analyze job postings and compare them to user resumes, highlighting skill matches, gaps, and providing tailored improvement suggestions. Supports cover letter generation and history tracking.\n**Technology Stack:**\n- Nuxt.js 3 (TypeScript, Composition API)\n- Tailwind CSS\n- Firebase (auth, planned for storage)\n- Google Gemini, Anthropic Claude (AI integration)\n- Jest, Playwright (testing)\n- Docker (deployment)\n**Project Type:** Web application\n**Target Audience:** Job seekers, career coaches, resume writers\n**Current Status:** Active development (v0.4.25), authentication recently added, cloud DB migration planned\n\n## 2. Architecture Summary\n**Overall Architecture:**\n- Modular Nuxt 3 app with file-based routing\n- Service-based AI integration (Gemini, Claude, Mock)\n- Firebase for authentication (client/server plugins, composables)\n- Planned migration to cloud database for resume/job data\n**Key Components:**\n- &#96;components/&#96; (UI, analysis, input, admin)\n- &#96;services/&#96; (AI, Auth, Storage, Memory)\n- &#96;server/api/&#96; (REST endpoints)\n- &#96;composables/&#96; (state, API, auth)\n- &#96;types/&#96; (TypeScript types)\n**Data Flow:**\n- User uploads resume/job posting → client-side analysis → AI service → results displayed\n- Auth via Firebase; planned DB for persistent storage\n**External Dependencies:**\n- Google Gemini, Anthropic Claude APIs\n- Firebase (auth, planned storage)\n- Tailwind, Jest, Playwright\n**Design Patterns:**\n- Service factory for AI providers\n- Composables for state/data\n- Modular SFCs (atomic design)\n\n## 3. Repository Structure Analysis\n**Directory Organization:**\n- &#96;components/&#96; (UI, subfolders by domain)\n- &#96;pages/&#96; (Nuxt file-based routing)\n- &#96;services/&#96; (AI, Auth, Storage abstractions)\n- &#96;server/api/&#96; (API endpoints)\n- &#96;types/&#96; (TypeScript types)\n- &#96;composables/&#96; (shared logic)\n- &#96;middleware/&#96; (route guards)\n- &#96;docs/&#96; (documentation, plans, reference)\n**Key Files/Dirs:**\n- &#96;nuxt.config.ts&#96;, &#96;package.json&#96;, &#96;Dockerfile&#96;, &#96;jest.config.js&#96;, &#96;playwright.config.ts&#96;\n- &#96;README.md&#96;, &#96;CHANGELOG.md&#96;\n**Config Files:**\n- &#96;.nvmrc&#96;, &#96;.envrc&#96;, &#96;.env&#96;, &#96;nuxt.config.ts&#96;, &#96;docker-compose*.yml&#96;\n**Entry Points:**\n- &#96;app.vue&#96;, &#96;pages/index.vue&#96;, &#96;nuxt.config.ts&#96;\n**Build/Deploy:**\n- Docker, Nuxt build/generate, scripts in &#96;package.json&#96;\n\n## 4. Feature Analysis\n**Core Features:**\n- Resume/job posting analysis (AI-powered)\n- Skill match/gap detection\n- Cover letter generation\n- Analysis history\n- Authentication (Firebase)\n**User Workflows:**\n- Upload/paste resume/job → analyze → view results → save history → generate cover letter\n**API Endpoints:**\n- &#96;server/api/&#96; (analyze, auth, cover-letter, storage)\n**Database Schema:**\n- Not yet implemented; planned for cloud DB (Firebase/other)\n**Authentication:**\n- Firebase (client/server plugins, composables, middleware)\n\n## 5. Development Setup\n**Prerequisites:**\n- Node.js 23+, nvm, direnv\n- npm\n**Installation:**\n1. &#96;brew install nvm direnv&#96;\n2. &#96;direnv allow&#96; in project dir\n3. &#96;npm install&#96;\n**Workflow:**\n- Nuxt dev server, Docker for deployment\n- API keys for Gemini, Anthropic, Firebase\n**Testing:**\n- Jest (unit), Playwright (e2e)\n- Mocks for Firebase\n**Code Quality:**\n- ESLint, Prettier, strict TypeScript\n\n## 6. Documentation Assessment\n**README:**\n- Covers setup, environment, basic usage\n- Needs more on features, architecture, API, deployment\n**Code Docs:**\n- Some inline comments, service README\n**API Docs:**\n- Minimal; endpoints in &#96;server/api/&#96;\n**Architecture Docs:**\n- Some notes in &#96;docs/&#96;, needs expansion\n**User Docs:**\n- Lacking; no end-user guides\n\n## 7. Missing Documentation Suggestions\n- **PRD:** &#96;/docs/requirements/PRD.md&#96;\n- **ADRs:** &#96;/docs/decisions/&#96;\n- **API Docs:** &#96;/docs/api/&#96;\n- **Deployment Guide:** &#96;/docs/deployment/&#96;\n- **Changelog:** &#96;CHANGELOG.md&#96;\n- **Security Policy:** &#96;SECURITY.md&#96;\n\n## 8. Technical Debt and Improvements\n**Code Quality:**\n- Auth added late; needs refactor for consistency\n- Some duplicated logic in services/composables\n**Performance:**\n- No major bottlenecks, but DB migration may impact\n**Security:**\n- Auth flows improved, but review needed for token handling, error messages\n**Scalability:**\n- Current local storage; cloud DB migration needed\n**Dependencies:**\n- Generally up-to-date; review for unused packages\n\n## 9. Project Health Metrics\n**Complexity:** Moderate (modular, but some late additions)\n**Test Coverage:** Good for auth, needs more for analysis/AI\n**Docs Coverage:** Partial; key gaps in API, architecture, user guides\n**Maintainability:** Medium; modular, but auth/db refactor needed\n**Technical Debt:** Moderate; auth integration, planned DB migration\n\n## 10. Recommendations and Next Steps\n**Critical Issues:**\n- Refactor authentication for consistency\n- Plan/execute cloud DB migration\n- Harden security (token, error handling)\n**Docs:**\n- Expand README, add PRD, ADRs, API, deployment, security docs\n**Code Quality:**\n- Remove duplication, improve composable/service structure\n**Feature Gaps:**\n- User guides, DB-backed history, admin features\n**Infrastructure:**\n- CI/CD, monitoring, deployment docs\n\n---\n\n## Quick Start Guide\n1. Install prerequisites: &#96;brew install nvm direnv&#96;\n2. Allow direnv: &#96;direnv allow&#96;\n3. Install deps: &#96;npm install&#96; &amp; configure API keys\n\n## Related Resources\n- [Nuxt 3 Docs](https://nuxt.com/docs)\n- [Firebase Auth Docs](https://firebase.google.com/docs/auth)\n- [Google Gemini API](https://ai.google.dev/gemini-api/docs)\n- [Anthropic Claude API](https://docs.anthropic.com/claude/docs)\n\n## Project Roadmap (from code &amp; docs)\n- Refactor authentication\n- Migrate to cloud DB\n- Expand analysis features\n- Add admin/history management\n- Improve documentation\n\n---\n\n## Documentation Template Suggestions\n- **README:** Project overview, setup, features, architecture, API, deployment, contributing, changelog\n- **PRD:** &#96;/docs/requirements/PRD.md&#96; – Problem, requirements, approach, steps, risks, dependencies\n- **Architecture:** &#96;/docs/architecture/&#96; – System diagram, components, data flow, decisions\n- **API Docs:** &#96;/docs/api/&#96; – Endpoint list, request/response, auth, error handling\n\n---\n\n## Auth &amp; DB Migration Decision\nGiven auth was added late and DB migration is planned, a full rewrite is not strictly required. However, a focused refactor of authentication and a clean DB integration (with proper types, error handling, and migration plan) is strongly recommended before further feature development. This will improve maintainability and scalability without losing current progress.\n\n---\n\n*Generated by GitHub Copilot (GPT-4.1) on 2025-11-24*\n",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
 Repository analysis complete. A comprehensive high-level snapshot has been saved to `repository-snapshot.md`. This document covers project structure, key components, technical debt, documentation gaps, and prioritized recommendations—including guidance on authentication and database migration.
 
 Let me know if you want a summary, specific details, or help with next steps.
