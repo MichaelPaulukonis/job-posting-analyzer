@@ -165,7 +165,7 @@ export default defineEventHandler(async (event) => {
   } catch (error: unknown) {
     // Always log full error object
     // eslint-disable-next-line no-console
-    console.error('Error in cover letter generation API:', error);
+    console.error('Error in cover letter generation API:', JSON.stringify(error, null, 2));
     const isDev = process.env.NODE_ENV !== 'production';
     let errorPayload: any = {
       message: error instanceof Error ? error.message : String(error),
