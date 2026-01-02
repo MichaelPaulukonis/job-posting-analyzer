@@ -104,19 +104,17 @@ export const formatConversationForAI = (
  */
 export const formatCoverLetterConversationForAI = (
   conversation: CoverLetterConversation
-): { systemInstruction: string; messages: { role: 'user' | 'assistant'; content: string }[] } => {
-  // Find the first system message
+): { systemInstruction: string; messages: { role: string; content: string }[] } => {
+  // Find the system message (should be the first message)
   const systemMessage = conversation.messages.find(m => m.role === 'system');
   
   // Get all non-system messages for the conversation flow
-  const conversationMessages = conversation.messages.filter(
-    m => m.role === 'user' || m.role === 'assistant'
-  );
+  const conversationMessages = conversation.messages.filter(m => m.role !== 'system');
 
   return {
     systemInstruction: systemMessage?.content || 'You are a professional cover letter writer.',
     messages: conversationMessages.map(msg => ({
-      role: msg.role as 'user' | 'assistant',
+      role: msg.role,
       content: msg.content
     }))
   };
