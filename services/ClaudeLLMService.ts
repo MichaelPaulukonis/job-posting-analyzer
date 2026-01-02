@@ -10,7 +10,7 @@ export class ClaudeLLMService extends BaseLLMService implements LLMServiceInterf
   // private claude: anthropic;
   private model: string;
   
-  constructor(apiKey: string, model: string = 'claude-3-7-sonnet-20250219') {
+  constructor(apiKey: string, model: string = 'claude-haiku-4-5') {
     super();
     // this.claude = new anthropic({ apiKey });
     this.model = model;
