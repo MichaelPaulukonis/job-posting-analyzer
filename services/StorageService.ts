@@ -45,23 +45,32 @@ export class StorageService {
     }
   }
 
-  private static async fetchWithBaseUrl(path: string, options?: RequestInit) {
+  private static async fetchWithBaseUrl(path: string, options?: RequestInit, event?: any) {
     const baseUrl = this.getBaseUrl();
     if (!baseUrl) {
       // getBaseUrl() already logs an error if it returns an empty string.
       throw new Error(`Cannot fetch from API: Base URL is not configured or could not be determined. Attempted path: ${path}`);
     }
     const url = `${baseUrl}${path}`;
-    return $fetch(url, options);
+    
+    const headers: HeadersInit = { ...options?.headers };
+    if (event) {
+      const authHeader = event.node.req.headers['authorization'];
+      if (authHeader) {
+        headers['authorization'] = authHeader;
+      }
+    }
+
+    return $fetch(url, { ...options, headers });
   }
 
   /**
    * Save an analysis result to file storage
    */
-  static async saveAnalysis(result: AnalysisResult, jobPosting: JobPosting, resume: Resume): Promise<SavedAnalysis> {
+  static async saveAnalysis(result: AnalysisResult, jobPosting: JobPosting, resume: Resume, event?: any): Promise<SavedAnalysis> {
     try {
       // Get current analyses
-      const savedAnalyses = await this.getAnalyses();
+      const savedAnalyses = await this.getAnalyses(event);
       
       // Create new analysis object with complete job posting and resume
       const analysisToSave: SavedAnalysis = {
@@ -86,13 +95,13 @@ export class StorageService {
       const trimmedAnalyses = savedAnalyses.slice(0, 10);
       
       // Save to server
-      await $fetch('/api/storage', {
+      await this.fetchWithBaseUrl('/api/storage', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(trimmedAnalyses)
-      });
+      }, event);
 
       this.syncAnalysesToLocalStorage(trimmedAnalyses);
       
@@ -108,10 +117,10 @@ export class StorageService {
   /**
    * Save a cover letter for an analysis
    */
-  static async saveCoverLetter(analysisId: string, coverLetter: CoverLetter): Promise<void> {
+  static async saveCoverLetter(analysisId: string, coverLetter: CoverLetter, event?: any): Promise<void> {
     try {
       // Get current analyses
-      const savedAnalyses = await this.getAnalyses();
+      const savedAnalyses = await this.getAnalyses(event);
       
       // Find the analysis to update
       const analysisIndex = savedAnalyses.findIndex(a => a.id === analysisId);
@@ -124,13 +133,13 @@ export class StorageService {
       savedAnalyses[analysisIndex].coverLetter = coverLetter;
       
       // Save to server
-      await $fetch('/api/storage', {
+      await this.fetchWithBaseUrl('/api/storage', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(savedAnalyses)
-      });
+      }, event);
 
       this.syncAnalysesToLocalStorage(savedAnalyses);
       
@@ -143,11 +152,11 @@ export class StorageService {
   /**
    * Get all saved analyses
    */
-  static async getAnalyses(): Promise<SavedAnalysis[]> {
+  static async getAnalyses(event?: any): Promise<SavedAnalysis[]> {
     try {
-      const serverAnalyses = await $fetch<SavedAnalysis[]>('/api/storage');
+      const serverAnalyses = await this.fetchWithBaseUrl('/api/storage', {}, event);
 
-      const normalizedAnalyses = this.normalizeAnalyses(serverAnalyses);
+      const normalizedAnalyses = this.normalizeAnalyses(serverAnalyses as SavedAnalysis[]);
 
       if (!normalizedAnalyses.length && serverAnalyses && !Array.isArray(serverAnalyses)) {
         console.warn('StorageService.getAnalyses: Server returned invalid analyses format, falling back to cache.');
@@ -166,12 +175,12 @@ export class StorageService {
   /**
    * Delete a specific analysis
    */
-  static async deleteAnalysis(id: string): Promise<void> {
+  static async deleteAnalysis(id: string, event?: any): Promise<void> {
     try {
       // Delete from server
-      await $fetch(`/api/storage/${id}`, {
+      await this.fetchWithBaseUrl(`/api/storage/${id}`, {
         method: 'DELETE'
-      });
+      }, event);
 
       this.deleteAnalysisFromLocalStorage(id);
     } catch (error) {
@@ -184,12 +193,12 @@ export class StorageService {
   /**
    * Clear all saved analyses
    */
-  static async clearAnalyses(): Promise<void> {
+  static async clearAnalyses(event?: any): Promise<void> {
     try {
       // Clear from server
-      await $fetch('/api/storage', {
+      await this.fetchWithBaseUrl('/api/storage', {
         method: 'DELETE'
-      });
+      }, event);
 
       this.clearAnalysesFromLocalStorage();
     } catch (error) {
@@ -202,10 +211,10 @@ export class StorageService {
   /**
    * Save a resume to storage
    */
-  static async saveResume(resume: ResumeEntry): Promise<string> {
+  static async saveResume(resume: ResumeEntry, event?: any): Promise<string> {
     try {
       // Get current resumes
-      const savedResumes = await StorageService.getResumes();
+      const savedResumes = await StorageService.getResumes(event);
       
       // Add to the beginning of the array
       savedResumes.unshift(resume);
@@ -214,13 +223,13 @@ export class StorageService {
       const trimmedResumes = savedResumes.slice(0, 10);
       
       // Save to server
-      await $fetch('/api/resumes', {
+      await this.fetchWithBaseUrl('/api/resumes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(trimmedResumes)
-      });
+      }, event);
       
       return resume.id;
     } catch (error) {
@@ -233,14 +242,14 @@ export class StorageService {
   /**
    * Get all saved resumes
    */
- static async getResumes(): Promise<ResumeEntry[]> {
+ static async getResumes(event?: any): Promise<ResumeEntry[]> {
     try {
       console.log('StorageService.getResumes: Attempting to fetch from server...');
       // Fetch from server
-      const serverResumes = await $fetch<ResumeEntry[]>('/api/resumes');
+      const serverResumes = await this.fetchWithBaseUrl('/api/resumes', {}, event);
 
-      console.log('StorageService.getResumes: Server returned', serverResumes.length, 'resumes');
-      return serverResumes || [];
+      console.log('StorageService.getResumes: Server returned', (serverResumes as ResumeEntry[]).length, 'resumes');
+      return (serverResumes as ResumeEntry[]) || [];
     } catch (error) {
       console.log('StorageService.getResumes: Server fetch failed, falling back to localStorage...');
       // console.error('Error fetching resumes:', error);
@@ -254,12 +263,12 @@ export class StorageService {
   /**
    * Delete a specific resume
    */
-  static async deleteResume(id: string): Promise<void> {
+  static async deleteResume(id: string, event?: any): Promise<void> {
     try {
       // Delete from server
-      await $fetch(`/api/resumes/${id}`, {
+      await this.fetchWithBaseUrl(`/api/resumes/${id}`, {
         method: 'DELETE'
-      });
+      }, event);
     } catch (error) {
       console.error('Error deleting resume:', error);
       // Fallback to localStorage if server delete fails
@@ -270,12 +279,12 @@ export class StorageService {
   /**
    * Clear all saved resumes
    */
-  static async clearResumes(): Promise<void> {
+  static async clearResumes(event?: any): Promise<void> {
     try {
       // Clear from server
-      await $fetch('/api/resumes', {
+      await this.fetchWithBaseUrl('/api/resumes', {
         method: 'DELETE'
-      });
+      }, event);
     } catch (error) {
       console.error('Error clearing resumes:', error);
       // Fallback to localStorage if server clear fails
@@ -286,11 +295,11 @@ export class StorageService {
   /**
    * Get all saved cover letter samples
    */
-  static async getCoverLetterSamples(): Promise<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>> {
+  static async getCoverLetterSamples(event?: any): Promise<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>> {
     try {
       // Fetch from server
-      const samples = await $fetch<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>>('/api/cover-letter-samples');
-      return samples || [];
+      const samples = await this.fetchWithBaseUrl('/api/cover-letter-samples', {}, event);
+      return (samples as Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>) || [];
     } catch (error) {
       return StorageService.getCoverLetterSamplesFromLocalStorage();
     }
@@ -299,12 +308,12 @@ export class StorageService {
   /**
    * Delete a specific cover letter sample
    */
-  static async deleteCoverLetterSample(id: string): Promise<void> {
+  static async deleteCoverLetterSample(id: string, event?: any): Promise<void> {
     try {
       // Delete from server
-      await $fetch(`/api/cover-letter-samples/${id}`, {
+      await this.fetchWithBaseUrl(`/api/cover-letter-samples/${id}`, {
         method: 'DELETE'
-      });
+      }, event);
     } catch (error) {
       console.error('Error deleting cover letter sample:', error);
       // Fallback to localStorage if server delete fails
@@ -537,16 +546,16 @@ export class StorageService {
   /**
    * Save a conversation to storage
    */
-  static async saveConversation(conversation: CoverLetterConversation): Promise<void> {
+  static async saveConversation(conversation: CoverLetterConversation, event?: any): Promise<void> {
     try {
       // Try to save to server first
-      const response = await $fetch('/api/storage/conversations', {
+      await this.fetchWithBaseUrl('/api/storage/conversations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(conversation)
-      });
+      }, event);
       
     } catch (error) {
       console.error('Error saving conversation to server, falling back to localStorage:', error);
@@ -558,9 +567,9 @@ export class StorageService {
   /**
    * Get a conversation by ID
    */
-  static async getConversation(id: string): Promise<CoverLetterConversation | null> {
+  static async getConversation(id: string, event?: any): Promise<CoverLetterConversation | null> {
     try {
-      const conversations = await StorageService.getConversations();
+      const conversations = await StorageService.getConversations(event);
       return conversations.find(c => c.id === id) || null;
     } catch (error) {
       console.error('Error getting conversation:', error);
@@ -571,9 +580,9 @@ export class StorageService {
   /**
    * Get all conversations
    */
-  static async getConversations(): Promise<CoverLetterConversation[]> {
+  static async getConversations(event?: any): Promise<CoverLetterConversation[]> {
     try {
-      const response = await $fetch('/api/storage/conversations');
+      const response = await this.fetchWithBaseUrl('/api/storage/conversations', {}, event);
       if (response) {
         return response as CoverLetterConversation[];
       } else {
@@ -589,18 +598,18 @@ export class StorageService {
   /**
    * Delete a conversation
    */
-  static async deleteConversation(id: string): Promise<void> {
+  static async deleteConversation(id: string, event?: any): Promise<void> {
     try {
-      const conversations = await StorageService.getConversations();
+      const conversations = await StorageService.getConversations(event);
       const filtered = conversations.filter(c => c.id !== id);
       
-      await $fetch('/api/storage/conversations', {
+      await this.fetchWithBaseUrl('/api/storage/conversations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(filtered)
-      });
+      }, event);
       
     } catch (error) {
       console.error('Error deleting conversation from server, falling back to localStorage:', error);
@@ -611,22 +620,22 @@ export class StorageService {
   /**
    * Link a conversation to an analysis
    */
-  static async linkConversationToAnalysis(analysisId: string, conversationId: string): Promise<void> {
+  static async linkConversationToAnalysis(analysisId: string, conversationId: string, event?: any): Promise<void> {
     try {
-      const analyses = await StorageService.getAnalyses();
+      const analyses = await StorageService.getAnalyses(event);
       const analysis = analyses.find(a => a.id === analysisId);
       
       if (analysis) {
         analysis.conversationId = conversationId;
         
         // Save the updated analysis
-        await $fetch('/api/storage', {
+        await this.fetchWithBaseUrl('/api/storage', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(analyses)
-        });
+        }, event);
         
       }
     } catch (error) {
