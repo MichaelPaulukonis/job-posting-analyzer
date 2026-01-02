@@ -52,7 +52,7 @@ export class StorageService {
       throw new Error(`Cannot fetch from API: Base URL is not configured or could not be determined. Attempted path: ${path}`);
     }
     const url = `${baseUrl}${path}`;
-    return fetch(url, options);
+    return $fetch(url, options);
   }
 
   /**
@@ -86,7 +86,7 @@ export class StorageService {
       const trimmedAnalyses = savedAnalyses.slice(0, 10);
       
       // Save to server
-      await useAPIFetch('/api/storage', {
+      await $fetch('/api/storage', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,7 +124,7 @@ export class StorageService {
       savedAnalyses[analysisIndex].coverLetter = coverLetter;
       
       // Save to server
-      await useAPIFetch('/api/storage', {
+      await $fetch('/api/storage', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,22 +145,18 @@ export class StorageService {
    */
   static async getAnalyses(): Promise<SavedAnalysis[]> {
     try {
-      const asyncData = await useAPIFetch<SavedAnalysis[]>('/api/storage');
+      const serverAnalyses = await $fetch<SavedAnalysis[]>('/api/storage');
 
-      if (asyncData.error.value) {
-        throw asyncData.error.value;
-      }
+      const normalizedAnalyses = this.normalizeAnalyses(serverAnalyses);
 
-      const serverAnalyses = this.normalizeAnalyses(asyncData.data.value);
-
-      if (!serverAnalyses.length && asyncData.data.value && !Array.isArray(asyncData.data.value)) {
+      if (!normalizedAnalyses.length && serverAnalyses && !Array.isArray(serverAnalyses)) {
         console.warn('StorageService.getAnalyses: Server returned invalid analyses format, falling back to cache.');
         return this.getAnalysesFromLocalStorage();
       }
 
-      this.syncAnalysesToLocalStorage(serverAnalyses);
+      this.syncAnalysesToLocalStorage(normalizedAnalyses);
 
-      return serverAnalyses;
+      return normalizedAnalyses;
     } catch (error) {
       console.warn('StorageService.getAnalyses: Failed to fetch from server, using local cache.', error);
       return this.getAnalysesFromLocalStorage();
@@ -173,7 +169,7 @@ export class StorageService {
   static async deleteAnalysis(id: string): Promise<void> {
     try {
       // Delete from server
-      await useAPIFetch(`/api/storage/${id}`, {
+      await $fetch(`/api/storage/${id}`, {
         method: 'DELETE'
       });
 
@@ -191,7 +187,7 @@ export class StorageService {
   static async clearAnalyses(): Promise<void> {
     try {
       // Clear from server
-      await useAPIFetch('/api/storage', {
+      await $fetch('/api/storage', {
         method: 'DELETE'
       });
 
@@ -218,7 +214,7 @@ export class StorageService {
       const trimmedResumes = savedResumes.slice(0, 10);
       
       // Save to server
-      await useAPIFetch('/api/resumes', {
+      await $fetch('/api/resumes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -241,16 +237,10 @@ export class StorageService {
     try {
       console.log('StorageService.getResumes: Attempting to fetch from server...');
       // Fetch from server
-      const asyncData = await useAPIFetch<ResumeEntry[]>('/api/resumes');
+      const serverResumes = await $fetch<ResumeEntry[]>('/api/resumes');
 
-      if (asyncData.error.value) {
-        console.error('Error fetching resumes (useAPIFetch):', asyncData.error.value);
-        throw asyncData.error.value; // Re-throw to be caught by the outer catch block
-      }
-      // data.value can be T | null. Return an empty array if null.
-      const serverResumes = asyncData.data.value || [];
       console.log('StorageService.getResumes: Server returned', serverResumes.length, 'resumes');
-      return serverResumes;
+      return serverResumes || [];
     } catch (error) {
       console.log('StorageService.getResumes: Server fetch failed, falling back to localStorage...');
       // console.error('Error fetching resumes:', error);
@@ -267,7 +257,7 @@ export class StorageService {
   static async deleteResume(id: string): Promise<void> {
     try {
       // Delete from server
-      await useAPIFetch(`/api/resumes/${id}`, {
+      await $fetch(`/api/resumes/${id}`, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -283,7 +273,7 @@ export class StorageService {
   static async clearResumes(): Promise<void> {
     try {
       // Clear from server
-      await useAPIFetch('/api/resumes', {
+      await $fetch('/api/resumes', {
         method: 'DELETE'
       });
     } catch (error) {
@@ -299,13 +289,8 @@ export class StorageService {
   static async getCoverLetterSamples(): Promise<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>> {
     try {
       // Fetch from server
-      const asyncData = await useAPIFetch<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>>('/api/cover-letter-samples');
-
-      if (asyncData.error.value) {
-        console.error('Error fetching cover letter samples (useAPIFetch):', asyncData.error.value);
-        throw asyncData.error.value;
-      }
-      return asyncData.data.value || [];
+      const samples = await $fetch<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>>('/api/cover-letter-samples');
+      return samples || [];
     } catch (error) {
       return StorageService.getCoverLetterSamplesFromLocalStorage();
     }
@@ -317,7 +302,7 @@ export class StorageService {
   static async deleteCoverLetterSample(id: string): Promise<void> {
     try {
       // Delete from server
-      await useAPIFetch(`/api/cover-letter-samples/${id}`, {
+      await $fetch(`/api/cover-letter-samples/${id}`, {
         method: 'DELETE'
       });
     } catch (error) {
@@ -555,7 +540,7 @@ export class StorageService {
   static async saveConversation(conversation: CoverLetterConversation): Promise<void> {
     try {
       // Try to save to server first
-      const response = await StorageService.fetchWithBaseUrl('/api/storage/conversations', {
+      const response = await $fetch('/api/storage/conversations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -563,9 +548,6 @@ export class StorageService {
         body: JSON.stringify(conversation)
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to save conversation: ${response.statusText}`);
-      }
     } catch (error) {
       console.error('Error saving conversation to server, falling back to localStorage:', error);
       // Fallback to localStorage
@@ -591,9 +573,9 @@ export class StorageService {
    */
   static async getConversations(): Promise<CoverLetterConversation[]> {
     try {
-      const response = await StorageService.fetchWithBaseUrl('/api/storage/conversations');
-      if (response.ok) {
-        return await response.json();
+      const response = await $fetch('/api/storage/conversations');
+      if (response) {
+        return response as CoverLetterConversation[];
       } else {
         console.warn('Server storage not available for conversations, falling back to localStorage');
         return StorageService.getConversationsFromLocalStorage();
@@ -612,7 +594,7 @@ export class StorageService {
       const conversations = await StorageService.getConversations();
       const filtered = conversations.filter(c => c.id !== id);
       
-      const response = await StorageService.fetchWithBaseUrl('/api/storage/conversations', {
+      await $fetch('/api/storage/conversations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -620,9 +602,6 @@ export class StorageService {
         body: JSON.stringify(filtered)
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to delete conversation: ${response.statusText}`);
-      }
     } catch (error) {
       console.error('Error deleting conversation from server, falling back to localStorage:', error);
       StorageService.deleteConversationFromLocalStorage(id);
@@ -641,7 +620,7 @@ export class StorageService {
         analysis.conversationId = conversationId;
         
         // Save the updated analysis
-        const response = await StorageService.fetchWithBaseUrl('/api/storage', {
+        await $fetch('/api/storage', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -649,9 +628,6 @@ export class StorageService {
           body: JSON.stringify(analyses)
         });
         
-        if (!response.ok) {
-          throw new Error(`Failed to link conversation to analysis: ${response.statusText}`);
-        }
       }
     } catch (error) {
       console.error('Error linking conversation to analysis:', error);
