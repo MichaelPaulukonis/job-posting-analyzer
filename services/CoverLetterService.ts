@@ -54,62 +54,15 @@ export class CoverLetterService {
    * Generate a cover letter based on analysis results
    */
   static async generateCoverLetter(
-    analysis: SavedAnalysis, 
-    sampleLetter?: string,
-    instructions?: string,
-    referenceContent?: string,
-    serviceName?: ServiceName
-  ): Promise<CoverLetter> {
-    try {
-      // Call our server API endpoint
-      const response = await CoverLetterService.fetchWithBaseUrl('/api/cover-letter/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          analysis,
-          sampleLetter,
-          instructions,
-          referenceContent,
-          serviceName,
-          isNewConversation: true
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error generating cover letter');
-      }
-      
-      const result = await response.json();
-      return {
-        content: result.content,
-        timestamp: result.timestamp,
-        conversationId: result.conversationId,
-        sampleContent: sampleLetter,
-        instructions,
-        history: [],
-        editedSections: []
-      };
-    } catch (error) {
-      console.error('Cover letter service error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Generate a cover letter with conversation context
-   */
-  static async generateCoverLetterWithContext(
     analysis: SavedAnalysis,
-    conversationId: string,
+    conversationId?: string,
     sampleLetter?: string,
     instructions?: string,
     referenceContent?: string,
     serviceName?: ServiceName
   ): Promise<{ coverLetter: CoverLetter; conversation: CoverLetterConversation }> {
     try {
+      const isNewConversation = !conversationId;
       const response = await CoverLetterService.fetchWithBaseUrl('/api/cover-letter/generate', {
         method: 'POST',
         headers: {
@@ -122,7 +75,7 @@ export class CoverLetterService {
           referenceContent,
           serviceName,
           conversationId,
-          isNewConversation: false,
+          isNewConversation,
         }),
       });
 
