@@ -116,7 +116,7 @@ async function analyzeWithAnthropic(jobPosting: any, resume: any, config: any) {
     // });
     
     const response = await generateText({
-      model: anthropic(config.anthropicModel || 'claude-3-sonnet-20240229'),
+      model: anthropic(config.anthropicModel || 'claude-haiku-4-5'),
       system: "You are a professional resume analysis assistant. Analyze the job posting and resume to identify matches, gaps, and provide suggestions.",
       messages: [
         { 
