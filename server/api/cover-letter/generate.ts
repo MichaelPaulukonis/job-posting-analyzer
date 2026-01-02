@@ -9,6 +9,7 @@ import { generateText } from 'ai';
 import { requireAuth } from '~/server/utils/verifyToken';
 
 export default defineEventHandler(async (event) => {
+  let conversation: CoverLetterConversation | null = null;
   try {
     await requireAuth(event);
     const config = useRuntimeConfig();
@@ -47,11 +48,9 @@ export default defineEventHandler(async (event) => {
     });
 
     // Handle conversation context
-    let conversation: CoverLetterConversation;
-    
     if (conversationId && !isNewConversation) {
       // Continue existing conversation
-      const existingConversation = await StorageService.getConversation(conversationId);
+      const existingConversation = await StorageService.getConversation(conversationId, event);
       if (!existingConversation) {
         throw createError({
           statusCode: 404,
@@ -148,19 +147,12 @@ export default defineEventHandler(async (event) => {
     conversation.updatedAt = new Date().toISOString();
 
     // Save the conversation
-    await StorageService.saveConversation(conversation);
+    await StorageService.saveConversation(conversation, event);
 
     // Link conversation to analysis if not already linked
     if (analysis.conversationId !== conversation.id) {
-      await StorageService.linkConversationToAnalysis(analysis.id, conversation.id);
+      await StorageService.linkConversationToAnalysis(analysis.id, conversation.id, event);
     }
-
-    console.log('Cover letter generated successfully');
-    return {
-      content: generatedText,
-      conversationId: conversation.id,
-      timestamp: new Date().toISOString()
-    };
 
   } catch (error: unknown) {
     // Always log full error object
@@ -185,5 +177,10 @@ export default defineEventHandler(async (event) => {
       data: errorPayload,
       message: errorPayload.message
     });
+  } finally {
+    if (conversation) {
+      console.log('Cover letter generated successfully');
+      return conversation;
+    }
   }
 });
