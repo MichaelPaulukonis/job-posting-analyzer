@@ -51,17 +51,19 @@ export class StorageService {
       // getBaseUrl() already logs an error if it returns an empty string.
       throw new Error(`Cannot fetch from API: Base URL is not configured or could not be determined. Attempted path: ${path}`);
     }
-    const url = `${baseUrl}${path}`;
     
-    const headers: HeadersInit = { ...options?.headers };
-    if (event) {
-      const authHeader = event.node.req.headers['authorization'];
-      if (authHeader) {
-        headers['authorization'] = authHeader;
+    if (process.client) {
+      return useAPIFetch(path, options);
+    } else {
+      const headers: HeadersInit = { ...options?.headers };
+      if (event) {
+        const authHeader = event.node.req.headers['authorization'];
+        if (authHeader) {
+          headers['authorization'] = authHeader;
+        }
       }
+      return $fetch(path, { ...options, headers, baseURL: baseUrl });
     }
-
-    return $fetch(url, { ...options, headers });
   }
 
   /**
