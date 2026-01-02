@@ -87,22 +87,16 @@ export class CoverLetterService {
       const result = await response.json();
 
       const coverLetter: CoverLetter = {
-        content: result.content,
-        timestamp: result.timestamp,
-        conversationId: result.conversationId,
+        content: result.currentContent,
+        timestamp: result.updatedAt,
+        conversationId: result.id,
         sampleContent: sampleLetter,
         instructions,
         history: [],
         editedSections: [],
       };
 
-      const updatedConversation = await StorageService.getConversation(result.conversationId);
-
-      if (!updatedConversation) {
-        throw new Error(`Failed to retrieve conversation with id: ${result.conversationId}`);
-      }
-
-      return { coverLetter, conversation: updatedConversation };
+      return { coverLetter, conversation: result };
     } catch (error) {
       console.error('Cover letter service error:', error);
       throw error;
