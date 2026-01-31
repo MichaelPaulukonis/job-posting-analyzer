@@ -3535,7 +3535,7 @@ GEMINI_MODEL = gemini-2.5-pro
 #GEMINI_MODEL=gemini-2.5-pro-preview-06-05
 #GEMINI_MODEL=gemini-2.5-flash-preview-04-1
 #GEMINI_MODEL=gemini-2.5-pro-preview-05-06
-ANTHROPIC_API_KEY=[REDACTED]
+ANTHROPIC_API_KEY=<foo>
 ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
 # OpenAI
 # OPENAI_API_KEY=your-api-key
@@ -3632,7 +3632,7 @@ GEMINI_MODEL = gemini-2.5-pro
 #GEMINI_MODEL=gemini-2.5-pro-preview-06-05
 #GEMINI_MODEL=gemini-2.5-flash-preview-04-1
 #GEMINI_MODEL=gemini-2.5-pro-preview-05-06
-ANTHROPIC_API_KEY=[REDACTED]
+ANTHROPIC_API_KEY=<foo>>
 ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
 # OpenAI
 # OPENAI_API_KEY=your-api-key

@@ -16,3 +16,5 @@ export const useState = <T>(key: string, init?: () => T) => {
   const state = { key, value: init ? init() : undefined } as { key: string; value: T };
   return state;
 };
+export const $fetch = jest.fn(() => Promise.resolve({}));
+export const defineNuxtRouteMiddleware = (fn: any) => fn;

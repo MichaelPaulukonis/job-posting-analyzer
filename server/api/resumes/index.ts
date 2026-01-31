@@ -8,9 +8,22 @@ export default defineEventHandler(async (event) => {
   // GET request to retrieve all resumes
   if (method === 'GET') {
     try {
-      return resumeRepository.getAll();
+      console.log('[API] Fetching all resumes...');
+      const resumes = resumeRepository.getAll();
+      console.log(`[API] Retrieved ${resumes.length} resumes`);
+      
+      // Ensure we always return an array
+      if (!Array.isArray(resumes)) {
+        console.error('[API] ERROR: Repository returned non-array:', typeof resumes, resumes);
+        return [];
+      }
+      
+      return resumes;
     } catch (error) {
-      console.error('Error reading resumes:', error);
+      console.error('[API] Error reading resumes:', error);
+      console.error('[API] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('[API] Error message:', error instanceof Error ? error.message : String(error));
+      console.error('[API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       throw createError({
         statusCode: 500,
         message: 'Error reading resumes data'

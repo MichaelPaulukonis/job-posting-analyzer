@@ -4332,8 +4332,8 @@ Result:
     "type": 3,
     "scope": "profile"
   },
-  "content": "&#96;&#96;&#96;dotenv\nANTHROPIC_API_KEY=[REDACTED]\nANTHROPIC_MODEL=claude-3-sonnet-20240229\n&#96;&#96;&#96;\n\n",
-  "textEditContent": "ANTHROPIC_API_KEY=[REDACTED]\nANTHROPIC_MODEL=claude-3-sonnet-20240229",
+  "content": "&#96;&#96;&#96;dotenv\nANTHROPIC_API_KEY=<foo>\nANTHROPIC_MODEL=claude-3-sonnet-20240229\n&#96;&#96;&#96;\n\n",
+  "textEditContent": "ANTHROPIC_API_KEY=<foo>\nANTHROPIC_MODEL=claude-3-sonnet-20240229",
   "toolCallResult": null
 }
 ```

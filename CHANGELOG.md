@@ -2,7 +2,21 @@
 
 ## Unreleased
 
+### Fixed
+
+- fix(storage): Resolve AsyncData wrapper handling in client data fetching
+  - Fixed `fetchWithBaseUrl()` to properly unwrap `useAPIFetch` AsyncData responses and return raw data
+  - Fixed resume loading on analyze page (previously showed "No saved resumes" despite server returning data)
+  - Fixed cover letter samples not rendering in selector component
+  - Added proper error handling and graceful fallbacks to localStorage
+  - Resolved navigation errors when leaving analyze page by adding lifecycle cleanup
+
 ### Added
+
+- feat(logging): Add comprehensive logging infrastructure for data persistence debugging
+  - Add `[API]`, `[FileStorage]`, `[StorageService]`, and `[useCoverLetter]` prefixed logging throughout data flow
+  - Log data types, array validation results, error types/messages/stack traces at each layer
+  - Enable server-side visibility of all storage operations and API responses
 
 - feat(auth): Add Firebase authentication scaffolding and initial implementation
   - Add Firebase client plugin and Admin server plugin
