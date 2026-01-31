@@ -1,3 +1,8 @@
+---
+description: AI rules derived by SpecStory from the project AI interaction history
+globs: *
+---
+
 # GitHub Copilot Instructions for Job Posting Analyzer
 
 ## Project Context
@@ -309,8 +314,9 @@ When you are asked to create a commit, you **MUST** follow these steps in order:
 2.  **Evaluate for Changelog:** Review the changes against the criteria in `.github/changelog-management.md`.
 3.  **Ask About Changelog:** If the changes meet the criteria (e.g., new features, UI changes, bug fixes), you **MUST** ask the user: "Should I create a changelog entry for these changes?" You may also provide advice on whether an entry seems warranted (e.g., "This is a minor fix, so you may choose to skip it to avoid cluttering the changelog.").
 4.  **Create Changelog (if approved):** If the user agrees, update `CHANGELOG.md` according to the project's format guidelines.
-5.  **Propose Commit Message:** After handling the changelog, draft a commit message that follows the Conventional Commits specification.
-6.  **Commit Changes:** After the user approves the message, stage the `CHANGELOG.md` file (if modified) and run `git commit`.
+5.  **Propose Commit Message:** After handling the changelog, draft a commit message that follows the Conventional Commits specification. **STOP HERE and wait for explicit user approval.**
+6.  **Wait for Manual Approval:** You **MUST** wait for the user to explicitly approve the commit message and confirm they have tested the changes. **DO NOT proceed to commit without this explicit approval.** The user may need to manually test, review, or modify the code before committing.
+7.  **Commit Changes (only after approval):** **ONLY AFTER** the user has given explicit approval, stage the `CHANGELOG.md` file (if modified) and run `git commit` with the approved message. **NEVER commit autonomously.**
 
 ### See `./changelog-management.md` for detailed instructions on pre-commit changelog rules.
 
@@ -324,6 +330,9 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org/) specific
 -   `refactor(service): simplify card reordering logic`
 -   `test(components): add tests for BoardCard component`
 
+When creating commit messages related to the CoverLetterService, ensure that the message accurately reflects the changes made, particularly when addressing issues with conversation context or data handling. For example:
+
+-   `fix(service): ensure conversation context is passed for regeneration`
 
 ## 16. Deployment
 
@@ -332,4 +341,18 @@ Follow the [Conventional Commits](https://www.conventionalcommits.org/) specific
 3. Set up CI/CD pipelines to automate build, testing, and deployment processes.
 4. Monitor deployments and runtime performance using tools like Vercel, Netlify, or custom monitoring solutions.
 
-By following these guidelines, we can ensure that this Nuxt 3 job posting analyzer project remains efficient, scalable, and maintainable, while providing clear context for AI assistance in development tasks.
+## 17. Debugging
+
+1.  When encountering errors, especially those originating from server-side API endpoints, ensure that comprehensive logging is implemented on the server. This includes logging:
+    *   Request details (e.g., endpoint, parameters)
+    *   Any errors that occur during processing
+    *   The complete server response
+
+2. Client-side code should validate that server responses are in the expected format (e.g., arrays) before using array methods. Implement fallback mechanisms, such as using cached data, when the server returns invalid or unexpected data.
+   
+3. When debugging file storage issues, check the following:
+    * Log when the application reads from the storage file.
+    * Log the raw data length.
+    * Log the parsed data type and whether it is an array.
+    * If the parsed data is not an array, log an error and return an empty array as a fallback.
+    * Log any errors that occur while reading the file, including the error type, message, and stack trace.

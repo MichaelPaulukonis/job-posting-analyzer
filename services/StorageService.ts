@@ -53,7 +53,11 @@ export class StorageService {
     }
     
     if (process.client) {
-      return useAPIFetch(path, options);
+      const { data, error } = await useAPIFetch(path, options);
+      if (error.value) {
+        throw error.value;
+      }
+      return data.value;
     } else {
       const headers: HeadersInit = { ...options?.headers };
       if (event) {
@@ -156,20 +160,27 @@ export class StorageService {
    */
   static async getAnalyses(event?: any): Promise<SavedAnalysis[]> {
     try {
+      console.log('[StorageService] Fetching analyses from API...');
       const serverAnalyses = await this.fetchWithBaseUrl('/api/storage', {}, event);
+      console.log('[StorageService] API response type:', typeof serverAnalyses, 'isArray:', Array.isArray(serverAnalyses));
 
       const normalizedAnalyses = this.normalizeAnalyses(serverAnalyses as SavedAnalysis[]);
 
       if (!normalizedAnalyses.length && serverAnalyses && !Array.isArray(serverAnalyses)) {
-        console.warn('StorageService.getAnalyses: Server returned invalid analyses format, falling back to cache.');
+        console.error('[StorageService] ERROR: Server returned invalid analyses format:', typeof serverAnalyses, serverAnalyses);
+        console.warn('[StorageService] Falling back to localStorage');
         return this.getAnalysesFromLocalStorage();
       }
 
+      console.log(`[StorageService] Successfully fetched and normalized ${normalizedAnalyses.length} analyses`);
       this.syncAnalysesToLocalStorage(normalizedAnalyses);
 
       return normalizedAnalyses;
     } catch (error) {
-      console.warn('StorageService.getAnalyses: Failed to fetch from server, using local cache.', error);
+      console.error('[StorageService] Failed to fetch analyses from server:', error);
+      console.error('[StorageService] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('[StorageService] Error message:', error instanceof Error ? error.message : String(error));
+      console.warn('[StorageService] Using localStorage cache');
       return this.getAnalysesFromLocalStorage();
     }
   }
@@ -246,18 +257,28 @@ export class StorageService {
    */
  static async getResumes(event?: any): Promise<ResumeEntry[]> {
     try {
-      console.log('StorageService.getResumes: Attempting to fetch from server...');
-      // Fetch from server
+      console.log('[StorageService] Fetching resumes from API...');
       const serverResumes = await this.fetchWithBaseUrl('/api/resumes', {}, event);
+      console.log('[StorageService] API response type:', typeof serverResumes, 'isArray:', Array.isArray(serverResumes));
 
-      console.log('StorageService.getResumes: Server returned', (serverResumes as ResumeEntry[]).length, 'resumes');
-      return (serverResumes as ResumeEntry[]) || [];
+      // Validate that response is an array
+      if (Array.isArray(serverResumes)) {
+        console.log(`[StorageService] Successfully fetched ${serverResumes.length} resumes from server`);
+        return serverResumes as ResumeEntry[];
+      } else {
+        console.error('[StorageService] ERROR: Server returned non-array response:', typeof serverResumes, serverResumes);
+        console.warn('[StorageService] Falling back to localStorage for resumes');
+        const localResumes = StorageService.getResumesFromLocalStorage();
+        console.log(`[StorageService] localStorage returned ${localResumes.length} resumes`);
+        return localResumes;
+      }
     } catch (error) {
-      console.log('StorageService.getResumes: Server fetch failed, falling back to localStorage...');
-      // console.error('Error fetching resumes:', error);
-      // Fallback to localStorage if server fetch fails
+      console.error('[StorageService] Error fetching resumes from server:', error);
+      console.error('[StorageService] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('[StorageService] Error message:', error instanceof Error ? error.message : String(error));
+      console.warn('[StorageService] Falling back to localStorage for resumes');
       const localResumes = StorageService.getResumesFromLocalStorage();
-      console.log('StorageService.getResumes: localStorage returned', localResumes.length, 'resumes');
+      console.log(`[StorageService] localStorage returned ${localResumes.length} resumes`);
       return localResumes;
     }
   }
@@ -299,8 +320,8 @@ export class StorageService {
    */
   static async getCoverLetterSamples(event?: any): Promise<Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>> {
     try {
-      // Fetch from server
-      const samples = await this.fetchWithBaseUrl('/api/cover-letter-samples', {}, event);
+      // Fetch from server, adding a unique key to bypass caching
+      const samples = await this.fetchWithBaseUrl('/api/cover-letter-samples', { key: `cls-${Date.now()}` }, event);
       return (samples as Array<{ id: string; name: string; content: string; notes: string; timestamp: string }>) || [];
     } catch (error) {
       return StorageService.getCoverLetterSamplesFromLocalStorage();
@@ -584,15 +605,29 @@ export class StorageService {
    */
   static async getConversations(event?: any): Promise<CoverLetterConversation[]> {
     try {
+      console.log('[StorageService] Fetching conversations from API...');
       const response = await this.fetchWithBaseUrl('/api/storage/conversations', {}, event);
+      console.log('[StorageService] API response type:', typeof response, 'isArray:', Array.isArray(response));
+      
       if (response) {
-        return response as CoverLetterConversation[];
+        // Validate that response is an array
+        if (Array.isArray(response)) {
+          console.log(`[StorageService] Successfully fetched ${response.length} conversations from server`);
+          return response as CoverLetterConversation[];
+        } else {
+          console.error('[StorageService] ERROR: Server returned non-array response:', typeof response, response);
+          console.warn('[StorageService] Falling back to localStorage due to invalid server response');
+          return StorageService.getConversationsFromLocalStorage();
+        }
       } else {
-        console.warn('Server storage not available for conversations, falling back to localStorage');
+        console.warn('[StorageService] Server returned null/undefined, falling back to localStorage');
         return StorageService.getConversationsFromLocalStorage();
       }
     } catch (error) {
-      console.error('Error getting conversations from server, falling back to localStorage:', error);
+      console.error('[StorageService] Error getting conversations from server:', error);
+      console.error('[StorageService] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('[StorageService] Error message:', error instanceof Error ? error.message : String(error));
+      console.error('[StorageService] Falling back to localStorage');
       return StorageService.getConversationsFromLocalStorage();
     }
   }

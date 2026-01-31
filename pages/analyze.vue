@@ -121,7 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAnalysis } from '../composables/useAnalysis';
 
@@ -179,6 +179,20 @@ const router = useRouter();
 // Load saved analyses on mount and when route changes
 onMounted(() => {
   loadAnalyses();
+});
+
+// Cleanup refs before unmounting to prevent Vue errors
+onBeforeUnmount(() => {
+  // Clear component refs to prevent "Cannot read properties of null" errors
+  if (jobPostingContainer.value) {
+    jobPostingContainer.value = null;
+  }
+  if (resumeContainer.value) {
+    resumeContainer.value = null;
+  }
+  if (settingsContainer.value) {
+    settingsContainer.value = null;
+  }
 });
 
 // Watch for route changes
