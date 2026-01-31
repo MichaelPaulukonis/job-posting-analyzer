@@ -4,7 +4,7 @@
     <div class="bg-white shadow-md rounded-lg p-6 max-w-4xl mx-auto">
       <p class="text-lg mb-4">
         Welcome to the Job Posting Analyzer! This GPT-powered tool helps you compare job postings with your resume to 
-        identify matches and gaps.
+        identify matches and gaps, and draft a cover letter addressing those issues.
       </p>
       <p class="mb-6">
         Use this tool to:

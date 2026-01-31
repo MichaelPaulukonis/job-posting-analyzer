@@ -8,9 +8,22 @@ export default defineEventHandler(async (event) => {
   // GET request to retrieve all analyses
   if (method === 'GET') {
     try {
-      return analysisRepository.getAll();
+      console.log('[API] Fetching all analyses...');
+      const analyses = analysisRepository.getAll();
+      console.log(`[API] Retrieved ${analyses.length} analyses`);
+      
+      // Ensure we always return an array
+      if (!Array.isArray(analyses)) {
+        console.error('[API] ERROR: Repository returned non-array:', typeof analyses, analyses);
+        return [];
+      }
+      
+      return analyses;
     } catch (error) {
-      console.error('Error reading storage:', error);
+      console.error('[API] Error reading storage:', error);
+      console.error('[API] Error type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('[API] Error message:', error instanceof Error ? error.message : String(error));
+      console.error('[API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       throw createError({
         statusCode: 500,
         message: 'Error reading storage data'

@@ -6,6 +6,7 @@
       "request": "launch",
       "name": "Debug Nuxt Server",
       "outputCapture": "std",
+      "runtimeExecutable": "/Users/michaelpaulukonis/.nvm/versions/node/v23.11.1/bin/node",
       "program": "${workspaceFolder}/node_modules/nuxt/bin/nuxt.mjs",
       "args": [
         "dev"
@@ -14,7 +15,11 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "runtimeVersion": "23"
+      "skipDeepLink": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ]
     },
     {
       "type": "chrome",

@@ -36,11 +36,30 @@ export class FileStorageService<T extends StorageItem> {
    */
   public getAll(): T[] {
     try {
+      console.log(`[FileStorage] Reading from: ${this.storageFile}`);
       const data = readFileSync(this.storageFile, 'utf8');
-      return JSON.parse(data);
+      console.log(`[FileStorage] Raw data length: ${data.length} characters`);
+      
+      const parsed = JSON.parse(data);
+      console.log(`[FileStorage] Parsed data type: ${typeof parsed}, isArray: ${Array.isArray(parsed)}`);
+      
+      if (!Array.isArray(parsed)) {
+        console.error(`[FileStorage] ERROR: Parsed data is not an array! Type: ${typeof parsed}`, parsed);
+        console.error(`[FileStorage] Returning empty array as fallback`);
+        return [];
+      }
+      
+      console.log(`[FileStorage] Successfully loaded ${parsed.length} items from ${this.storageFile}`);
+      return parsed;
     } catch (error) {
-      console.error(`Error reading file ${this.storageFile}:`, error);
-      throw new Error(`Failed to read from ${this.storageFile}`);
+      console.error(`[FileStorage] Error reading file ${this.storageFile}:`, error);
+      console.error(`[FileStorage] Error type: ${error instanceof Error ? error.constructor.name : typeof error}`);
+      console.error(`[FileStorage] Error message: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(`[FileStorage] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
+      
+      // Return empty array instead of throwing to prevent cascading failures
+      console.error(`[FileStorage] Returning empty array due to error`);
+      return [];
     }
   }
 

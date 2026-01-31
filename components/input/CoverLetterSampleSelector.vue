@@ -48,7 +48,8 @@ const selectedSampleId = ref<string>(props.modelValue);
 
 // Load saved samples on mount
 onMounted(async () => {
-  savedSamples.value = await StorageService.getCoverLetterSamples();
+  const samples = await StorageService.getCoverLetterSamples();
+  savedSamples.value = Array.isArray(samples) ? samples : [];
 });
 
 const selectSample = (sample: { id: string; content: string }) => {
@@ -59,7 +60,8 @@ const selectSample = (sample: { id: string; content: string }) => {
 
 const deleteSample = async (id: string) => {
   await StorageService.deleteCoverLetterSample(id);
-  savedSamples.value = await StorageService.getCoverLetterSamples();
+  const samples = await StorageService.getCoverLetterSamples();
+  savedSamples.value = Array.isArray(samples) ? samples : [];
   if (selectedSampleId.value === id) {
     selectedSampleId.value = '';
     emit('update:modelValue', '');

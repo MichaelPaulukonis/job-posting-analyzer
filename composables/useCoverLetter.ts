@@ -95,13 +95,29 @@ export function useCoverLetter() {
         
         // Try to load existing conversation for this analysis
         try {
+          console.log('[useCoverLetter] Loading conversations for analysis:', analysisId);
           const conversations = await StorageService.getConversations();
-          const existingConversation = conversations.find(c => c.analysisId === analysisId);
-          if (existingConversation) {
-            currentConversation.value = existingConversation;
+          console.log('[useCoverLetter] Received conversations:', typeof conversations, 'isArray:', Array.isArray(conversations));
+          
+          // Validate that conversations is an array before using .find()
+          if (!Array.isArray(conversations)) {
+            console.error('[useCoverLetter] ERROR: getConversations returned non-array:', typeof conversations, conversations);
+            console.error('[useCoverLetter] Cannot search conversations - not an array');
+            // Continue without conversation rather than crashing
+          } else {
+            console.log(`[useCoverLetter] Searching ${conversations.length} conversations for analysisId: ${analysisId}`);
+            const existingConversation = conversations.find(c => c.analysisId === analysisId);
+            if (existingConversation) {
+              console.log('[useCoverLetter] Found existing conversation:', existingConversation.id);
+              currentConversation.value = existingConversation;
+            } else {
+              console.log('[useCoverLetter] No existing conversation found for this analysis');
+            }
           }
         } catch (err) {
-          console.warn('Could not load conversation history:', err);
+          console.error('[useCoverLetter] Could not load conversation history:', err);
+          console.error('[useCoverLetter] Error type:', err instanceof Error ? err.constructor.name : typeof err);
+          console.error('[useCoverLetter] Error message:', err instanceof Error ? err.message : String(err));
           // Not a critical error, continue without conversation
         }
       } else {

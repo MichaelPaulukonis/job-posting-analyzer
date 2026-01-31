@@ -12,15 +12,29 @@ export default defineEventHandler(async (event) => {
         const query = getQuery(event);
         const { analysisId } = query;
         
+        let conversations: CoverLetterConversation[];
         if (analysisId && typeof analysisId === 'string') {
           // Get conversations for a specific analysis
-          return conversationRepository.getByAnalysisId(analysisId);
+          console.log(`[API] Fetching conversations for analysisId: ${analysisId}`);
+          conversations = conversationRepository.getByAnalysisId(analysisId);
+          console.log(`[API] Found ${conversations.length} conversations for analysisId: ${analysisId}`);
         } else {
           // Get all conversations
-          return conversationRepository.getAll();
+          console.log('[API] Fetching all conversations');
+          conversations = conversationRepository.getAll();
+          console.log(`[API] Found ${conversations.length} total conversations`);
         }
+        
+        // Ensure we always return an array
+        if (!Array.isArray(conversations)) {
+          console.error('[API] ERROR: Repository returned non-array:', typeof conversations, conversations);
+          return [];
+        }
+        
+        return conversations;
       } catch (error) {
-        console.error('Error retrieving conversations:', error);
+        console.error('[API] Error retrieving conversations:', error);
+        console.error('[API] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
         throw createError({
           statusCode: 500,
           statusMessage: 'Failed to retrieve conversations'
