@@ -1,0 +1,322 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Job Posting Analyzer - IAM Setup and Credentials for AWS Migration'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'job-analyzer'
+    Description: 'Environment name for resource tagging'
+  
+  UserName:
+    Type: String
+    Default: 'job-analyzer-dev'
+    Description: 'IAM username for the application deployment'
+
+Resources:
+  # ==========================================
+  # IAM User for Application Deployment
+  # ==========================================
+  
+  DeploymentUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref UserName
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+        - Key: Purpose
+          Value: Application deployment and infrastructure management
+
+  # ==========================================
+  # IAM Access Keys for CLI/Application
+  # ==========================================
+  
+  DeploymentUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref DeploymentUser
+
+  # ==========================================
+  # IAM Policies for AWS Services
+  # ==========================================
+  
+  # RDS Access Policy
+  RDSAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-rds-access'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'rds:CreateDBInstance'
+              - 'rds:ModifyDBInstance'
+              - 'rds:DeleteDBInstance'
+              - 'rds:DescribeDBInstances'
+              - 'rds:DescribeDBClusters'
+              - 'rds:CreateDBSecurityGroup'
+              - 'rds:ModifyDBSecurityGroups'
+              - 'rds:DescribeDBSecurityGroups'
+              - 'rds:CreateDBParameterGroup'
+              - 'rds:ModifyDBParameterGroup'
+              - 'rds:DescribeDBParameterGroups'
+              - 'rds-db:connect'
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'aws:RequestedRegion':
+                  - 'us-east-1'
+      Users:
+        - !Ref DeploymentUser
+
+  # S3 Access Policy
+  S3AccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-s3-access'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:CreateBucket'
+              - 's3:ListBucket'
+              - 's3:GetBucketLocation'
+              - 's3:PutBucketVersioning'
+              - 's3:GetBucketVersioning'
+              - 's3:PutBucketAcl'
+              - 's3:GetBucketAcl'
+              - 's3:PutBucketTagging'
+              - 's3:GetBucketTagging'
+            Resource: !Sub 'arn:aws:s3:::${EnvironmentName}-*'
+          - Effect: Allow
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:ListBucketVersions'
+              - 's3:GetObjectVersion'
+            Resource: !Sub 'arn:aws:s3:::${EnvironmentName}-*/*'
+      Users:
+        - !Ref DeploymentUser
+
+  # App Runner Access Policy
+  AppRunnerAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-app-runner-access'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'apprunner:CreateService'
+              - 'apprunner:UpdateService'
+              - 'apprunner:DeleteService'
+              - 'apprunner:DescribeService'
+              - 'apprunner:ListServices'
+              - 'apprunner:StartService'
+              - 'apprunner:StopService'
+              - 'apprunner:CreateConnection'
+              - 'apprunner:DescribeConnection'
+              - 'apprunner:ListConnections'
+            Resource: '*'
+      Users:
+        - !Ref DeploymentUser
+
+  # ECR Access Policy
+  ECRAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-ecr-access'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'ecr:CreateRepository'
+              - 'ecr:DescribeRepositories'
+              - 'ecr:ListImages'
+              - 'ecr:GetDownloadUrlForLayer'
+              - 'ecr:BatchGetImage'
+              - 'ecr:PutImage'
+              - 'ecr:InitiateLayerUpload'
+              - 'ecr:UploadLayerPart'
+              - 'ecr:CompleteLayerUpload'
+              - 'ecr:GetAuthorizationToken'
+              - 'ecr:DeleteRepository'
+            Resource: '*'
+      Users:
+        - !Ref DeploymentUser
+
+  # VPC and Security Group Policy
+  VPCAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-vpc-access'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'ec2:CreateSecurityGroup'
+              - 'ec2:DescribeSecurityGroups'
+              - 'ec2:DeleteSecurityGroup'
+              - 'ec2:AuthorizeSecurityGroupIngress'
+              - 'ec2:AuthorizeSecurityGroupEgress'
+              - 'ec2:RevokeSecurityGroupIngress'
+              - 'ec2:RevokeSecurityGroupEgress'
+              - 'ec2:DescribeVpcs'
+              - 'ec2:DescribeSubnets'
+              - 'ec2:DescribeNetworkInterfaces'
+            Resource: '*'
+      Users:
+        - !Ref DeploymentUser
+
+  # CloudFormation Access Policy (for IaC deployments)
+  CloudFormationAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-cloudformation-access'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'cloudformation:CreateStack'
+              - 'cloudformation:UpdateStack'
+              - 'cloudformation:DeleteStack'
+              - 'cloudformation:DescribeStacks'
+              - 'cloudformation:ListStacks'
+              - 'cloudformation:DescribeStackEvents'
+              - 'cloudformation:DescribeStackResource'
+              - 'cloudformation:GetTemplate'
+              - 'cloudformation:ValidateTemplate'
+            Resource: !Sub 'arn:aws:cloudformation:*:*:stack/${EnvironmentName}-*'
+          - Effect: Allow
+            Action:
+              - 'iam:PassRole'
+              - 'iam:GetRole'
+              - 'iam:ListRolePolicies'
+            Resource: '*'
+      Users:
+        - !Ref DeploymentUser
+
+  # ==========================================
+  # Service Execution Roles
+  # ==========================================
+
+  # Role for App Runner to access RDS and S3
+  AppRunnerExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${EnvironmentName}-app-runner-execution-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: tasks.apprunner.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+
+  # Policy allowing App Runner to read from S3
+  AppRunnerS3Policy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-app-runner-s3-policy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:ListBucket'
+            Resource:
+              - !Sub 'arn:aws:s3:::${EnvironmentName}-app-*'
+              - !Sub 'arn:aws:s3:::${EnvironmentName}-app-*/*'
+      Roles:
+        - !Ref AppRunnerExecutionRole
+
+  # Policy allowing App Runner to connect to RDS
+  AppRunnerRDSPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-app-runner-rds-policy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'rds-db:connect'
+            Resource: !Sub 'arn:aws:rds-db:*:*:dbuser:*/postgres'
+      Roles:
+        - !Ref AppRunnerExecutionRole
+
+  # ECR read access for App Runner
+  AppRunnerECRPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-app-runner-ecr-policy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'ecr:GetAuthorizationToken'
+              - 'ecr:BatchGetImage'
+              - 'ecr:GetDownloadUrlForLayer'
+            Resource: '*'
+      Roles:
+        - !Ref AppRunnerExecutionRole
+
+Outputs:
+  DeploymentUserName:
+    Description: 'IAM Username for application deployment'
+    Value: !Ref DeploymentUser
+    Export:
+      Name: !Sub '${EnvironmentName}-deployment-user'
+
+  DeploymentUserArn:
+    Description: 'ARN of the deployment user'
+    Value: !GetAtt DeploymentUser.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-deployment-user-arn'
+
+  AccessKeyId:
+    Description: 'Access Key ID for the deployment user (save this securely!)'
+    Value: !Ref DeploymentUserAccessKey
+    Export:
+      Name: !Sub '${EnvironmentName}-access-key-id'
+
+  SecretAccessKey:
+    Description: 'Secret Access Key for the deployment user (save this securely!)'
+    Value: !GetAtt DeploymentUserAccessKey.SecretAccessKey
+    NoEcho: true
+    Export:
+      Name: !Sub '${EnvironmentName}-secret-access-key'
+
+  AppRunnerExecutionRoleArn:
+    Description: 'ARN of the App Runner execution role'
+    Value: !GetAtt AppRunnerExecutionRole.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-app-runner-execution-role-arn'
+
+  DeploymentInstructions:
+    Description: 'Instructions for deploying this stack'
+    Value: |
+      1. Validate template: aws cloudformation validate-template --template-body file://iam-setup.yml
+      2. Create stack: aws cloudformation create-stack --stack-name job-analyzer-iam --template-body file://iam-setup.yml
+      3. Wait for creation: aws cloudformation wait stack-create-complete --stack-name job-analyzer-iam
+      4. Retrieve outputs: aws cloudformation describe-stacks --stack-name job-analyzer-iam --query 'Stacks[0].Outputs'
+      5. Save AccessKeyId and SecretAccessKey to .env (never commit to git)
+      6. Configure AWS CLI: aws configure --profile job-analyzer
