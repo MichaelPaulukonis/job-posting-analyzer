@@ -301,7 +301,6 @@ Outputs:
   SecretAccessKey:
     Description: 'Secret Access Key for the deployment user (save this securely!)'
     Value: !GetAtt DeploymentUserAccessKey.SecretAccessKey
-    NoEcho: true
     Export:
       Name: !Sub '${EnvironmentName}-secret-access-key'
 
