@@ -1,0 +1,170 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 34,
+        "title": "AWS Account Setup and IAM Configuration",
+        "description": "Configure AWS account with appropriate IAM users, roles, and permissions for RDS, S3, and App Runner services.",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "details": "Create an IAM user with programmatic access and console access. Set up least-privilege permissions using IAM policies for RDS, S3, App Runner, and ECR. Generate and store AWS access/secret keys in a .env file. Configure AWS CLI for local development with proper profiles. Create service roles for App Runner and resource-specific access policies. Follow AWS security best practices by enabling MFA for account access and implementing credential rotation. Use AWS Organizations or AWS Control Tower if managing multiple environments.",
+        "testStrategy": "Verify AWS console access. Confirm AWS CLI can successfully run commands with the configured credentials. Test IAM policies by attempting to access each required service (S3, RDS, App Runner). Validate that permissions follow the principle of least privilege. Create a checklist of required services and verify access to each.",
+        "subtasks": []
+      },
+      {
+        "id": 35,
+        "title": "RDS PostgreSQL Setup with pgvector",
+        "description": "Provision and configure an RDS PostgreSQL instance with the pgvector extension for vector search capabilities.",
+        "status": "pending",
+        "dependencies": [
+          34
+        ],
+        "priority": "high",
+        "details": "Create a db.t4g.micro PostgreSQL 15+ instance in RDS. Configure security groups to allow connections from development environment and future App Runner service. Enable pgvector extension using a custom parameter group. Create database user with appropriate permissions. Set up master username/password and store in AWS Secrets Manager or parameter store. Configure database parameters including shared_buffers and maintenance_work_mem for optimal vector operations. Enable storage autoscaling with reasonable limits. Implement the following SQL after creation: `CREATE EXTENSION IF NOT EXISTS vector;` and verify extension is active.",
+        "testStrategy": "Connect to the database using psql or a PostgreSQL client. Verify pgvector extension is correctly installed by running 'SELECT * FROM pg_extension WHERE extname = \"vector\";'. Test vector operations with sample data: 'CREATE TABLE vector_test (id serial, embedding vector(1536)); INSERT INTO vector_test VALUES (1, '[0.1, 0.2, ..., 0.0]'::vector);'. Measure connection performance from development environment.",
+        "subtasks": []
+      },
+      {
+        "id": 36,
+        "title": "Database Schema Creation and Migration Scripts",
+        "description": "Create SQL migration scripts to implement the database schema including users, resumes, job_postings, and analysis_results tables as defined in the PRD.",
+        "status": "pending",
+        "dependencies": [
+          35
+        ],
+        "priority": "high",
+        "details": "Implement SQL migration scripts that create tables according to the data model in the PRD. Include users, resumes, job_postings, and analysis_results tables. Add vector support to job_postings table with embedding vector(1536). Create appropriate indexes for common queries and foreign keys. Add constraints for data integrity. If using Prisma ORM, create schema.prisma file; if using Drizzle, create schema definition files. Include timestamp fields for created_at and updated_at. Create a migration runner script that can apply migrations safely in deployment environments. Include down migrations for rollback capability.",
+        "testStrategy": "Execute migration scripts against test database. Verify all tables, constraints, and indexes are created correctly. Test sample data insertion to confirm schema validity. Validate foreign key constraints by attempting to violate them. Test vector column operations. Run EXPLAIN on expected queries to verify index usage. Test migration rollback process to ensure it works correctly.",
+        "subtasks": []
+      },
+      {
+        "id": 37,
+        "title": "S3 Bucket Configuration for Document Storage",
+        "description": "Create and configure an S3 bucket for securely storing resume and job posting documents with appropriate access controls.",
+        "status": "pending",
+        "dependencies": [
+          34
+        ],
+        "priority": "high",
+        "details": "Create S3 bucket with appropriate naming (e.g., job-analyzer-files-{env}). Configure CORS settings to allow uploads from application domain. Set up bucket policies restricting access to authenticated users. Implement server-side encryption with AWS KMS. Configure lifecycle rules to transition infrequently accessed files to cheaper storage classes after 30 days. Set up appropriate versioning for file history. Create IAM policy for application access to this specific bucket. Create folders structure: /resumes, /job-postings, and /temp for organization.",
+        "testStrategy": "Verify bucket creation and configuration using AWS CLI and console. Test file uploads and downloads using AWS SDK. Verify CORS configuration allows access from application domain. Test file lifecycle policies with backdated objects. Confirm encryption is working properly. Validate IAM policies by testing access from application roles. Test public access blocks are effective by attempting anonymous access.",
+        "subtasks": []
+      },
+      {
+        "id": 38,
+        "title": "Database Service Implementation",
+        "description": "Create a database service layer for efficient connection pooling and data access to the PostgreSQL database.",
+        "status": "pending",
+        "dependencies": [
+          35,
+          36
+        ],
+        "priority": "high",
+        "details": "Implement a DatabaseService class in server/services/DatabaseService.ts. Use node-postgres (pg) package with connection pooling. Create methods for CRUD operations on all tables. Implement vector search capabilities with proper indexing. Add transaction support for operations that modify multiple tables. Implement error handling with proper logging. Add query parameterization to prevent SQL injection. Create specialized methods for common operations like getUserByFirebaseId(), saveJobPosting(), getAnalysisHistory(). Implement proper connection handling to prevent leaks. Consider using an ORM like Prisma or Drizzle for higher-level abstractions if preferred in the architecture.",
+        "testStrategy": "Write unit tests for all database operations. Create mock database for testing. Verify connection pooling works correctly under load. Test transaction rollback on errors. Test error handling and recovery scenarios. Validate vector queries return expected results. Benchmark query performance for optimization. Test with large datasets to verify scaling behavior.",
+        "subtasks": []
+      },
+      {
+        "id": 39,
+        "title": "S3 Service Implementation",
+        "description": "Develop an S3 service for handling resume and job posting file uploads, downloads, and management.",
+        "status": "pending",
+        "dependencies": [
+          37
+        ],
+        "priority": "high",
+        "details": "Create S3Service class in server/services/S3Service.ts using AWS SDK v3 (@aws-sdk/client-s3). Implement methods for uploadFile(), getFile(), deleteFile(), and generatePresignedUrl(). Add content type detection for uploaded files. Implement proper error handling and retries for network issues. Create helper methods for generating unique filenames using UUIDs. Add file validation for security (size limits, allowed file types). Implement folder-based organization by user ID. Create cleanup methods for removing temporary files. Configure proper AWS SDK settings including region and credentials.",
+        "testStrategy": "Create unit tests for all S3 operations. Use localstack or minio for local S3 testing. Verify files can be uploaded, downloaded, and deleted successfully. Test error scenarios like permission denied or bucket not found. Validate file type restrictions. Measure upload/download performance. Test presigned URL generation and expiration. Verify file paths and organization structure.",
+        "subtasks": []
+      },
+      {
+        "id": 40,
+        "title": "User Authentication and Profile Sync API",
+        "description": "Implement API endpoints to integrate Firebase Auth with the PostgreSQL database for user management.",
+        "status": "pending",
+        "dependencies": [
+          38
+        ],
+        "priority": "high",
+        "details": "Create server/api/auth/profile.post.ts endpoint to sync Firebase user with PostgreSQL. Implement Firebase token validation middleware in server/middleware/auth.ts. Use firebase-admin SDK to verify tokens. Create database operations to create/update user records based on Firebase UID. Store essential user profile data including email and creation date. Implement error handling for invalid tokens or database errors. Add rate limiting to prevent abuse. Create GET endpoint to retrieve user profile. Ensure proper database indexing on firebase_uid field for performance.",
+        "testStrategy": "Test token validation with valid and invalid tokens. Verify user data is correctly synchronized between Firebase and PostgreSQL. Create integration tests with Firebase Auth test users. Test caching behavior of token validation. Verify error handling for invalid requests. Test concurrency with multiple simultaneous profile updates. Measure performance of authentication flow. Test rate limiting behavior.",
+        "subtasks": []
+      },
+      {
+        "id": 41,
+        "title": "Resume and Job Posting API Endpoints",
+        "description": "Implement API endpoints for managing resumes and job postings, including vector embeddings generation for job postings.",
+        "status": "pending",
+        "dependencies": [
+          38,
+          39
+        ],
+        "priority": "medium",
+        "details": "Create server/api/resumes.post.ts for uploading resumes to S3 and storing metadata. Implement server/api/job-postings.post.ts to store job postings with vector embeddings. Create GET endpoints for listing and retrieving resumes and job postings. Implement pagination for lists. Add vector embedding generation using existing Gemini/Anthropic API integration. Create DELETE endpoints for both resources. Implement proper validation using zod or similar. Add search functionality for job postings. Ensure all endpoints validate user authentication and authorization. Implement proper error responses following REST conventions.",
+        "testStrategy": "Test each API endpoint with valid and invalid data. Verify file uploads work correctly end-to-end. Validate vector embeddings are generated and stored properly. Test pagination with large datasets. Verify search functionality returns relevant results. Test access control to ensure users can only access their own data. Measure performance of vector embedding generation. Create integration tests covering the entire flow from upload to retrieval.",
+        "subtasks": []
+      },
+      {
+        "id": 42,
+        "title": "Analysis Storage and Retrieval API",
+        "description": "Implement API endpoints for storing and retrieving job posting analysis results and implementing vector search.",
+        "status": "pending",
+        "dependencies": [
+          38,
+          41
+        ],
+        "priority": "medium",
+        "details": "Create server/api/analysis.post.ts endpoint to store analysis results. Implement server/api/analysis/[id].get.ts for retrieving specific analysis. Create GET endpoint for listing analysis history with pagination. Update existing analysis service to store results in PostgreSQL. Implement vector search for similar job postings using pgvector's nearest-neighbor search. Create server/api/job-postings/similar.get.ts for finding similar job postings. Implement proper validation and error handling. Add caching for frequently accessed analysis results. Ensure database queries are optimized with appropriate indexes.",
+        "testStrategy": "Test storing and retrieving analysis results of various sizes. Verify vector search returns relevant similar job postings. Create benchmark tests for vector search performance. Test with various input data scenarios. Validate pagination and filtering of analysis history. Test cache hit/miss scenarios. Create end-to-end tests for the complete analysis flow. Test with malformed input data to verify error handling.",
+        "subtasks": []
+      },
+      {
+        "id": 43,
+        "title": "Frontend Integration with AWS Backend",
+        "description": "Update the frontend application to use the new AWS backend services and implement UI for saved analyses and job management.",
+        "status": "pending",
+        "dependencies": [
+          40,
+          41,
+          42
+        ],
+        "priority": "medium",
+        "details": "Modify frontend components to use new API endpoints instead of Firebase-only functionality. Update analysis page to save results to backend. Create history page showing past analyses. Add resume management UI with upload, view, and delete capabilities. Implement job posting management UI including saving favorite postings. Maintain Firebase Auth for authentication. Add loading states and error handling for all API interactions. Implement client-side caching where appropriate. Create UI for similar job suggestions using vector search. Update Nuxt composables with new functionality. Ensure responsive design works across device sizes.",
+        "testStrategy": "Test all user flows including resume upload, job analysis, history viewing. Verify UI correctly displays data from the AWS backend. Test error handling and loading states. Perform cross-browser testing. Test responsive design across devices. Measure and optimize frontend performance. Create E2E tests with Cypress or similar for critical flows. Test offline behavior and recovery. Ensure accessibility standards are met.",
+        "subtasks": []
+      },
+      {
+        "id": 44,
+        "title": "Docker Containerization and Local Testing",
+        "description": "Create Docker configuration for containerizing the application and test locally before AWS deployment.",
+        "status": "pending",
+        "dependencies": [
+          43
+        ],
+        "priority": "medium",
+        "details": "Create a multi-stage Dockerfile optimized for Node.js and Nuxt. First stage for dependencies and build, second for production runtime. Use node:20-alpine as base image for size optimization. Configure proper NODE_ENV settings. Implement docker-compose.yml for local development with PostgreSQL and localstack for S3. Set up environment variable management. Configure proper NGINX or node server settings for production. Optimize for container size by removing development dependencies. Set up proper user permissions (non-root). Configure health check endpoint. Implement proper shutdown handling. Test and document container commands.",
+        "testStrategy": "Build and test Docker container locally. Verify all features work in containerized environment. Test container startup time and memory usage. Validate environment variable configuration. Perform security scan of container image. Test container orchestration with docker-compose. Verify hot-reload works in development mode. Test production build optimization. Measure container size and optimize if necessary. Verify proper log output.",
+        "subtasks": []
+      },
+      {
+        "id": 45,
+        "title": "AWS App Runner Deployment and Configuration",
+        "description": "Deploy the containerized application to AWS App Runner and configure for production use.",
+        "status": "pending",
+        "dependencies": [
+          44
+        ],
+        "priority": "medium",
+        "details": "Create App Runner service using ECR source. Push Docker image to Amazon ECR repository. Set up environment variables in App Runner for database connection, S3 access, API keys. Configure auto-scaling policies based on request count. Set up health checks for monitoring. Configure memory and CPU allocation (1 vCPU, 2GB memory recommended). Set up custom domain if needed. Implement HTTPS with managed certificates. Configure logging to CloudWatch. Set up proper IAM role for App Runner service with least-privilege permissions. Configure networking and security settings. Document deployment process for future updates.",
+        "testStrategy": "Verify deployment is successful. Test application functionality in production environment. Monitor performance metrics and logs. Test auto-scaling by simulating load. Verify database connections work properly. Test file uploads and downloads in production. Measure response times and optimize if needed. Test rollback procedures. Verify security configurations. Create deployment checklist for future updates.",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-11-22T16:12:31.754Z",
+      "updated": "2026-02-01T05:13:00.838Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
