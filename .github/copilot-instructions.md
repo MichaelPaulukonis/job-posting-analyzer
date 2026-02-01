@@ -19,6 +19,8 @@ When suggesting code, please use the following technologies:
 - **Nuxt Router** for navigation
 - **Nuxt Reactive state** for state management
 - No Vuex or Pinia required - use Nuxt's built-in composables only
+- **PostgreSQL** with `pgvector` extension (when using AWS RDS)
+- **AWS SDK for JavaScript** (when migrating to AWS)
 
 ## 1. Project Structure
 
@@ -110,7 +112,6 @@ When suggesting code, please use the following technologies:
 4.3 **Taskmaster generate*:: Use `taskmaster generate` to generate individual task files from tasks.json
 5. **Completed Plans**: When all tasks in a plan have been completed the file will be internally annotated and moved to `docs/plans/completed/`.
 5.  **Exceptions**: This process is not required for Product Requirement Document creation, documentation updates or minor, single-line bug fixes.
-
 
 ## 4. Nuxt-Specific Best Practices
 
@@ -340,6 +341,7 @@ When creating commit messages related to the CoverLetterService, ensure that the
 2. For dynamic projects, prefer server-side rendering (SSR) with edge or server hosting.
 3. Set up CI/CD pipelines to automate build, testing, and deployment processes.
 4. Monitor deployments and runtime performance using tools like Vercel, Netlify, or custom monitoring solutions.
+5. **AWS App Runner** is a recommended hosting platform when migrating to AWS.
 
 ## 17. Debugging
 
@@ -356,3 +358,25 @@ When creating commit messages related to the CoverLetterService, ensure that the
     * Log the parsed data type and whether it is an array.
     * If the parsed data is not an array, log an error and return an empty array as a fallback.
     * Log any errors that occur while reading the file, including the error type, message, and stack trace.
+
+## 18. AWS Migration Guidelines (Conditional)
+
+These guidelines apply *only if* the project migrates from Firebase to AWS.
+
+1.  **Hosting:** Use **AWS App Runner** for hosting the Nuxt 3 application. It automatically handles Docker containerization from Git and provides auto-scaling.
+2.  **Database:** Use **Amazon RDS PostgreSQL** with the `pgvector` extension for storing job postings, resumes, and vector embeddings. This enables semantic similarity search.
+3.  **Storage:** Use **Amazon S3** for storing resume PDFs and file uploads.
+4.  **Authentication:** Consider a hybrid approach, keeping **Firebase Authentication** for simplicity while using AWS for storage and database. Alternatively, migrate to **AWS Cognito**.
+5.  **Vector Search & AI:** Use **AWS Bedrock** for generating embeddings and store them in RDS with `pgvector` for semantic search.
+
+When suggesting code related to AWS services, use the **AWS SDK for JavaScript**.
+
+## 19. Architecture Decision Records (ADR)
+
+1.  Create ADR files to document significant architectural decisions. Store these files in the `docs/adr/` directory.
+2.  While a formal template isn't yet defined, strive to include the following sections in each ADR:
+    *   **Title**: A concise title summarizing the decision.
+    *   **Context**: The problem being addressed and the background information.
+    *   **Decision**: The architectural decision made.
+    *   **Consequences**: The positive and negative consequences of the decision.
+    *   **Status**: The current status of the decision (e.g., proposed, accepted, implemented).
