@@ -16,11 +16,10 @@ An Architecture Decision Record (ADR) is a document that captures an important a
 
 ADRs follow a simple naming pattern:
 
-```
-NNN-semantic-name.md
-```
+`NNN-semantic-name.md`
 
 Where:
+
 - **NNN** - Three-digit number (001, 002, 003, etc.), incrementing sequentially
 - **semantic-name** - Hyphenated kebab-case description of the decision
 - Example: `001-firebase-to-aws-migration.md`, `002-cloudformation-for-iac.md`
@@ -56,26 +55,32 @@ Use the sections in `TEMPLATE.md` as your guide:
 
 ## Decision States
 
-### Proposed 📋
+### Proposed
+
 A decision has been made but not yet implemented or fully accepted. Documentation is complete; awaiting feedback or implementation.
 
-### Accepted ✅
+### Accepted
+
 The decision has been made, documented, and is being implemented or already implemented. This is the working standard.
 
-### Deprecated ⚠️
+### Deprecated
+
 The decision is no longer recommended for new work, but existing implementations may remain. Usually superseded by a newer ADR.
 
-### Superseded 🔄
+### Superseded
+
 A newer ADR has replaced this decision. Reference the newer ADR for current guidance.
 
 ## Current ADRs
 
 ### [ADR-001: Firebase to AWS Migration Strategy](001-firebase-to-aws-migration.md)
+
 - **Status**: Proposed
 - **Decision**: Migrate from Firebase to AWS (keeping Firebase Auth) to enable vector search, relational queries, and improve scalability
 - **Key Points**: RDS PostgreSQL with pgvector, S3 for file storage, App Runner for hosting, 5-phase implementation plan
 
 ### [ADR-002: Use CloudFormation for Infrastructure as Code](002-cloudformation-for-iac.md)
+
 - **Status**: Accepted  
 - **Decision**: Use CloudFormation for Phase 1 (IAM setup) with decision gate for Terraform adoption in Phase 2+
 - **Key Points**: AWS-native approach, good learning opportunity for IAM, hybrid tool strategy possible later

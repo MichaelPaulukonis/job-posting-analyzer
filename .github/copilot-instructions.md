@@ -314,6 +314,7 @@ Apply OWASP Top 10 protections in all application components:
    - Deployment guidelines
 5. Keep the codebase self-documenting by using semantic naming for variables and functions.
 6. Write clear comments for complex logic.
+7. Do not use emojis unless explicitly requested.
 
 ## 15. Git Commits 
 
@@ -393,6 +394,7 @@ When using AWS for infrastructure as code, consider a hybrid approach using both
     *   **Decision**: The architectural decision made.
     *   **Consequences**: The positive and negative consequences of the decision.
     *   **Status**: The current status of the decision (e.g., proposed, accepted, implemented).
+
 ## 20. Data Persistence
 
 1.  The application persists data (job descriptions, resumes, analyses, cover letters, etc.) locally in JSON files. Take this into account when suggesting code, even though the app does not currently use a database.
@@ -415,3 +417,8 @@ When using AWS for infrastructure as code, consider a hybrid approach using both
 ## 23. AWS Credential Management
 
 1. Store AWS credentials securely in environment variables and never commit them to version control.
+
+## 24. ADR Template
+
+1. Use the provided template `docs/adr/TEMPLATE.md` to create new ADRs.
+2. Refer to `docs/adr/README.md` for guidance on creating and maintaining ADRs.
