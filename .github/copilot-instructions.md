@@ -21,6 +21,8 @@ When suggesting code, please use the following technologies:
 - No Vuex or Pinia required - use Nuxt's built-in composables only
 - **PostgreSQL** with `pgvector` extension (when using AWS RDS)
 - **AWS SDK for JavaScript** (when migrating to AWS)
+- **CloudFormation** (when using AWS for infrastructure as code)
+- **Terraform** (when using AWS for infrastructure as code)
 
 ## 1. Project Structure
 
@@ -44,7 +46,8 @@ When suggesting code, please use the following technologies:
      - Organize with a base interface and provider-specific implementations
    - **tests/**: Unit, component, and integration tests
    - **`docs/`**: Project documentation, including overviews and plans.
-
+   - **`docs/adr/`**: Architecture Decision Records.
+   - **`docs/plans/`**: Plan files for significant project changes.
 
 3. Maintain clear folder hierarchies and avoid deeply nested structures unless absolutely necessary.
 4. Ensure consistent relative imports, using `~/` alias for project root. Keep related files close to where they're used when possible.
@@ -105,7 +108,7 @@ When suggesting code, please use the following technologies:
 
 1.  **Before Any Code Changes**: ALL feature requests, architectural changes, or significant modifications must begin with creating—or reusing—an appropriate plan-file in `docs/plans/`.
 2.  **User Confirmation Protocol**: When a user requests changes, first inspect `docs/plans/` for a relevant file. If one exists, ask the user to update it, create a new one, or proceed without one. If none exists, ask the user to create one or proceed without one. Honor the user's choice.
-3.  **Plan-File Naming Convention**: `NN.semantic-name.md` (e.g., `01.user-comments.md`).
+3.  **Plan-File Naming Convention**: `NN.semantic-name.md` (e.g., `NN.semantic-name.md`). Use the highest available number, incrementing from the existing maximum.
 4.  **Required Plan Contents**: Problem Statement, Requirements, Technical Approach, Implementation Steps, Testing Strategy, Risks & Mitigation, Dependencies.
 4.1 **Use Taskmaster MCP**: Unless directed otherwise, use taskmaster MCP server to parse the plan file (as prd) to create discrete tasks
 4.2 **Taskmaster append**: Taskmaster should append new tasks, and not delete existing tasks.
@@ -203,9 +206,16 @@ Include history features to track user analysis:
 
 ## 8. Storage
 
-The application uses client-side storage with the following considerations:
+The application persists data locally in JSON files (``.data/`` directory) via a ``FileStorageService`` class. Existing data includes:
 
-- Prefer the local storage service abstraction
+- **Resumes** (``resumes.json``) - Resume versions with id, name, content, timestamp
+- **Analysis History** (``analysis-history.json``) - Matches, gaps, suggestions from past comparisons
+- **Conversations** (``conversations.json``) - AI conversation context for cover letter generation
+- **Cover Letter Samples** (``cover-letter-samples.json``) - Templates and version history
+
+This file-based approach works for single-user development but cannot scale to production deployment or multi-device access. The current data structure is already coded throughout the application and must be preserved during migration. Take this into account when suggesting code, even though the app does not currently use a database.
+
+Prefer the local storage service abstraction
 - Create appropriate interfaces/types for stored data
 - Consider data persistence patterns
 - Ensure consistent relative imports, using `~/` alias for project root
@@ -370,6 +380,9 @@ These guidelines apply *only if* the project migrates from Firebase to AWS.
 5.  **Vector Search & AI:** Use **AWS Bedrock** for generating embeddings and store them in RDS with `pgvector` for semantic search.
 
 When suggesting code related to AWS services, use the **AWS SDK for JavaScript**.
+When using AWS for infrastructure as code, consider a hybrid approach using both **CloudFormation** and **Terraform**
+   * Use CloudFormation for core AWS setup (IAM, RDS, S3, VPC)
+   * Use Terraform for application infrastructure and ongoing management.
 
 ## 19. Architecture Decision Records (ADR)
 
@@ -380,3 +393,25 @@ When suggesting code related to AWS services, use the **AWS SDK for JavaScript**
     *   **Decision**: The architectural decision made.
     *   **Consequences**: The positive and negative consequences of the decision.
     *   **Status**: The current status of the decision (e.g., proposed, accepted, implemented).
+## 20. Data Persistence
+
+1.  The application persists data (job descriptions, resumes, analyses, cover letters, etc.) locally in JSON files. Take this into account when suggesting code, even though the app does not currently use a database.
+
+## 21. Infrastructure as Code (IaC)
+
+1. When using AWS for infrastructure as code, consider a hybrid approach using both **CloudFormation** and **Terraform**:
+   * Use CloudFormation for core AWS setup (IAM, RDS, S3, VPC) - good for learning AWS-specific patterns
+   * Use Terraform for application infrastructure and ongoing management if needed.
+
+## 22. Testing Workflow
+
+1. If tests are currently failing, the following options can be employed:
+
+    *   a) Mark failing tests with `.skip`
+    *   b) Commit with `--no-verify`
+
+2. Always create a new task to fix the tests.
+
+## 23. AWS Credential Management
+
+1. Store AWS credentials securely in environment variables and never commit them to version control.
