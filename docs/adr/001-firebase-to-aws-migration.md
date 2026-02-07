@@ -6,20 +6,21 @@
 
 ## Context
 
-The Job Posting Analyzer currently uses Firebase Authentication for user management. The application has no persistent database—all analysis is stateless and executed against Gemini/Anthropic APIs.
+The Job Posting Analyzer currently uses Firebase Authentication for user management and persists data locally in JSON files (`.data/` directory) via a `FileStorageService` class. Existing data includes:
 
-As the application evolves to support:
+- **Resumes** (`resumes.json`) - Resume versions with id, name, content, timestamp
+- **Analysis History** (`analysis-history.json`) - Matches, gaps, suggestions from past comparisons
+- **Conversations** (`conversations.json`) - AI conversation context for cover letter generation
+- **Cover Letter Samples** (`cover-letter-samples.json`) - Templates and version history
 
-- Analysis history persistence
-- Resume versioning
-- Job posting storage with semantic search
-- Vector embeddings for similarity matching
+This file-based approach works for single-user development but cannot scale to production deployment or multi-device access. The current data structure is already coded throughout the application and must be preserved during migration.
 
-Firebase's limitations become apparent:
+As the application evolves to support semantic job search and production deployment, limitations become clear:
 
-- **No vector database support** - Firestore cannot perform pgvector-based semantic search, which is critical for finding "similar jobs"
-- **NoSQL-only structure** - Firestore lacks relational querying flexibility needed for complex analysis comparisons
-- **Vendor lock-in** - Difficult to migrate away; tight coupling to Firebase ecosystem
+- **File-based storage** - Cannot support multiple users, concurrent access, or cloud deployment
+- **No vector database support** - Cannot implement pgvector-based semantic search for "similar jobs" feature
+- **NoSQL limitations** - If using Firestore, lacks relational querying needed for complex analysis comparisons
+- **Vendor lock-in** - Firebase ecosystem creates tight coupling
 
 The developer's stated goal is to **deepen AWS knowledge** for professional growth, making this an ideal opportunity for learning while solving real technical needs.
 
@@ -29,7 +30,7 @@ The developer's stated goal is to **deepen AWS knowledge** for professional grow
 
 ### Architecture
 
-```
+```mermaid
 Frontend (Nuxt 3) 
     ↓
 Firebase Auth (unchanged) ← Backend API (Nitro/Node)
