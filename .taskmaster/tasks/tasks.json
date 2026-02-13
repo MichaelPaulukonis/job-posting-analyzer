@@ -1437,8 +1437,10 @@
             "description": "Create a new AWS account or identify an existing account to use for the migration project.",
             "dependencies": [],
             "details": "Navigate to aws.amazon.com and sign up for a new account if needed. Ensure root account has MFA enabled, and validate contact information. If using an existing account, confirm it has capacity for new resources and is appropriate for this project's scope.",
-            "status": "pending",
-            "testStrategy": "Verify successful login to AWS Management Console with the chosen account."
+            "status": "done",
+            "testStrategy": "Verify successful login to AWS Management Console with the chosen account.",
+            "updatedAt": "2026-02-07T04:27:18.476Z",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1448,8 +1450,10 @@
               1
             ],
             "details": "In IAM console, create a new user with a meaningful name (e.g., 'migration-admin'). Attach the AdministratorAccess policy for initial setup. Enable MFA for this user for enhanced security. Create console access with a strong password and enforce password policy.",
-            "status": "pending",
-            "testStrategy": "Verify the user can log in to the AWS Management Console and has appropriate permissions by viewing IAM resources."
+            "status": "done",
+            "testStrategy": "Verify the user can log in to the AWS Management Console and has appropriate permissions by viewing IAM resources.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-07T04:33:45.023Z"
           },
           {
             "id": 3,
@@ -1459,8 +1463,10 @@
               2
             ],
             "details": "In IAM console, create access keys for the administrative user. Download and store the access key ID and secret access key in a secure password manager. Never store in plain text or commit to version control. Consider implementing key rotation policies.",
-            "status": "pending",
-            "testStrategy": "Validate the access keys work by using them with AWS CLI command: 'aws sts get-caller-identity'."
+            "status": "done",
+            "testStrategy": "Validate the access keys work by using them with AWS CLI command: 'aws sts get-caller-identity'.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-11T19:56:20.161Z"
           },
           {
             "id": 4,
@@ -1470,8 +1476,10 @@
               3
             ],
             "details": "Install AWS CLI using appropriate method for each OS. Run 'aws configure' and input the access key ID and secret. Set appropriate default region and output format. Consider creating named profiles for different environments. Verify AWS CLI is correctly configured and functioning.",
-            "status": "pending",
-            "testStrategy": "Run 'aws s3 ls' and other basic commands to verify CLI is properly configured and has appropriate access."
+            "status": "done",
+            "testStrategy": "Run 'aws s3 ls' and other basic commands to verify CLI is properly configured and has appropriate access.",
+            "parentId": "undefined",
+            "updatedAt": "2026-02-11T19:56:20.170Z"
           },
           {
             "id": 5,
@@ -1480,9 +1488,10 @@
             "dependencies": [
               2
             ],
-            "details": "Create roles for App Runner, RDS, and other services following the principle of least privilege. Configure trust relationships to allow only the required services to assume these roles. Use AWS managed policies where appropriate and create custom policies where more granular control is needed.",
+            "details": "Create roles for App Runner, RDS, and other services following the principle of least privilege. Configure trust relationships to allow only the required services to assume these roles. Use AWS managed policies where appropriate and create custom policies where more granular control is needed.\n<info added on 2026-02-12T13:46:24.445Z>\n## Implementation Complete - Service Roles CloudFormation Template\n\nCreated comprehensive IAM service roles using Infrastructure as Code (CloudFormation) following AWS best practices and the principle of least privilege.\n\n### Files Created\n\n1. **infra/cloudformation/service-roles.yml** - Main CloudFormation template\n   - App Runner Instance Role (for runtime access to S3, RDS, ECR, Secrets Manager)\n   - App Runner Access Role (for ECR image pulling during deployment)\n   - RDS Enhanced Monitoring Role (for CloudWatch metrics)\n   - CloudFormation Service Role (for managing infrastructure)\n   - Lambda Execution Role (for future serverless functions)\n\n2. **scripts/deploy-service-roles.sh** - Automated deployment script\n   - Validates template before deployment\n   - Handles both create and update operations\n   - Provides clear status messages and error handling\n   - Displays role ARNs after successful deployment\n\n3. **infra/cloudformation/SERVICE_ROLES.md** - Comprehensive documentation\n   - Detailed explanation of each role and its purpose\n   - Trust relationships and permissions breakdown\n   - Deployment instructions and examples\n   - Security best practices\n   - Troubleshooting guide\n   - Usage examples for each role\n\n### Key Features\n\n**Security Best Practices**:\n- All roles follow principle of least privilege\n- Resource-scoped permissions (no broad wildcards)\n- Service-specific trust relationships\n- Proper tagging for tracking and auditing\n\n**Roles Overview**:\n\n1. **App Runner Instance Role**: Runtime permissions for the application\n   - S3: Read/write/delete objects in app buckets\n   - RDS: IAM database authentication\n   - ECR: Pull container images\n   - Secrets Manager: Retrieve credentials\n   - CloudWatch: Write logs\n\n2. **App Runner Access Role**: Build-time ECR access\n   - Uses AWS managed policy for ECR access\n   - Required for App Runner to pull images during deployment\n\n3. **RDS Enhanced Monitoring Role**: Database metrics\n   - Publishes detailed RDS metrics to CloudWatch\n   - Uses AWS managed monitoring policy\n\n4. **CloudFormation Service Role**: Infrastructure management\n   - Create/manage IAM roles and policies\n   - Create/manage RDS, S3, ECR, App Runner resources\n   - Create/manage VPC security groups\n   - Create/manage Secrets Manager secrets\n\n5. **Lambda Execution Role**: Future serverless functions\n   - Basic Lambda execution permissions\n   - VPC access for database connections\n   - S3 and Secrets Manager access\n\n### Deployment\n\nThe template can be deployed using:\n\n```bash\n# Automated script (recommended)\n./scripts/deploy-service-roles.sh\n\n# Manual deployment\naws cloudformation create-stack \\\n  --stack-name job-analyzer-service-roles \\\n  --template-body file://infra/cloudformation/service-roles.yml \\\n  --capabilities CAPABILITY_NAMED_IAM\n```\n\n### Next Steps\n\n1. Deploy the service roles stack to AWS\n2. Save the role ARNs from stack outputs\n3. Use these ARNs when creating:\n   - RDS instances (monitoring role)\n   - App Runner services (instance and access roles)\n   - Lambda functions (execution role)\n   - Other CloudFormation stacks (service role)\n\n### Integration with Existing Infrastructure\n\nThis template complements the existing `iam-setup.yml` template:\n- `iam-setup.yml`: Creates IAM user and deployment policies\n- `service-roles.yml`: Creates service-to-service communication roles\n\nBoth templates follow the same naming conventions and tagging strategy for consistency.\n</info added on 2026-02-12T13:46:24.445Z>",
             "status": "pending",
-            "testStrategy": "Verify role creation in IAM console and test trust relationships by attempting to assume roles with appropriate services."
+            "testStrategy": "Verify role creation in IAM console and test trust relationships by attempting to assume roles with appropriate services.",
+            "parentId": "undefined"
           },
           {
             "id": 6,
@@ -1493,7 +1502,8 @@
             ],
             "details": "Create a custom policy that grants App Runner specific permissions to access S3 buckets (GET, PUT, LIST, etc.). Scope the policy to specific S3 buckets and paths needed for the application. Attach the policy to the App Runner service role. Ensure the policy follows least privilege principles.",
             "status": "pending",
-            "testStrategy": "Validate the policy syntax using the IAM policy validator. Test the policy by assuming the App Runner role and attempting S3 operations."
+            "testStrategy": "Validate the policy syntax using the IAM policy validator. Test the policy by assuming the App Runner role and attempting S3 operations.",
+            "parentId": "undefined"
           },
           {
             "id": 7,
@@ -1504,7 +1514,8 @@
             ],
             "details": "Attach appropriate managed policies (AmazonRDSFullAccess, AmazonS3FullAccess, AmazonECR-FullAccess, AppRunnerFullAccess) to relevant IAM users or roles. For production, consider creating custom policies with more restricted permissions based on actual needs. Ensure cross-service permissions are properly configured.",
             "status": "pending",
-            "testStrategy": "Test each service access by performing basic operations (e.g., list RDS instances, create ECR repository) using the configured permissions."
+            "testStrategy": "Test each service access by performing basic operations (e.g., list RDS instances, create ECR repository) using the configured permissions.",
+            "parentId": "undefined"
           },
           {
             "id": 8,
@@ -1521,10 +1532,11 @@
             ],
             "details": "Create a secure document detailing all account information, IAM users, roles, and their purposes. Document all policies and their scopes. Include information about where credentials are stored. Create a diagram showing service relationships and permission flows. Store this documentation securely and share only with authorized team members.",
             "status": "pending",
-            "testStrategy": "Review documentation with team leads to ensure completeness and accuracy. Verify all resources mentioned in documentation exist in AWS account."
+            "testStrategy": "Review documentation with team leads to ensure completeness and accuracy. Verify all resources mentioned in documentation exist in AWS account.",
+            "parentId": "undefined"
           }
         ],
-        "updatedAt": "2026-02-01T20:06:31.089Z"
+        "updatedAt": "2026-02-11T19:56:20.170Z"
       },
       {
         "id": 2,
@@ -1662,7 +1674,7 @@
         "testStrategy": "1. Verify all previously failing tests now pass with the implemented solution\n\n2. Ensure that mocks properly simulate the expected behavior of the real $fetch implementation\n\n3. Add test cases that verify the service handles failed fetch requests correctly\n\n4. Test edge cases such as network errors, timeouts, and malformed responses\n\n5. Measure test coverage before and after changes to ensure coverage hasn't decreased\n\n6. Create documentation for other developers on how to properly test components that rely on Nuxt composables\n\n7. If tests were temporarily skipped, create a tracking issue to ensure they get fixed properly in the future\n\n8. Test in CI pipeline to verify tests pass in all environments",
         "status": "pending",
         "dependencies": [
-          8
+          "8"
         ],
         "priority": "medium",
         "subtasks": []
@@ -1670,15 +1682,14 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-01T20:06:31.091Z",
-      "taskCount": 10,
+      "lastModified": "2026-02-11T19:56:20.170Z",
+      "taskCount": 11,
       "completedCount": 0,
       "tags": [
         "aws-migration"
       ],
-      "created": "2026-02-01T20:09:33.806Z",
-      "description": "Tasks for aws-migration context",
-      "updated": "2026-02-01T20:09:57.247Z"
+      "created": "2026-02-12T13:46:01.485Z",
+      "description": "Tasks for aws-migration context"
     }
   }
 }
