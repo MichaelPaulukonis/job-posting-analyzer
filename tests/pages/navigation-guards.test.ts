@@ -1,4 +1,4 @@
-import { authGuard } from '~/middleware/auth';
+import { authGuard } from '~/middleware/auth-guard';
 
 beforeAll(() => {
   // Simulate browser environment for tests
