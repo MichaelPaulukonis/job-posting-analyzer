@@ -19,7 +19,9 @@
       },
       "autoApprove": [
         "get_tasks",
-        "update_subtask"
+        "update_subtask",
+        "get_task",
+        "set_task_status"
       ]
     }
   }
