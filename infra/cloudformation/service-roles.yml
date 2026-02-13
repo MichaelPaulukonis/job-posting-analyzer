@@ -1,0 +1,370 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Job Posting Analyzer - Service Roles for AWS Services Communication'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'job-analyzer'
+    Description: 'Environment name for resource tagging'
+
+Resources:
+  # ==========================================
+  # App Runner Service Role
+  # ==========================================
+  
+  AppRunnerInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${EnvironmentName}-app-runner-instance-role'
+      Description: 'Role for App Runner service instances to access AWS resources'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: tasks.apprunner.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/CloudWatchLogsFullAccess'
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+        - Key: Purpose
+          Value: App Runner instance execution
+
+  # S3 Access Policy for App Runner
+  AppRunnerS3AccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-app-runner-s3-access'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ListBuckets
+            Effect: Allow
+            Action:
+              - 's3:ListBucket'
+              - 's3:GetBucketLocation'
+            Resource: !Sub 'arn:aws:s3:::${EnvironmentName}-*'
+          - Sid: ObjectOperations
+            Effect: Allow
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:GetObjectVersion'
+            Resource: !Sub 'arn:aws:s3:::${EnvironmentName}-*/*'
+      Roles:
+        - !Ref AppRunnerInstanceRole
+
+  # RDS Access Policy for App Runner
+  AppRunnerRDSAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-app-runner-rds-access'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: RDSConnect
+            Effect: Allow
+            Action:
+              - 'rds-db:connect'
+            Resource: !Sub 'arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:*/*'
+          - Sid: RDSDescribe
+            Effect: Allow
+            Action:
+              - 'rds:DescribeDBInstances'
+              - 'rds:DescribeDBClusters'
+            Resource: '*'
+      Roles:
+        - !Ref AppRunnerInstanceRole
+
+  # ECR Access Policy for App Runner
+  AppRunnerECRAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-app-runner-ecr-access'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ECRAuth
+            Effect: Allow
+            Action:
+              - 'ecr:GetAuthorizationToken'
+            Resource: '*'
+          - Sid: ECRImagePull
+            Effect: Allow
+            Action:
+              - 'ecr:BatchGetImage'
+              - 'ecr:GetDownloadUrlForLayer'
+              - 'ecr:BatchCheckLayerAvailability'
+            Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EnvironmentName}-*'
+      Roles:
+        - !Ref AppRunnerInstanceRole
+
+  # Secrets Manager Access for App Runner (for database credentials)
+  AppRunnerSecretsAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-app-runner-secrets-access'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: GetSecretValue
+            Effect: Allow
+            Action:
+              - 'secretsmanager:GetSecretValue'
+              - 'secretsmanager:DescribeSecret'
+            Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${EnvironmentName}/*'
+      Roles:
+        - !Ref AppRunnerInstanceRole
+
+  # ==========================================
+  # App Runner Access Role (for ECR image pulling)
+  # ==========================================
+  
+  AppRunnerAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${EnvironmentName}-app-runner-access-role'
+      Description: 'Role for App Runner to access ECR for image pulling'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: build.apprunner.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess'
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+        - Key: Purpose
+          Value: App Runner ECR access
+
+  # ==========================================
+  # RDS Enhanced Monitoring Role
+  # ==========================================
+  
+  RDSEnhancedMonitoringRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${EnvironmentName}-rds-monitoring-role'
+      Description: 'Role for RDS Enhanced Monitoring'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: monitoring.rds.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole'
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+        - Key: Purpose
+          Value: RDS Enhanced Monitoring
+
+  # ==========================================
+  # CloudFormation Service Role
+  # ==========================================
+  
+  CloudFormationServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${EnvironmentName}-cloudformation-service-role'
+      Description: 'Service role for CloudFormation to create and manage resources'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+        - Key: Purpose
+          Value: CloudFormation service operations
+
+  # CloudFormation permissions to manage resources
+  CloudFormationServicePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-cloudformation-service-policy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ManageIAM
+            Effect: Allow
+            Action:
+              - 'iam:CreateRole'
+              - 'iam:DeleteRole'
+              - 'iam:GetRole'
+              - 'iam:PassRole'
+              - 'iam:AttachRolePolicy'
+              - 'iam:DetachRolePolicy'
+              - 'iam:PutRolePolicy'
+              - 'iam:DeleteRolePolicy'
+              - 'iam:GetRolePolicy'
+              - 'iam:CreatePolicy'
+              - 'iam:DeletePolicy'
+              - 'iam:GetPolicy'
+              - 'iam:GetPolicyVersion'
+            Resource:
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:role/${EnvironmentName}-*'
+              - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/${EnvironmentName}-*'
+          - Sid: ManageRDS
+            Effect: Allow
+            Action:
+              - 'rds:*'
+            Resource: '*'
+          - Sid: ManageS3
+            Effect: Allow
+            Action:
+              - 's3:*'
+            Resource:
+              - !Sub 'arn:aws:s3:::${EnvironmentName}-*'
+              - !Sub 'arn:aws:s3:::${EnvironmentName}-*/*'
+          - Sid: ManageECR
+            Effect: Allow
+            Action:
+              - 'ecr:*'
+            Resource: !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${EnvironmentName}-*'
+          - Sid: ManageAppRunner
+            Effect: Allow
+            Action:
+              - 'apprunner:*'
+            Resource: '*'
+          - Sid: ManageVPC
+            Effect: Allow
+            Action:
+              - 'ec2:CreateSecurityGroup'
+              - 'ec2:DeleteSecurityGroup'
+              - 'ec2:DescribeSecurityGroups'
+              - 'ec2:AuthorizeSecurityGroupIngress'
+              - 'ec2:AuthorizeSecurityGroupEgress'
+              - 'ec2:RevokeSecurityGroupIngress'
+              - 'ec2:RevokeSecurityGroupEgress'
+              - 'ec2:DescribeVpcs'
+              - 'ec2:DescribeSubnets'
+              - 'ec2:CreateTags'
+            Resource: '*'
+          - Sid: ManageSecretsManager
+            Effect: Allow
+            Action:
+              - 'secretsmanager:CreateSecret'
+              - 'secretsmanager:DeleteSecret'
+              - 'secretsmanager:DescribeSecret'
+              - 'secretsmanager:GetSecretValue'
+              - 'secretsmanager:PutSecretValue'
+              - 'secretsmanager:TagResource'
+            Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${EnvironmentName}/*'
+      Roles:
+        - !Ref CloudFormationServiceRole
+
+  # ==========================================
+  # Lambda Execution Role (for future use)
+  # ==========================================
+  
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${EnvironmentName}-lambda-execution-role'
+      Description: 'Execution role for Lambda functions'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole'
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+        - Key: Purpose
+          Value: Lambda function execution
+
+  # Lambda access to RDS and S3
+  LambdaResourceAccessPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${EnvironmentName}-lambda-resource-access'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: RDSAccess
+            Effect: Allow
+            Action:
+              - 'rds-db:connect'
+            Resource: !Sub 'arn:aws:rds-db:${AWS::Region}:${AWS::AccountId}:dbuser:*/*'
+          - Sid: S3Access
+            Effect: Allow
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+            Resource: !Sub 'arn:aws:s3:::${EnvironmentName}-*/*'
+          - Sid: SecretsAccess
+            Effect: Allow
+            Action:
+              - 'secretsmanager:GetSecretValue'
+            Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${EnvironmentName}/*'
+      Roles:
+        - !Ref LambdaExecutionRole
+
+Outputs:
+  AppRunnerInstanceRoleArn:
+    Description: 'ARN of the App Runner instance role'
+    Value: !GetAtt AppRunnerInstanceRole.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-app-runner-instance-role-arn'
+
+  AppRunnerAccessRoleArn:
+    Description: 'ARN of the App Runner access role for ECR'
+    Value: !GetAtt AppRunnerAccessRole.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-app-runner-access-role-arn'
+
+  RDSEnhancedMonitoringRoleArn:
+    Description: 'ARN of the RDS Enhanced Monitoring role'
+    Value: !GetAtt RDSEnhancedMonitoringRole.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-rds-monitoring-role-arn'
+
+  CloudFormationServiceRoleArn:
+    Description: 'ARN of the CloudFormation service role'
+    Value: !GetAtt CloudFormationServiceRole.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-cloudformation-service-role-arn'
+
+  LambdaExecutionRoleArn:
+    Description: 'ARN of the Lambda execution role'
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-lambda-execution-role-arn'
+
+  DeploymentInstructions:
+    Description: 'Instructions for deploying this stack'
+    Value: |
+      1. Validate template: aws cloudformation validate-template --template-body file://service-roles.yml
+      2. Create stack: aws cloudformation create-stack --stack-name job-analyzer-service-roles --template-body file://service-roles.yml --capabilities CAPABILITY_NAMED_IAM
+      3. Wait for creation: aws cloudformation wait stack-create-complete --stack-name job-analyzer-service-roles
+      4. Retrieve outputs: aws cloudformation describe-stacks --stack-name job-analyzer-service-roles --query 'Stacks[0].Outputs'
+      
+      Note: The --capabilities CAPABILITY_NAMED_IAM flag is required because this template creates IAM roles with custom names.

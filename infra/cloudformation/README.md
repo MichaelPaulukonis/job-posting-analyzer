@@ -10,7 +10,9 @@ This directory contains CloudFormation Infrastructure as Code (IaC) templates fo
 infra/
 ├── cloudformation/
 │   ├── README.md                    # This file
-│   ├── iam-setup.yml               # IAM user, roles, and policies
+│   ├── iam-setup.yml               # IAM user and deployment policies
+│   ├── service-roles.yml           # IAM roles for AWS services
+│   ├── SERVICE_ROLES.md            # Service roles documentation
 │   ├── rds-setup.yml               # RDS PostgreSQL with pgvector (TODO)
 │   ├── s3-setup.yml                # S3 buckets for file storage (TODO)
 │   ├── ecr-setup.yml               # ECR container registry (TODO)
@@ -140,6 +142,43 @@ aws ecr describe-repositories --profile job-analyzer
 # Test App Runner permissions
 aws apprunner list-services --profile job-analyzer
 ```
+
+### Task 1.8: Deploy Service Roles
+
+Service roles allow AWS services to communicate with each other securely.
+
+```bash
+# Deploy service roles stack
+./scripts/deploy-service-roles.sh
+
+# Or manually
+aws cloudformation create-stack \
+  --stack-name job-analyzer-service-roles \
+  --template-body file://infra/cloudformation/service-roles.yml \
+  --parameters ParameterKey=EnvironmentName,ParameterValue=job-analyzer \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --profile job-analyzer
+
+# Wait for completion
+aws cloudformation wait stack-create-complete \
+  --stack-name job-analyzer-service-roles \
+  --profile job-analyzer
+
+# Get role ARNs (save these for later use)
+aws cloudformation describe-stacks \
+  --stack-name job-analyzer-service-roles \
+  --query 'Stacks[0].Outputs' \
+  --profile job-analyzer
+```
+
+**Roles Created**:
+- App Runner Instance Role (for accessing S3, RDS, ECR, Secrets Manager)
+- App Runner Access Role (for pulling ECR images)
+- RDS Enhanced Monitoring Role
+- CloudFormation Service Role
+- Lambda Execution Role (for future use)
+
+See [SERVICE_ROLES.md](./SERVICE_ROLES.md) for detailed documentation.
 
 ## Phase 2: Infrastructure Deployment (TODO)
 

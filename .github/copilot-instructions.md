@@ -48,6 +48,7 @@ When suggesting code, please use the following technologies:
    - **`docs/`**: Project documentation, including overviews and plans.
    - **`docs/adr/`**: Architecture Decision Records.
    - **`docs/plans/`**: Plan files for significant project changes.
+   - **`infrastructure/`** or **`iac/`**: Directory for Infrastructure as Code scripts (e.g., CloudFormation, Terraform).
 
 3. Maintain clear folder hierarchies and avoid deeply nested structures unless absolutely necessary.
 4. Ensure consistent relative imports, using `~/` alias for project root. Keep related files close to where they're used when possible.
@@ -381,9 +382,11 @@ These guidelines apply *only if* the project migrates from Firebase to AWS.
 5.  **Vector Search & AI:** Use **AWS Bedrock** for generating embeddings and store them in RDS with `pgvector` for semantic search.
 
 When suggesting code related to AWS services, use the **AWS SDK for JavaScript**.
+
 When using AWS for infrastructure as code, consider a hybrid approach using both **CloudFormation** and **Terraform**
    * Use CloudFormation for core AWS setup (IAM, RDS, S3, VPC)
    * Use Terraform for application infrastructure and ongoing management.
+   * **Note:** Automate as much as possible with IaC, but recognize that some tasks like MFA enrollment and initial console password setup are best handled manually due to security considerations and the "bootstrap problem" (needing existing credentials to run the IaC). Use AWS Secrets Manager to store the initial password securely.
 
 ## 19. Architecture Decision Records (ADR)
 
@@ -404,6 +407,17 @@ When using AWS for infrastructure as code, consider a hybrid approach using both
 1. When using AWS for infrastructure as code, consider a hybrid approach using both **CloudFormation** and **Terraform**:
    * Use CloudFormation for core AWS setup (IAM, RDS, S3, VPC) - good for learning AWS-specific patterns
    * Use Terraform for application infrastructure and ongoing management if needed.
+2. **IAM User Automation**: IAM user creation and policy attachment *can* be automated with IaC. Consider a hybrid approach:
+   * **Automate:** User creation, policy attachment (e.g., `AdministratorAccess`), password policy.
+   * **Manual:** MFA enrollment, initial console password setup (user must change it on first login).
+   * Store the initial password in AWS Secrets Manager.
+   * **MFA setup**: Most commonly MFA is a virtual MFA app on your phone (e.g., Google Authenticator, Authy, Microsoft Authenticator). In IAM you’d:
+        1. Open the IAM user → **Security credentials**
+        2. **Assign MFA device** → **Virtual MFA**
+        3. Scan the QR code in the app
+        4. Enter two consecutive codes to confirm
+        You can also use a **hardware key (FIDO2/U2F)** instead of a phone.
+   * You’re creating a **separate admin user with MFA** to avoid using a personal account for privileged work, improve auditability, and allow you to lock down or remove elevated access after setup. It’s a **least‑privilege + separation of duties** practice: use this admin only for initial migration/bootstrap, then reduce permissions later. Use this admin only for initial migration/bootstrap, then reduce permissions later.
 
 ## 22. Testing Workflow
 
