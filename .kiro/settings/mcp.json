@@ -21,7 +21,8 @@
         "get_tasks",
         "update_subtask",
         "get_task",
-        "set_task_status"
+        "set_task_status",
+        "next_task"
       ]
     }
   }
