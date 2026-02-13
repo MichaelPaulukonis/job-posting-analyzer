@@ -1425,7 +1425,7 @@
         "id": "1",
         "title": "AWS Account and IAM Setup",
         "description": "Create and configure AWS account with appropriate IAM permissions for the migration project",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
         "details": "1. Create new AWS account or use existing one\n2. Set up IAM user with permissions for RDS, S3, App Runner, ECR\n3. Create and securely store access keys\n4. Configure AWS CLI locally with credentials\n5. Set up appropriate IAM roles for services to communicate\n6. Create a policy for S3 access from App Runner\n7. Document all created resources and credentials in secure location\n\nPermissions needed:\n- AmazonRDSFullAccess\n- AmazonS3FullAccess\n- AmazonECR-FullAccess\n- AppRunnerFullAccess",
@@ -1533,13 +1533,14 @@
               6,
               7
             ],
-            "details": "Create a secure document detailing all account information, IAM users, roles, and their purposes. Document all policies and their scopes. Include information about where credentials are stored. Create a diagram showing service relationships and permission flows. Store this documentation securely and share only with authorized team members.",
-            "status": "pending",
+            "details": "Create a secure document detailing all account information, IAM users, roles, and their purposes. Document all policies and their scopes. Include information about where credentials are stored. Create a diagram showing service relationships and permission flows. Store this documentation securely and share only with authorized team members.\n<info added on 2026-02-13T04:30:29.079Z>\nTask 1.8 has been completed successfully. A comprehensive infrastructure inventory document has been created at `docs/aws/infrastructure-inventory.md`. The documentation includes detailed information about AWS account and region settings, a complete inventory of IAM users (including the deployment user with ARN and policies), all 5 IAM service roles with their ARNs, trust relationships, and attached policies, and all 10 IAM policies (6 for the deployment user and 4 for service roles). The document also covers CloudFormation stacks (iam-setup, service-roles) with deployment status, security configuration and best practices, credential storage locations and procedures, and a service relationship diagram using ASCII art to show permission flows. Additional information includes resource naming conventions, an access control matrix, verification commands for each resource type, and maintenance procedures. The documentation provides a comprehensive inventory of all AWS resources created in Tasks 1.1-1.7, security-focused documentation with credential handling procedures, and clear maintenance guidelines. This document is now ready for team review and serves as a complete reference for the AWS infrastructure setup.\n</info added on 2026-02-13T04:30:29.079Z>",
+            "status": "done",
             "testStrategy": "Review documentation with team leads to ensure completeness and accuracy. Verify all resources mentioned in documentation exist in AWS account.",
-            "parentId": "undefined"
+            "parentId": "undefined",
+            "updatedAt": "2026-02-13T04:30:34.588Z"
           }
         ],
-        "updatedAt": "2026-02-13T04:23:09.895Z"
+        "updatedAt": "2026-02-13T04:30:34.588Z"
       },
       {
         "id": "2",
@@ -1685,9 +1686,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-13T04:23:09.895Z",
+      "lastModified": "2026-02-13T04:30:34.588Z",
       "taskCount": 11,
-      "completedCount": 0,
+      "completedCount": 1,
       "tags": [
         "aws-migration"
       ]
