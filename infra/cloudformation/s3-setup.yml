@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'S3 Bucket Setup for Job Posting Analyzer - File Storage for resumes and job postings'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'job-analyzer'
+    Description: 'Environment name used for resource naming and tagging'
+
+Resources:
+  # S3 Bucket for storing resume files and job posting documents
+  FileStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${EnvironmentName}-files'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 90
+          - Id: TransitionToIA
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - '*'  # TODO: Restrict to specific domain in production
+            AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+              - HEAD
+            MaxAge: 3000
+            ExposedHeaders:
+              - ETag
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+        - Key: Purpose
+          Value: file-storage
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Bucket Policy - Allow access from App Runner service role
+  FileStorageBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FileStorageBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowAppRunnerAccess
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:role/${EnvironmentName}-app-runner-instance-role'
+            Action:
+              - 's3:GetObject'
+              - 's3:PutObject'
+              - 's3:DeleteObject'
+              - 's3:ListBucket'
+            Resource:
+              - !GetAtt FileStorageBucket.Arn
+              - !Sub '${FileStorageBucket.Arn}/*'
+
+Outputs:
+  BucketName:
+    Description: 'Name of the S3 bucket for file storage'
+    Value: !Ref FileStorageBucket
+    Export:
+      Name: !Sub '${EnvironmentName}-file-storage-bucket-name'
+
+  BucketArn:
+    Description: 'ARN of the S3 bucket'
+    Value: !GetAtt FileStorageBucket.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-file-storage-bucket-arn'
+
+  BucketDomainName:
+    Description: 'Domain name of the S3 bucket'
+    Value: !GetAtt FileStorageBucket.DomainName
+    Export:
+      Name: !Sub '${EnvironmentName}-file-storage-bucket-domain'
+
+  BucketRegionalDomainName:
+    Description: 'Regional domain name of the S3 bucket'
+    Value: !GetAtt FileStorageBucket.RegionalDomainName
+    Export:
+      Name: !Sub '${EnvironmentName}-file-storage-bucket-regional-domain'

@@ -1546,7 +1546,7 @@
         "id": "2",
         "title": "RDS PostgreSQL Database Setup with pgvector",
         "description": "Set up a PostgreSQL database instance on RDS and enable pgvector extension for semantic search capabilities",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           "1"
         ],
@@ -1618,33 +1618,35 @@
             "updatedAt": "2026-02-13T17:57:46.869Z"
           }
         ],
-        "updatedAt": "2026-02-13T23:02:50.940Z"
+        "updatedAt": "2026-02-14T21:08:13.107Z"
       },
       {
         "id": "3",
         "title": "Database Schema Implementation",
         "description": "Create and initialize the database schema with tables for users, resumes, job postings, and analysis results",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "2"
         ],
         "priority": "high",
         "details": "1. Create migration script with all tables as defined in PRD\n2. Implement the following tables:\n   - users\n   - resumes\n   - job_postings (with vector column)\n   - analysis_results\n3. Add appropriate indices for performance\n4. Create foreign key relationships between tables\n5. Add timestamps for created_at and updated_at\n\nCreate a server/database/schema.sql file with the provided schema from the PRD:\n```sql\n-- Users table\nCREATE TABLE users (\n  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),\n  firebase_uid VARCHAR(255) UNIQUE NOT NULL,\n  email VARCHAR(255) UNIQUE NOT NULL,\n  created_at TIMESTAMP DEFAULT NOW()\n);\n\n-- Resumes\nCREATE TABLE resumes (\n  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),\n  user_id UUID REFERENCES users(id),\n  name VARCHAR(255),\n  content TEXT,\n  s3_url VARCHAR(512),\n  created_at TIMESTAMP DEFAULT NOW()\n);\n\n-- Job Postings\nCREATE TABLE job_postings (\n  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),\n  user_id UUID REFERENCES users(id),\n  title VARCHAR(255),\n  company VARCHAR(255),\n  content TEXT,\n  embedding vector(1536),\n  created_at TIMESTAMP DEFAULT NOW()\n);\n\n-- Analysis Results\nCREATE TABLE analysis_results (\n  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),\n  user_id UUID REFERENCES users(id),\n  resume_id UUID REFERENCES resumes(id),\n  job_posting_id UUID REFERENCES job_postings(id),\n  matches JSONB,\n  gaps JSONB,\n  suggestions JSONB,\n  created_at TIMESTAMP DEFAULT NOW()\n);\n```\n<info added on 2026-02-01T16:54:38.880Z>\nCRITICAL ADDITION - JSON Data Migration:\n\n6. Import existing JSON data from .data/ directory into PostgreSQL\n   - Map JSON structure to the new relational schema\n   - Create migration script to transform JSON files into database records\n   - Ensure data integrity during transformation process\n\nData Migration Requirements:\nThe application currently stores data in .data/ JSON files that must be preserved during schema migration. Create a Node.js migration script that:\n1. Reads all JSON files from .data/ directory (users, resumes, job_postings, analysis_results)\n2. Transforms JSON structure to match PostgreSQL schema\n3. Validates data before insertion\n4. Handles UUID generation for records that don't have IDs\n5. Maintains referential integrity (user relationships)\n6. Implements transaction-based loading to ensure atomicity\n\nCreate server/database/migrate-json-data.js with the following capabilities:\n- Connect to PostgreSQL using pg library\n- Read JSON files using Node.js fs module\n- Transform nested JSON objects to JSONB format for analysis_results table\n- Insert data with proper foreign key relationships\n- Log migration progress and errors\n- Support rollback if migration fails\n\nAdditional files needed:\n1. server/database/json-schema-mapper.ts - Define mapping between JSON structure and relational schema\n2. server/database/migrate-json-data.ts - Node.js/TypeScript migration runner\n3. Backup .data/ JSON files before running migration\n4. Create seed data for testing migrations locally\n\nUpdated Test Strategy:\n1. Backup original .data/ JSON files to .data/backup/\n2. Run migration script against test database\n3. Verify all JSON records are imported with correct relationships\n4. Validate JSON data in JSONB columns maintains structure\n5. Compare record counts between source JSON and target database\n6. Test foreign key integrity after import\n7. Verify no data loss or corruption during transformation\n8. Test migration idempotency (can re-run without duplicates)\n9. Implement error recovery and rollback procedures\n</info added on 2026-02-01T16:54:38.880Z>",
         "testStrategy": "1. Run schema against test database\n2. Verify all tables are created with correct columns\n3. Insert test data and validate foreign key constraints\n4. Test vector operations with pgvector\n5. Verify JSON operations with the JSONB columns",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-02-14T21:11:24.494Z"
       },
       {
         "id": "4",
         "title": "S3 Bucket Setup for File Storage",
         "description": "Create and configure an S3 bucket for storing resume files and job posting documents",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "1"
         ],
         "priority": "high",
         "details": "1. Create S3 bucket with appropriate naming (e.g., 'job-analyzer-files-{environment}')\n2. Configure CORS to allow uploads from frontend application\n3. Set up appropriate bucket policies and permissions\n4. Create IAM policy for App Runner to access the bucket\n5. Configure lifecycle rules for cost management\n6. Set up folder structure for organizing files (e.g., /resumes, /job-postings)\n\nAWS CLI commands:\n```bash\n# Create bucket\naws s3 mb s3://job-analyzer-files-dev\n\n# Configure CORS\naws s3api put-bucket-cors --bucket job-analyzer-files-dev --cors-configuration file://cors-config.json\n```\n\nCORS Configuration (cors-config.json):\n```json\n{\n  \"CORSRules\": [\n    {\n      \"AllowedOrigins\": [\"*\"],\n      \"AllowedHeaders\": [\"*\"],\n      \"AllowedMethods\": [\"GET\", \"PUT\", \"POST\", \"DELETE\", \"HEAD\"],\n      \"MaxAgeSeconds\": 3000\n    }\n  ]\n}\n```",
         "testStrategy": "1. Upload test file to bucket using AWS CLI\n2. Generate pre-signed URL and test file access\n3. Verify CORS headers on bucket responses\n4. Test access from IAM role that App Runner will use\n5. Verify folder structure is maintained when uploading files",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-02-14T21:37:00.919Z"
       },
       {
         "id": "5",
@@ -1752,9 +1754,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-13T23:02:50.943Z",
+      "lastModified": "2026-02-14T21:37:00.923Z",
       "taskCount": 11,
-      "completedCount": 2,
+      "completedCount": 5,
       "tags": [
         "aws-migration"
       ]
