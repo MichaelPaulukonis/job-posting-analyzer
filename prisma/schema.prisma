@@ -1,0 +1,184 @@
+// Prisma Schema for job-posting-analyzer
+// PostgreSQL with pgvector extension
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [uuidOssp(map: "uuid-ossp"), vector]
+}
+
+// Users table (for future multi-user support)
+model User {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email     String   @unique @db.VarChar(255)
+  name      String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  resumes        Resume[]
+  jobPostings    JobPosting[]
+  conversations  Conversation[]
+
+  @@map("users")
+}
+
+// Resumes table
+model Resume {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  name      String   @db.VarChar(255)
+  content   String   @db.Text
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user              User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  embeddings        ResumeEmbedding[]
+  analysisResults   AnalysisResult[]
+  coverLetters      CoverLetter[]
+  conversations     Conversation[]
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@index([name])
+  @@map("resumes")
+}
+
+// Resume embeddings table (for semantic search)
+model ResumeEmbedding {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  resumeId   String   @map("resume_id") @db.Uuid
+  embedding  Unsupported("vector(1536)")
+  chunkText  String?  @map("chunk_text") @db.Text
+  chunkIndex Int?     @map("chunk_index")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+  @@map("resume_embeddings")
+}
+
+// Job postings table
+model JobPosting {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  title       String   @db.VarChar(500)
+  company     String?  @db.VarChar(255)
+  content     String   @db.Text
+  url         String?  @db.Text
+  location    String?  @db.VarChar(255)
+  salaryRange String?  @map("salary_range") @db.VarChar(100)
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user              User?                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  embeddings        JobPostingEmbedding[]
+  analysisResults   AnalysisResult[]
+  coverLetters      CoverLetter[]
+  conversations     Conversation[]
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@index([title])
+  @@index([company])
+  @@map("job_postings")
+}
+
+// Job posting embeddings table (for semantic search)
+model JobPostingEmbedding {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  jobPostingId String   @map("job_posting_id") @db.Uuid
+  embedding    Unsupported("vector(1536)")
+  chunkText    String?  @map("chunk_text") @db.Text
+  chunkIndex   Int?     @map("chunk_index")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  @@index([jobPostingId])
+  @@map("job_posting_embeddings")
+}
+
+// Analysis results table (stores resume vs job posting comparisons)
+model AnalysisResult {
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  resumeId         String   @map("resume_id") @db.Uuid
+  jobPostingId     String   @map("job_posting_id") @db.Uuid
+  matches          String[] @default([])
+  gaps             String[] @default([])
+  suggestions      String[] @default([])
+  similarityScore  Decimal? @map("similarity_score") @db.Decimal(5, 4)
+  analysisMetadata Json     @default("{}") @map("analysis_metadata")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  resume       Resume       @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  jobPosting   JobPosting   @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  coverLetters CoverLetter[]
+
+  @@index([resumeId])
+  @@index([jobPostingId])
+  @@index([createdAt(sort: Desc)])
+  @@index([similarityScore(sort: Desc)])
+  @@map("analysis_results")
+}
+
+// Cover letters table
+model CoverLetter {
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  analysisResultId String?  @map("analysis_result_id") @db.Uuid
+  resumeId         String   @map("resume_id") @db.Uuid
+  jobPostingId     String   @map("job_posting_id") @db.Uuid
+  content          String   @db.Text
+  version          Int      @default(1)
+  metadata         Json     @default("{}")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  analysisResult AnalysisResult? @relation(fields: [analysisResultId], references: [id], onDelete: SetNull)
+  resume         Resume          @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  jobPosting     JobPosting      @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+  @@index([jobPostingId])
+  @@index([analysisResultId])
+  @@index([createdAt(sort: Desc)])
+  @@map("cover_letters")
+}
+
+// Conversations table (for chat history)
+model Conversation {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId       String?  @map("user_id") @db.Uuid
+  resumeId     String?  @map("resume_id") @db.Uuid
+  jobPostingId String?  @map("job_posting_id") @db.Uuid
+  messages     Json     @default("[]")
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user       User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume     Resume?     @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+  jobPosting JobPosting? @relation(fields: [jobPostingId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([resumeId])
+  @@index([jobPostingId])
+  @@index([createdAt(sort: Desc)])
+  @@map("conversations")
+}

@@ -52,3 +52,5 @@ node_modules/
 # tasks.json
 # tasks/ 
 docs/notes/
+
+/generated/prisma
