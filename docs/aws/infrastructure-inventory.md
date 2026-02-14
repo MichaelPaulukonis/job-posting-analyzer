@@ -3,7 +3,7 @@
 **Project**: Job Posting Analyzer  
 **Environment**: Production (job-analyzer)  
 **Region**: us-east-1  
-**Last Updated**: February 13, 2026  
+**Last Updated**: February 14, 2026  
 **Managed By**: CloudFormation (Infrastructure as Code)
 
 ## Table of Contents
@@ -415,6 +415,38 @@ aws cloudformation create-stack \
   --stack-name job-analyzer-service-roles \
   --template-body file://infra/cloudformation/service-roles.yml \
   --capabilities CAPABILITY_NAMED_IAM
+```
+
+### 3. S3 Setup Stack
+
+**Stack Name**: `job-analyzer-s3`  
+**Template**: `infra/cloudformation/s3-setup.yml`  
+**Status**: CREATE_COMPLETE  
+**Created**: Task 4 (S3 Bucket Setup)
+
+**Resources Created**:
+- S3 Bucket: `job-analyzer-files`
+- Bucket encryption (AES256)
+- Versioning enabled
+- Public access blocked
+- CORS configuration for web uploads
+- Lifecycle rules (90-day version deletion, 30-day IA transition)
+- Bucket policy for App Runner access
+
+**Outputs**:
+- BucketName: `job-analyzer-files`
+- BucketArn: `arn:aws:s3:::job-analyzer-files`
+- BucketDomainName: `job-analyzer-files.s3.amazonaws.com`
+- BucketRegionalDomainName: `job-analyzer-files.s3.us-east-1.amazonaws.com`
+
+**Deployment Command**:
+```bash
+./scripts/deploy-s3.sh
+# Or manually:
+aws cloudformation create-stack \
+  --stack-name job-analyzer-s3 \
+  --template-body file://infra/cloudformation/s3-setup.yml \
+  --parameters ParameterKey=EnvironmentName,ParameterValue=job-analyzer
 ```
 
 ---
