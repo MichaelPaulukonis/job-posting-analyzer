@@ -24,6 +24,14 @@
         "set_task_status",
         "next_task"
       ]
+    },
+    "awslabs.postgres-mcp-server": {
+      "command": "uvx",
+      "args": [
+        "awslabs.postgres-mcp-server@latest"
+      ],
+      "disabled": false,
+      "autoApprove": []
     }
   }
 }

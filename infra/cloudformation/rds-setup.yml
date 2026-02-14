@@ -1,0 +1,257 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'RDS PostgreSQL instance with pgvector extension support for job-posting-analyzer'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'job-analyzer'
+    Description: 'Environment name for resource tagging and naming'
+  
+  DBInstanceClass:
+    Type: String
+    Default: 'db.t4g.micro'
+    Description: 'Database instance type'
+    AllowedValues:
+      - db.t4g.micro
+      - db.t4g.small
+      - db.t4g.medium
+  
+  DBAllocatedStorage:
+    Type: Number
+    Default: 20
+    MinValue: 20
+    MaxValue: 100
+    Description: 'Allocated storage in GB'
+  
+  DBName:
+    Type: String
+    Default: 'jobanalyzer'
+    Description: 'Initial database name'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: 'Must begin with a letter and contain only alphanumeric characters'
+  
+  DBUsername:
+    Type: String
+    Default: 'dbadmin'
+    Description: 'Master username for database'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: 'Must begin with a letter and contain only alphanumeric characters'
+  
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Description: 'Master password for database (min 8 characters)'
+    MinLength: 8
+    MaxLength: 41
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: 'Must contain only alphanumeric characters'
+
+Resources:
+  # DB Subnet Group
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub '${EnvironmentName}-db-subnet-group'
+      DBSubnetGroupDescription: 'Subnet group for RDS PostgreSQL instance'
+      SubnetIds:
+        - !Ref DBSubnet1
+        - !Ref DBSubnet2
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+        - Key: Purpose
+          Value: Database subnet group
+
+  # VPC for RDS
+  DBVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-db-vpc'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-igw'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref DBVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Subnets in different AZs
+  DBSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DBVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-db-subnet-1'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  DBSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DBVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-db-subnet-2'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  # Route Table
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref DBVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-route-table'
+
+  Route:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref DBSubnet1
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref DBSubnet2
+      RouteTableId: !Ref RouteTable
+
+  # Security Group for RDS
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${EnvironmentName}-db-security-group'
+      GroupDescription: 'Security group for RDS PostgreSQL instance'
+      VpcId: !Ref DBVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 0.0.0.0/0
+          Description: 'PostgreSQL access from anywhere (restrict in production)'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-db-sg'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+
+  # DB Parameter Group for pgvector
+  DBParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      DBParameterGroupName: !Sub '${EnvironmentName}-postgres-pgvector'
+      Description: 'Parameter group for PostgreSQL with pgvector extension'
+      Family: postgres15
+      Parameters:
+        shared_preload_libraries: 'pg_stat_statements'
+        max_connections: '100'
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+        - Key: Purpose
+          Value: pgvector support
+
+  # RDS PostgreSQL Instance
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: !Sub '${EnvironmentName}-postgres'
+      DBName: !Ref DBName
+      Engine: postgres
+      EngineVersion: '15.8'
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref DBAllocatedStorage
+      StorageType: gp3
+      StorageEncrypted: true
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+      DBParameterGroupName: !Ref DBParameterGroup
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: '03:00-04:00'
+      PreferredMaintenanceWindow: 'sun:04:00-sun:05:00'
+      MultiAZ: false
+      PubliclyAccessible: true
+      EnableCloudwatchLogsExports:
+        - postgresql
+      DeletionProtection: false
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-postgres-db'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+        - Key: Purpose
+          Value: Application database with pgvector
+
+Outputs:
+  DBInstanceEndpoint:
+    Description: 'Database instance endpoint'
+    Value: !GetAtt DBInstance.Endpoint.Address
+    Export:
+      Name: !Sub '${EnvironmentName}-db-endpoint'
+  
+  DBInstancePort:
+    Description: 'Database instance port'
+    Value: !GetAtt DBInstance.Endpoint.Port
+    Export:
+      Name: !Sub '${EnvironmentName}-db-port'
+  
+  DBName:
+    Description: 'Database name'
+    Value: !Ref DBName
+    Export:
+      Name: !Sub '${EnvironmentName}-db-name'
+  
+  DBSecurityGroupId:
+    Description: 'Security group ID for database'
+    Value: !Ref DBSecurityGroup
+    Export:
+      Name: !Sub '${EnvironmentName}-db-security-group-id'
+  
+  ConnectionString:
+    Description: 'PostgreSQL connection string (without password)'
+    Value: !Sub 'postgresql://${DBUsername}@${DBInstance.Endpoint.Address}:${DBInstance.Endpoint.Port}/${DBName}'
