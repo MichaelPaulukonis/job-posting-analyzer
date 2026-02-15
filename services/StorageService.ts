@@ -75,16 +75,74 @@ export class StorageService {
    */
   static async saveAnalysis(result: AnalysisResult, jobPosting: JobPosting, resume: Resume, event?: any): Promise<SavedAnalysis> {
     try {
-      // Get current analyses
-      const savedAnalyses = await this.getAnalyses(event);
+      // First, ensure resume and job posting exist in database
+      let resumeId: string;
+      let jobPostingId: string;
       
-      // Create new analysis object with complete job posting and resume
-      const analysisToSave: SavedAnalysis = {
-        ...result,
-        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
-        jobTitle: jobPosting.title || undefined,
+      // Check if resume has an ID (already in database)
+      if ((resume as any).id) {
+        resumeId = (resume as any).id;
+      } else {
+        // Create resume in database
+        const resumeResponse = await this.fetchWithBaseUrl('/api/resumes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: 'Resume ' + new Date().toISOString(),
+            content: resume.content,
+            metadata: {}
+          })
+        }, event);
+        resumeId = (resumeResponse as any).id;
+      }
+      
+      // Check if job posting has an ID (already in database)
+      if ((jobPosting as any).id) {
+        jobPostingId = (jobPosting as any).id;
+      } else {
+        // Create job posting in database
+        const jobPostingResponse = await this.fetchWithBaseUrl('/api/job-postings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: jobPosting.title || 'Untitled Job',
+            company: (jobPosting as any).company,
+            content: jobPosting.content,
+            url: (jobPosting as any).url,
+            location: (jobPosting as any).location,
+            salaryRange: (jobPosting as any).salaryRange,
+            metadata: {}
+          })
+        }, event);
+        jobPostingId = (jobPostingResponse as any).id;
+      }
+      
+      // Create analysis in database
+      const analysisResponse = await this.fetchWithBaseUrl('/api/analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resumeId,
+          jobPostingId,
+          matches: result.matches || [],
+          gaps: result.gaps || [],
+          suggestions: result.suggestions || [],
+          analysisMetadata: {}
+        })
+      }, event);
+      
+      const analysis = analysisResponse as any;
+      
+      // Convert to SavedAnalysis format
+      const savedAnalysis: SavedAnalysis = {
+        id: analysis.id,
+        matches: analysis.matches || [],
+        gaps: analysis.gaps || [],
+        suggestions: analysis.suggestions || [],
+        timestamp: analysis.createdAt || new Date().toISOString(),
+        jobTitle: analysis.jobPosting?.title,
+        company: analysis.jobPosting?.company,
         resumeSnippet: resume.content.substring(0, 100) + (resume.content.length > 100 ? '...' : ''),
-        // Store the complete job posting and resume
         jobPosting: {
           title: jobPosting.title,
           content: jobPosting.content
@@ -94,28 +152,15 @@ export class StorageService {
         }
       };
       
-      // Add to the beginning of the array
-      savedAnalyses.unshift(analysisToSave);
+      // Update localStorage cache
+      const localAnalyses = this.getAnalysesFromLocalStorage();
+      localAnalyses.unshift(savedAnalysis);
+      this.syncAnalysesToLocalStorage(localAnalyses.slice(0, 10));
       
-      // Keep only the latest 10 analyses
-      const trimmedAnalyses = savedAnalyses.slice(0, 10);
-      
-      // Save to server
-      await this.fetchWithBaseUrl('/api/storage', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(trimmedAnalyses)
-      }, event);
-
-      this.syncAnalysesToLocalStorage(trimmedAnalyses);
-      
-      return analysisToSave;
+      return savedAnalysis;
     } catch (error) {
       console.error('Error saving analysis:', error);
       // Fallback to localStorage if server storage fails
-      // If this also throws (e.g., on server where localStorage is undefined), the error will propagate.
       return this.saveAnalysisToLocalStorage(result, jobPosting, resume);
     }
   }
@@ -125,28 +170,16 @@ export class StorageService {
    */
   static async saveCoverLetter(analysisId: string, coverLetter: CoverLetter, event?: any): Promise<void> {
     try {
-      // Get current analyses
-      const savedAnalyses = await this.getAnalyses(event);
-      
-      // Find the analysis to update
+      // Note: New API doesn't have cover letter storage yet
+      // For now, update localStorage only
+      const savedAnalyses = this.getAnalysesFromLocalStorage();
       const analysisIndex = savedAnalyses.findIndex(a => a.id === analysisId);
       
       if (analysisIndex === -1) {
         throw new Error('Analysis not found');
       }
       
-      // Update the cover letter
       savedAnalyses[analysisIndex].coverLetter = coverLetter;
-      
-      // Save to server
-      await this.fetchWithBaseUrl('/api/storage', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(savedAnalyses)
-      }, event);
-
       this.syncAnalysesToLocalStorage(savedAnalyses);
       
     } catch (error) {
@@ -161,21 +194,49 @@ export class StorageService {
   static async getAnalyses(event?: any): Promise<SavedAnalysis[]> {
     try {
       console.log('[StorageService] Fetching analyses from API...');
-      const serverAnalyses = await this.fetchWithBaseUrl('/api/storage', {}, event);
-      console.log('[StorageService] API response type:', typeof serverAnalyses, 'isArray:', Array.isArray(serverAnalyses));
+      const response = await this.fetchWithBaseUrl('/api/analysis', {}, event);
+      console.log('[StorageService] API response type:', typeof response);
 
-      const normalizedAnalyses = this.normalizeAnalyses(serverAnalyses as SavedAnalysis[]);
-
-      if (!normalizedAnalyses.length && serverAnalyses && !Array.isArray(serverAnalyses)) {
-        console.error('[StorageService] ERROR: Server returned invalid analyses format:', typeof serverAnalyses, serverAnalyses);
+      // New API returns { analysisResults: [], pagination: {} }
+      if (response && typeof response === 'object' && 'analysisResults' in response) {
+        const analyses = (response as any).analysisResults;
+        console.log(`[StorageService] Successfully fetched ${analyses.length} analyses from server`);
+        
+        // Convert database format to SavedAnalysis format
+        const converted = analyses.map((a: any) => ({
+          id: a.id,
+          matches: a.matches || [],
+          gaps: a.gaps || [],
+          suggestions: a.suggestions || [],
+          timestamp: a.createdAt || new Date().toISOString(),
+          jobTitle: a.jobPosting?.title,
+          company: a.jobPosting?.company,
+          resumeSnippet: a.resume?.content?.substring(0, 100) + '...',
+          jobPosting: {
+            title: a.jobPosting?.title || '',
+            content: a.jobPosting?.content || ''
+          },
+          resume: {
+            content: a.resume?.content || ''
+          }
+        }));
+        
+        const normalized = this.normalizeAnalyses(converted);
+        this.syncAnalysesToLocalStorage(normalized);
+        return normalized;
+      }
+      // Fallback for old API format (array)
+      else if (Array.isArray(response)) {
+        console.log(`[StorageService] Successfully fetched ${response.length} analyses from server (legacy format)`);
+        const normalized = this.normalizeAnalyses(response as SavedAnalysis[]);
+        this.syncAnalysesToLocalStorage(normalized);
+        return normalized;
+      }
+      else {
+        console.error('[StorageService] ERROR: Server returned unexpected response:', typeof response, response);
         console.warn('[StorageService] Falling back to localStorage');
         return this.getAnalysesFromLocalStorage();
       }
-
-      console.log(`[StorageService] Successfully fetched and normalized ${normalizedAnalyses.length} analyses`);
-      this.syncAnalysesToLocalStorage(normalizedAnalyses);
-
-      return normalizedAnalyses;
     } catch (error) {
       console.error('[StorageService] Failed to fetch analyses from server:', error);
       console.error('[StorageService] Error type:', error instanceof Error ? error.constructor.name : typeof error);
@@ -190,11 +251,8 @@ export class StorageService {
    */
   static async deleteAnalysis(id: string, event?: any): Promise<void> {
     try {
-      // Delete from server
-      await this.fetchWithBaseUrl(`/api/storage/${id}`, {
-        method: 'DELETE'
-      }, event);
-
+      // Note: New API doesn't have a delete endpoint for analysis yet
+      // For now, just remove from localStorage
       this.deleteAnalysisFromLocalStorage(id);
     } catch (error) {
       console.error('Error deleting analysis:', error);
@@ -208,11 +266,8 @@ export class StorageService {
    */
   static async clearAnalyses(event?: any): Promise<void> {
     try {
-      // Clear from server
-      await this.fetchWithBaseUrl('/api/storage', {
-        method: 'DELETE'
-      }, event);
-
+      // Note: New API doesn't have a clear all endpoint
+      // For now, just clear localStorage
       this.clearAnalysesFromLocalStorage();
     } catch (error) {
       console.error('Error clearing analyses:', error);
@@ -226,25 +281,21 @@ export class StorageService {
    */
   static async saveResume(resume: ResumeEntry, event?: any): Promise<string> {
     try {
-      // Get current resumes
-      const savedResumes = await StorageService.getResumes(event);
-      
-      // Add to the beginning of the array
-      savedResumes.unshift(resume);
-      
-      // Keep only the latest 10 resumes
-      const trimmedResumes = savedResumes.slice(0, 10);
-      
-      // Save to server
-      await this.fetchWithBaseUrl('/api/resumes', {
+      // New API expects individual resume creation
+      const response = await this.fetchWithBaseUrl('/api/resumes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(trimmedResumes)
+        body: JSON.stringify({
+          name: resume.name,
+          content: resume.content,
+          metadata: {}
+        })
       }, event);
       
-      return resume.id;
+      // Return the ID from the created resume
+      return (response as any).id || resume.id;
     } catch (error) {
       console.error('Error saving resume:', error);
       // Fallback to localStorage if server storage fails
@@ -258,15 +309,29 @@ export class StorageService {
  static async getResumes(event?: any): Promise<ResumeEntry[]> {
     try {
       console.log('[StorageService] Fetching resumes from API...');
-      const serverResumes = await this.fetchWithBaseUrl('/api/resumes', {}, event);
-      console.log('[StorageService] API response type:', typeof serverResumes, 'isArray:', Array.isArray(serverResumes));
+      const response = await this.fetchWithBaseUrl('/api/resumes', {}, event);
+      console.log('[StorageService] API response type:', typeof response);
 
-      // Validate that response is an array
-      if (Array.isArray(serverResumes)) {
-        console.log(`[StorageService] Successfully fetched ${serverResumes.length} resumes from server`);
-        return serverResumes as ResumeEntry[];
-      } else {
-        console.error('[StorageService] ERROR: Server returned non-array response:', typeof serverResumes, serverResumes);
+      // New API returns { resumes: [], pagination: {} }
+      if (response && typeof response === 'object' && 'resumes' in response) {
+        const resumes = (response as any).resumes;
+        console.log(`[StorageService] Successfully fetched ${resumes.length} resumes from server`);
+        
+        // Convert database format to ResumeEntry format
+        return resumes.map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          content: r.content,
+          timestamp: r.createdAt || new Date().toISOString()
+        }));
+      } 
+      // Fallback for old API format (array)
+      else if (Array.isArray(response)) {
+        console.log(`[StorageService] Successfully fetched ${response.length} resumes from server (legacy format)`);
+        return response as ResumeEntry[];
+      } 
+      else {
+        console.error('[StorageService] ERROR: Server returned unexpected response:', typeof response, response);
         console.warn('[StorageService] Falling back to localStorage for resumes');
         const localResumes = StorageService.getResumesFromLocalStorage();
         console.log(`[StorageService] localStorage returned ${localResumes.length} resumes`);

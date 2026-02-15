@@ -31,7 +31,13 @@ export const useAPIFetch: UseFetchType = (path, options: UseFetchArgs[1] = {}) =
   if (options?.baseURL) {
     mergedOptions.baseURL = options.baseURL;
   } else if (process.client) {
-    mergedOptions.baseURL = defaultBaseUrl;
+    // In development, don't set baseURL to allow relative URLs
+    // This prevents CORS issues when client and server are on different ports
+    // In production, Nuxt handles this automatically
+    if (process.env.NODE_ENV === 'production' && defaultBaseUrl) {
+      mergedOptions.baseURL = defaultBaseUrl;
+    }
+    // In development, leave baseURL undefined to use relative URLs
   }
 
   const originalOnRequest = options.onRequest;
