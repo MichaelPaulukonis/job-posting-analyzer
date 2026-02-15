@@ -56,14 +56,16 @@ export default defineEventHandler(async (event) => {
         resume: {
           select: {
             id: true,
-            name: true
+            name: true,
+            content: true
           }
         },
         jobPosting: {
           select: {
             id: true,
             title: true,
-            company: true
+            company: true,
+            content: true
           }
         }
       },
