@@ -341,7 +341,7 @@
         ]
       },
       {
-        "id": "7",
+        "id": 7,
         "title": "Create Comprehensive End-User Documentation and Guides",
         "description": "Develop detailed user documentation including step-by-step onboarding guides with screenshots, video tutorials for key workflows, FAQs, and best practices for resume optimization and cover letter generation. Note: Planning complete with implementation options documented, but actual user documentation does not yet exist.",
         "details": "## Implementation Status\n\nAn implementation plan has been created at `docs/plans/task-7-user-documentation-plan.md` outlining three options:\n- Full implementation (estimated 4-6 hours)\n- Incremental MVP documentation (estimated 2 hours)\n- Continue deferring until user documentation becomes a priority\n\n## Current State\n- docs/ directory contains only technical/developer documentation\n- README.md is developer-focused (setup, Docker, Firebase)\n- No user-facing documentation exists anywhere\n- No docs/user-guide/ directory\n- No onboarding guides, workflow docs, FAQ, or tutorials\n\n## Implementation Steps\n\n### 1. Documentation Planning and Framework\n- Select and set up documentation framework (options: GitBook, Docusaurus, or custom solution)\n- Create content style guide for consistent tone and formatting\n- Design documentation information architecture with clear categorization\n- Define documentation versioning strategy for future updates\n\n### 2. User Onboarding Guides\n- Create account creation and setup guide with annotated screenshots\n- Document first-time user experience with navigation guidance\n- Develop interface element glossary and terminology guide\n- Create progressive disclosure documentation (basic to advanced features)\n\n### 3. Key Workflow Documentation\n- Document resume upload, parsing, and management workflow\n- Create step-by-step job application analysis guide\n- Develop cover letter generation and customization walkthrough\n- Document settings and preference configuration options\n\n### 4. Video Tutorial Production\n- Script and storyboard key workflow tutorials\n- Record high-quality screen captures with professional narration\n- Edit videos for clarity with callouts for important elements\n- Add closed captions and transcripts for accessibility\n- Create embed codes for in-app contextual help integration\n\n### 5. FAQ Development\n- Compile questions based on user testing feedback and stakeholder input\n- Organize FAQs by feature category and user journey stage\n- Document common errors with step-by-step resolution paths\n- Include edge cases and advanced usage scenarios\n\n### 6. Best Practices Documentation\n- Research effective resume optimization techniques aligned with ATS systems\n- Create industry-specific cover letter templates and examples\n- Document keyword optimization and content tailoring strategies\n- Include before/after examples showing effective application improvements\n\n### 7. Documentation Integration\n- Implement contextual help throughout the application\n- Create tooltips for form fields and interactive elements\n- Add documentation search functionality with relevant result ranking\n- Develop a feedback mechanism for documentation improvement",
@@ -1462,7 +1462,7 @@
   "aws-migration": {
     "tasks": [
       {
-        "id": "1",
+        "id": 1,
         "title": "AWS Account and IAM Setup",
         "description": "Create and configure AWS account with appropriate IAM permissions for the migration project",
         "status": "done",
@@ -1583,7 +1583,7 @@
         "updatedAt": "2026-02-13T04:30:34.588Z"
       },
       {
-        "id": "2",
+        "id": 2,
         "title": "RDS PostgreSQL Database Setup with pgvector",
         "description": "Set up a PostgreSQL database instance on RDS and enable pgvector extension for semantic search capabilities",
         "status": "done",
@@ -1661,7 +1661,7 @@
         "updatedAt": "2026-02-14T21:08:13.107Z"
       },
       {
-        "id": "3",
+        "id": 3,
         "title": "Database Schema Implementation",
         "description": "Create and initialize the database schema with tables for users, resumes, job postings, and analysis results",
         "status": "done",
@@ -1675,7 +1675,7 @@
         "updatedAt": "2026-02-14T21:11:24.494Z"
       },
       {
-        "id": "4",
+        "id": 4,
         "title": "S3 Bucket Setup for File Storage",
         "description": "Create and configure an S3 bucket for storing resume files and job posting documents",
         "status": "done",
@@ -1689,7 +1689,7 @@
         "updatedAt": "2026-02-14T21:37:00.919Z"
       },
       {
-        "id": "5",
+        "id": 5,
         "title": "Database Service Implementation",
         "description": "Create a database service to manage connections to PostgreSQL and implement data access methods",
         "status": "done",
@@ -1704,7 +1704,7 @@
         "updatedAt": "2026-02-15T15:34:27.765Z"
       },
       {
-        "id": "6",
+        "id": 6,
         "title": "S3 Service Implementation",
         "description": "Create a service to handle file uploads, downloads, and other S3 operations",
         "status": "done",
@@ -1718,7 +1718,7 @@
         "updatedAt": "2026-02-14T21:42:20.665Z"
       },
       {
-        "id": "7",
+        "id": 7,
         "title": "Firebase Auth Integration",
         "description": "Implement backend integration with Firebase Auth and create user synchronization with PostgreSQL",
         "status": "done",
@@ -1733,10 +1733,10 @@
         "updatedAt": "2026-02-15T15:28:56.818Z"
       },
       {
-        "id": "8",
+        "id": 8,
         "title": "API Endpoints Implementation",
         "description": "Create all Nitro API routes for user profile, resumes, job postings, and analysis",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "5",
           "6",
@@ -1745,23 +1745,25 @@
         "priority": "medium",
         "details": "1. Implement all Nitro API routes as specified in the PRD\n2. Create the following endpoints:\n   - `POST /api/auth/profile`\n   - `POST /api/resumes`\n   - `GET /api/resumes`\n   - `POST /api/job-postings`\n   - `GET /api/job-postings`\n   - `POST /api/analysis`\n   - `GET /api/analysis/:id`\n3. Add request validation\n4. Implement error handling\n5. Apply authentication middleware\n\nSample implementation for user profile endpoint:\n```typescript\n// server/api/auth/profile.post.ts\nimport { defineEventHandler, readBody } from 'h3';\nimport authService from '~/server/services/AuthService';\n\nexport default defineEventHandler(async (event) => {\n  try {\n    const user = await authService.requireAuth(event);\n    const { displayName, photoURL } = await readBody(event);\n    \n    // Update user profile if needed\n    // For now, just return the current user\n    \n    return { user };\n  } catch (error) {\n    console.error('Error in profile endpoint:', error);\n    throw error;\n  }\n});\n```\n\nSample implementation for job posting endpoint:\n```typescript\n// server/api/job-postings.post.ts\nimport { defineEventHandler, readBody } from 'h3';\nimport authService from '~/server/services/AuthService';\nimport dbService from '~/server/services/DatabaseService';\n\nexport default defineEventHandler(async (event) => {\n  const user = await authService.requireAuth(event);\n  const { title, company, content, embedding } = await readBody(event);\n  \n  // Validate input\n  if (!title || !content) {\n    throw createError({\n      statusCode: 400,\n      statusMessage: 'Title and content are required'\n    });\n  }\n  \n  // Insert job posting\n  const result = await dbService.query(\n    'INSERT INTO job_postings (user_id, title, company, content, embedding) VALUES ($1, $2, $3, $4, $5) RETURNING *',\n    [user.id, title, company, content, embedding]\n  );\n  \n  return result.rows[0];\n});\n```",
         "testStrategy": "1. Create integration tests for all API endpoints\n2. Test authentication requirements\n3. Verify input validation and error responses\n4. Test success paths with various inputs\n5. Test database interactions and error handling\n6. Use tools like Postman or Insomnia to test endpoints manually\n7. Test rate limiting and security features",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-02-15T16:36:52.603Z"
       },
       {
-        "id": "9",
+        "id": 9,
         "title": "Frontend Integration with AWS Backend",
         "description": "Update frontend components to use the new AWS backend services and endpoints",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           "8"
         ],
         "priority": "medium",
         "details": "1. Create API client service for frontend\n2. Update authentication flow to sync with backend\n3. Implement file upload to S3 with pre-signed URLs\n4. Add job posting and resume management UI\n5. Create history view for past analyses\n6. Implement error handling and loading states\n\nSample API client implementation:\n```typescript\n// composables/useApi.ts\nimport { useFetch } from '#app';\n\nexport function useApi() {\n  const { $firebase } = useNuxtApp();\n  \n  const getAuthHeaders = async () => {\n    const user = $firebase.currentUser;\n    if (!user) return {};\n    \n    const token = await user.getIdToken();\n    return {\n      Authorization: `Bearer ${token}`\n    };\n  };\n  \n  const api = {\n    async fetchProfile() {\n      const headers = await getAuthHeaders();\n      return useFetch('/api/auth/profile', {\n        method: 'POST',\n        headers\n      });\n    },\n    \n    async uploadResume(file: File, name: string) {\n      const headers = await getAuthHeaders();\n      \n      // Get pre-signed URL\n      const { data: presignedData } = await useFetch('/api/resumes/presigned-url', {\n        method: 'POST',\n        headers,\n        body: {\n          fileType: file.type,\n          fileName: file.name\n        }\n      });\n      \n      // Upload to S3 directly\n      await fetch(presignedData.value.url, {\n        method: 'PUT',\n        body: file,\n        headers: {\n          'Content-Type': file.type\n        }\n      });\n      \n      // Save resume metadata\n      return useFetch('/api/resumes', {\n        method: 'POST',\n        headers,\n        body: {\n          name,\n          s3Key: presignedData.value.key,\n          s3Url: presignedData.value.publicUrl\n        }\n      });\n    },\n    \n    async saveJobPosting(title: string, company: string, content: string, embedding: number[]) {\n      const headers = await getAuthHeaders();\n      return useFetch('/api/job-postings', {\n        method: 'POST',\n        headers,\n        body: {\n          title,\n          company,\n          content,\n          embedding\n        }\n      });\n    },\n    \n    async saveAnalysis(resumeId: string, jobPostingId: string, matches: any, gaps: any, suggestions: any) {\n      const headers = await getAuthHeaders();\n      return useFetch('/api/analysis', {\n        method: 'POST',\n        headers,\n        body: {\n          resumeId,\n          jobPostingId,\n          matches,\n          gaps,\n          suggestions\n        }\n      });\n    },\n    \n    async getAnalysisHistory() {\n      const headers = await getAuthHeaders();\n      return useFetch('/api/analysis', {\n        headers\n      });\n    },\n    \n    async getAnalysisById(id: string) {\n      const headers = await getAuthHeaders();\n      return useFetch(`/api/analysis/${id}`, {\n        headers\n      });\n    }\n  };\n  \n  return api;\n}\n```",
         "testStrategy": "1. Create component tests for UI interactions\n2. Test file upload flow with mock S3 responses\n3. Verify authentication integration\n4. Test error handling and loading states\n5. Test form validation for all inputs\n6. Verify history view renders correctly\n7. Test responsiveness and mobile compatibility",
-        "subtasks": []
+        "subtasks": [],
+        "updatedAt": "2026-02-15T16:46:18.556Z"
       },
       {
-        "id": "10",
+        "id": 10,
         "title": "Containerization and Deployment to AWS App Runner",
         "description": "Create Docker configuration and deploy the complete application to AWS App Runner",
         "status": "pending",
@@ -1781,7 +1783,7 @@
         "subtasks": []
       },
       {
-        "id": "11",
+        "id": 11,
         "title": "Fix StorageService Conversation Test Failures",
         "description": "Resolve failing tests in StorageService that are caused by $fetch not being defined in the test environment by implementing proper mocks for Nuxt composables or creating a testing strategy to handle this dependency.",
         "details": "1. Analyze the failing tests in the StorageService test suite to identify all occurrences where $fetch is being used\n\n2. Determine the best approach for resolving the issue:\n   - Option A: Properly mock Nuxt's $fetch functionality\n   - Option B: Temporarily skip affected tests with proper documentation\n   - Option C: Refactor the service to allow for easier testing without Nuxt dependencies\n\n3. If choosing Option A (recommended):\n   ```typescript\n   // Example mock implementation for $fetch in tests\n   import { vi } from 'vitest';\n   \n   // Setup global mocks in your test setup file\n   vi.mock('#app', () => ({\n     useFetch: vi.fn(),\n     useNuxtApp: () => ({\n       $fetch: vi.fn().mockImplementation((url, options) => {\n         // Return mock responses based on URL patterns\n         if (url.includes('/api/conversations')) {\n           return Promise.resolve({ data: { /* mock data */ } });\n         }\n         // Add other endpoint mocks as needed\n         return Promise.resolve(null);\n       })\n     })\n   }));\n   ```\n\n4. If refactoring the service:\n   ```typescript\n   // Make the StorageService accept a custom fetcher for better testability\n   export class StorageService {\n     private fetcher: (url: string, options?: any) => Promise<any>;\n     \n     constructor(customFetcher?: (url: string, options?: any) => Promise<any>) {\n       this.fetcher = customFetcher || (globalThis.$fetch || fetch);\n     }\n     \n     // Methods using this.fetcher instead of directly using $fetch\n   }\n   ```\n\n5. Update test files to use the appropriate mocking strategy\n\n6. Document the solution chosen and any known limitations\n\n7. Consider creating a common test utility for Nuxt composable mocking for future tests",
@@ -1793,16 +1795,33 @@
         "priority": "medium",
         "subtasks": [],
         "updatedAt": "2026-02-13T04:41:14.843Z"
+      },
+      {
+        "id": 12,
+        "title": "Update Admin Endpoints to Use PostgreSQL with Prisma ORM",
+        "description": "Refactor admin endpoints in server/api/admin/storage-files/ to query data from PostgreSQL database using Prisma ORM instead of reading from legacy JSON files. This is a low-priority enhancement as the admin interface is a fallback system.",
+        "details": "1. Identify all admin endpoints in server/api/admin/storage-files/ that currently use FileStorageService to read JSON files\n2. Examine how Prisma is currently used in the main API endpoints for reference\n3. If Prisma is not yet configured for the project:\n   a. Install Prisma dependencies (prisma, @prisma/client)\n   b. Initialize Prisma with 'npx prisma init'\n   c. Configure datasource to connect to the PostgreSQL database\n4. Analyze the current data structure in JSON files and create or update Prisma models accordingly\n5. Run 'npx prisma generate' to update the Prisma client\n6. Update the admin endpoint handlers to use Prisma client instead of FileStorageService\n7. Implement proper error handling for database operations\n8. Ensure the API response format remains compatible with the admin interface\n9. Add appropriate logging for database operations\n10. Update documentation to reflect the changes in the admin API",
+        "testStrategy": "1. Create unit tests for all updated admin endpoints\n2. Configure a test database for integration testing\n3. Test with various query parameters to ensure correct data retrieval\n4. Test error handling for database connection issues\n5. Compare results with the original file-based implementation to ensure data consistency\n6. Test the entire request-response cycle\n7. Measure performance to ensure efficiency of database queries\n8. Verify compatibility with the existing admin interface\n9. Test edge cases including empty tables, large datasets, and concurrent requests",
+        "status": "pending",
+        "dependencies": [
+          "8",
+          "9"
+        ],
+        "priority": "low",
+        "subtasks": []
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-15T15:34:27.765Z",
+      "lastModified": "2026-02-15T16:46:18.556Z",
       "taskCount": 11,
-      "completedCount": 8,
+      "completedCount": 10,
       "tags": [
         "aws-migration"
-      ]
+      ],
+      "created": "2026-02-15T21:24:26.507Z",
+      "description": "Tasks for aws-migration context",
+      "updated": "2026-02-15T21:25:49.502Z"
     }
   }
 }

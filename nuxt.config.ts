@@ -37,7 +37,19 @@ export default defineNuxtConfig({
   nitro: {
     ignore: [
       'notes/**', // Ignore the entire notes directory and its contents
-    ]
+    ],
+    // Add CORS headers for development
+    routeRules: {
+      '/api/**': {
+        cors: true,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Max-Age': '86400'
+        }
+      }
+    }
   },
 
   // Dev server configuration

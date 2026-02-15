@@ -8,10 +8,10 @@ import { requireAuth } from '~/server/utils/verifyToken';
 export default defineEventHandler(async (event) => {
   const { user, decodedToken } = await requireAuth(event);
 
-  if (!user) {
+  if (!user?.id) {
     throw createError({
-      statusCode: 500,
-      statusMessage: 'User synchronization failed'
+      statusCode: 401,
+      statusMessage: 'Authentication required for profile access'
     });
   }
 
