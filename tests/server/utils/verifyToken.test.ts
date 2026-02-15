@@ -14,9 +14,16 @@ jest.mock('~/server/utils/firebaseAdmin', () => ({
   verifyIdToken: jest.fn()
 }));
 
+jest.mock('~/server/services/AuthService', () => ({
+  authService: {
+    syncUser: jest.fn()
+  }
+}));
+
 import { requireAuth } from '~/server/utils/verifyToken';
 import { useRuntimeConfig } from '#imports';
 import { verifyIdToken } from '~/server/utils/firebaseAdmin';
+import { authService } from '~/server/services/AuthService';
 
 const mockUseRuntimeConfig = useRuntimeConfig as jest.Mock;
 const mockVerifyIdToken = verifyIdToken as jest.Mock;
@@ -37,10 +44,10 @@ describe('requireAuth helper', () => {
     mockVerifyIdToken.mockReset();
   });
 
-  it('returns null when authDisabled flag is set', async () => {
+  it('returns empty decodedToken when authDisabled flag is set', async () => {
     mockUseRuntimeConfig.mockReturnValue({ public: { authDisabled: true } });
     const result = await requireAuth(createEvent());
-    expect(result).toBeNull();
+    expect(result).toEqual({ decodedToken: {} });
     expect(mockVerifyIdToken).not.toHaveBeenCalled();
   });
 
@@ -51,7 +58,7 @@ describe('requireAuth helper', () => {
 
     const result = await requireAuth(event);
 
-    expect(result).toEqual(decoded);
+    expect(result).toEqual({ decodedToken: decoded, user: undefined });
     expect(mockVerifyIdToken).toHaveBeenCalledWith('token-abc');
     expect((event.context as any).auth).toEqual(decoded);
   });
