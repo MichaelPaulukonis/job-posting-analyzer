@@ -201,6 +201,7 @@ export class StorageService {
       if (response && typeof response === 'object' && 'analysisResults' in response) {
         const analyses = (response as any).analysisResults;
         console.log(`[StorageService] Successfully fetched ${analyses.length} analyses from server`);
+        console.log('[StorageService] First analysis raw data:', analyses[0]);
         
         // Convert database format to SavedAnalysis format
         const converted = analyses.map((a: any) => ({
@@ -220,6 +221,10 @@ export class StorageService {
             content: a.resume?.content || ''
           }
         }));
+        
+        console.log('[StorageService] First analysis converted:', converted[0]);
+        console.log('[StorageService] Job posting content length:', converted[0]?.jobPosting?.content?.length);
+        console.log('[StorageService] Resume content length:', converted[0]?.resume?.content?.length);
         
         const normalized = this.normalizeAnalyses(converted);
         this.syncAnalysesToLocalStorage(normalized);
