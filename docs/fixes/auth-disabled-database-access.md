@@ -113,17 +113,22 @@ if (!user?.id) {
 - Data displays correctly in lists
 - Analysis view displays complete job posting and resume data
 - All data is stored in and retrieved from AWS RDS PostgreSQL
+- Error handling prevents null responses from API
 
 ### ⚠️ Known Issues
-None currently - basic database integration is working!
+- **Integration tests failing (23/151)**: Tests are running against production database
+  - Tests try to create users that already exist
+  - Need separate test database configuration
+  - See `docs/fixes/test-database-setup.md` for solution
 
 ### 🔄 Next Steps
-1. Test creating new analyses (full workflow)
-2. Test creating new resumes
-3. Test creating new job postings
-4. Verify data persistence across page refreshes
-5. Test with real authentication (remove auth-disabled flag)
-6. Update integration tests to work with auth-disabled mode
+1. ✅ Fix auth-disabled database access
+2. ✅ Fix missing job posting and resume data in analysis view
+3. ✅ Add error handling to prevent null responses
+4. ⏳ Set up separate test database
+5. ⏳ Update integration tests for auth-disabled mode
+6. ⏳ Test creating new analyses (full workflow)
+7. ⏳ Test with real authentication (remove auth-disabled flag)
 
 ## Security Considerations
 
