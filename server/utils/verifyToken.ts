@@ -1,7 +1,9 @@
 import { createError, useRuntimeConfig } from '#imports';
 import type { H3Event } from 'h3';
 import type { DecodedIdToken } from 'firebase-admin/auth';
+import type { User } from '@prisma/client';
 import { verifyIdToken } from '~/server/utils/firebaseAdmin';
+import { authService } from '~/server/services/AuthService';
 
 export const getAuthTokenFromHeader = (event: H3Event): string | null => {
   const authHeader = event.node.req.headers['authorization'];
@@ -20,16 +22,22 @@ export const getAuthTokenFromHeader = (event: H3Event): string | null => {
 
 interface RequireAuthOptions {
   token?: string | null;
+  syncUser?: boolean; // Whether to sync user to database
+}
+
+interface AuthContext {
+  decodedToken: DecodedIdToken;
+  user?: User;
 }
 
 // This is a handler that can be used within server APIs to verify tokens.
 export const requireAuth = async (
   event: H3Event,
-  options: RequireAuthOptions = {}
-): Promise<DecodedIdToken | null> => {
+  options: RequireAuthOptions = { syncUser: true }
+): Promise<AuthContext> => {
   const config = useRuntimeConfig();
   if (config.public?.authDisabled) {
-    return null;
+    return { decodedToken: {} as DecodedIdToken };
   }
 
   const token = options.token ?? getAuthTokenFromHeader(event);
@@ -38,9 +46,19 @@ export const requireAuth = async (
   }
 
   try {
-    const decoded = await verifyIdToken(token);
-    (event.context as Record<string, unknown>).auth = decoded;
-    return decoded;
+    const decodedToken = await verifyIdToken(token);
+    
+    // Store decoded token in context
+    (event.context as Record<string, unknown>).auth = decodedToken;
+
+    // Sync user to database if requested (default: true)
+    let user: User | undefined;
+    if (options.syncUser !== false) {
+      user = await authService.syncUser(decodedToken);
+      (event.context as Record<string, unknown>).user = user;
+    }
+
+    return { decodedToken, user };
   } catch (error: unknown) {
     throw createError({
       statusCode: 401,
