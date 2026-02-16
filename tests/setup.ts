@@ -1,8 +1,20 @@
 import { config } from 'dotenv';
+import { randomUUID } from 'crypto';
 import { prisma } from '../server/utils/prisma';
 
 // Load test environment variables
 config({ path: '.env.test' });
+
+// CRITICAL SAFETY CHECK: Ensure we're connected to test database
+const DATABASE_URL = process.env.DATABASE_URL || '';
+if (!DATABASE_URL.includes('localhost:5433') && !DATABASE_URL.includes('jobanalyzer_test')) {
+  throw new Error(
+    `❌ SAFETY CHECK FAILED: Tests must use test database!\n` +
+    `Current DATABASE_URL: ${DATABASE_URL}\n` +
+    `Expected: localhost:5433 or jobanalyzer_test database\n` +
+    `This prevents accidental data loss in production database.`
+  );
+}
 
 /**
  * Setup runs before each test file
@@ -57,14 +69,12 @@ export async function createTestUser(userData?: {
   firebaseUid?: string;
 }) {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(7);
   
   const defaultUser = {
-    id: `test-user-${timestamp}-${random}`,
-    email: `test-${timestamp}@example.com`,
-    name: 'Test User',
-    firebaseUid: `firebase-${timestamp}-${random}`,
-    ...userData
+    id: userData?.id || randomUUID(),
+    email: userData?.email || `test-${timestamp}@example.com`,
+    name: userData?.name || 'Test User',
+    firebaseUid: userData?.firebaseUid || randomUUID(),
   };
 
   return await prisma.user.create({

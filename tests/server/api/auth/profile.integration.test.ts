@@ -1,47 +1,31 @@
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { prisma } from '~/server/utils/prisma';
-import { randomUUID } from 'crypto';
+import { createTestUser } from '../../../setup';
 
-// Mock authentication
-const mockUser = {
-  id: randomUUID(),
-  firebaseUid: 'test-firebase-uid',
-  email: 'test@example.com',
-  name: 'Test User'
-};
+// Mock authentication - will be set in beforeEach
+let mockUser: any;
 
 jest.mock('~/server/utils/verifyToken', () => ({
-  requireAuth: jest.fn().mockResolvedValue({ user: mockUser, decodedToken: {} })
+  requireAuth: jest.fn().mockImplementation(() => Promise.resolve({ 
+    user: mockUser, 
+    decodedToken: {} 
+  }))
 }));
 
 describe('Auth Profile API', () => {
-  beforeEach(async () => {
-    // Ensure test user exists
-    await prisma.user.upsert({
-      where: { id: mockUser.id },
-      update: {},
-      create: {
-        id: mockUser.id,
-        firebaseUid: mockUser.firebaseUid,
-        email: mockUser.email,
-        name: mockUser.name
-      }
-    });
-  });
+  let testUserId: string;
 
-  afterEach(async () => {
-    // Clean up test user
-    await prisma.user.delete({
-      where: { id: mockUser.id }
-    }).catch(() => {
-      // Ignore if already deleted
-    });
+  beforeEach(async () => {
+    // Create test user
+    const user = await createTestUser();
+    testUserId = user.id;
+    mockUser = user;
   });
 
   describe('GET /api/auth/profile', () => {
     it('should retrieve user profile', async () => {
       const user = await prisma.user.findUnique({
-        where: { id: mockUser.id },
+        where: { id: testUserId },
         select: {
           id: true,
           firebaseUid: true,
@@ -53,7 +37,7 @@ describe('Auth Profile API', () => {
       });
 
       expect(user).toBeDefined();
-      expect(user!.id).toBe(mockUser.id);
+      expect(user!.id).toBe(testUserId);
       expect(user!.email).toBe(mockUser.email);
       expect(user!.name).toBe(mockUser.name);
     });
@@ -64,7 +48,7 @@ describe('Auth Profile API', () => {
       const newName = 'Updated Test User';
 
       const updatedUser = await prisma.user.update({
-        where: { id: mockUser.id },
+        where: { id: testUserId },
         data: { name: newName },
         select: {
           id: true,
@@ -77,14 +61,14 @@ describe('Auth Profile API', () => {
       });
 
       expect(updatedUser.name).toBe(newName);
-      expect(updatedUser.id).toBe(mockUser.id);
+      expect(updatedUser.id).toBe(testUserId);
       expect(updatedUser.email).toBe(mockUser.email);
     });
 
     it('should handle empty name update', async () => {
       // Prisma allows empty strings, but API endpoint should validate
       const updatedUser = await prisma.user.update({
-        where: { id: mockUser.id },
+        where: { id: testUserId },
         data: { name: '' }
       });
 
@@ -93,7 +77,7 @@ describe('Auth Profile API', () => {
 
     it('should handle null name update', async () => {
       const updatedUser = await prisma.user.update({
-        where: { id: mockUser.id },
+        where: { id: testUserId },
         data: { name: null }
       });
 
@@ -102,14 +86,14 @@ describe('Auth Profile API', () => {
 
     it('should update updatedAt timestamp', async () => {
       const originalUser = await prisma.user.findUnique({
-        where: { id: mockUser.id }
+        where: { id: testUserId }
       });
 
       // Wait a bit to ensure timestamp difference
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const updatedUser = await prisma.user.update({
-        where: { id: mockUser.id },
+        where: { id: testUserId },
         data: { name: 'New Name' }
       });
 

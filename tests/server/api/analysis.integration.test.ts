@@ -1,89 +1,44 @@
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
-import { prisma } from '~/server/utils/prisma';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { Decimal } from '@prisma/client/runtime/library';
-import { randomUUID } from 'crypto';
+import { prisma } from '~/server/utils/prisma';
+import { createTestUser, createTestResume, createTestJobPosting, createTestAnalysis } from '../../setup';
 
-// Mock authentication
-const mockUser = {
-  id: randomUUID(),
-  firebaseUid: 'test-firebase-uid',
-  email: 'test@example.com',
-  name: 'Test User'
-};
+// Mock authentication - will be set in beforeEach
+let mockUser: any;
 
 jest.mock('~/server/utils/verifyToken', () => ({
-  requireAuth: jest.fn().mockResolvedValue({ user: mockUser, decodedToken: {} })
+  requireAuth: jest.fn().mockImplementation(() => Promise.resolve({ 
+    user: mockUser, 
+    decodedToken: {} 
+  }))
 }));
 
 describe('Analysis API', () => {
+  let testUserId: string;
   let testResumeId: string;
   let testJobPostingId: string;
   let testAnalysisId: string;
 
   beforeEach(async () => {
-    // Create test user first
-    await prisma.user.upsert({
-      where: { id: mockUser.id },
-      update: {},
-      create: {
-        id: mockUser.id,
-        firebaseUid: mockUser.firebaseUid,
-        email: mockUser.email,
-        name: mockUser.name
-      }
-    });
-
-    // Clean up test data
-    await prisma.analysisResult.deleteMany({
-      where: { resume: { userId: mockUser.id } }
-    });
-    await prisma.resume.deleteMany({
-      where: { userId: mockUser.id }
-    });
-    await prisma.jobPosting.deleteMany({
-      where: { userId: mockUser.id }
-    });
+    // Create test user
+    const user = await createTestUser();
+    testUserId = user.id;
+    mockUser = user;
 
     // Create test resume
-    const resume = await prisma.resume.create({
-      data: {
-        userId: mockUser.id,
-        name: 'Test Resume',
-        content: 'Test resume content with JavaScript and React skills'
-      }
+    const resume = await createTestResume(testUserId, {
+      name: 'Test Resume',
+      content: 'Test resume content with JavaScript and React skills'
     });
     testResumeId = resume.id;
 
     // Create test job posting
-    const jobPosting = await prisma.jobPosting.create({
-      data: {
-        userId: mockUser.id,
-        title: 'Software Engineer',
-        company: 'Test Company',
-        content: 'Looking for JavaScript and React developer'
-      }
+    const jobPosting = await createTestJobPosting({
+      title: 'Software Engineer',
+      company: 'Test Company',
+      content: 'Looking for JavaScript and React developer'
     });
     testJobPostingId = jobPosting.id;
-  });
-
-  afterEach(async () => {
-    // Clean up test data
-    await prisma.analysisResult.deleteMany({
-      where: { resume: { userId: mockUser.id } }
-    });
-    await prisma.resume.deleteMany({
-      where: { userId: mockUser.id }
-    });
-    await prisma.jobPosting.deleteMany({
-      where: { userId: mockUser.id }
-    });
-    
-    // Clean up test user
-    await prisma.user.delete({
-      where: { id: mockUser.id }
-    }).catch(() => {
-      // Ignore if already deleted
-    });
   });
 
   describe('POST /api/analysis', () => {
@@ -179,15 +134,10 @@ describe('Analysis API', () => {
   describe('GET /api/analysis/:id', () => {
     beforeEach(async () => {
       // Create test analysis
-      const analysis = await prisma.analysisResult.create({
-        data: {
-          resumeId: testResumeId,
-          jobPostingId: testJobPostingId,
-          matches: ['JavaScript', 'React'],
-          gaps: ['Python'],
-          suggestions: ['Learn Python'],
-          similarityScore: new Decimal('0.7500')
-        }
+      const analysis = await createTestAnalysis(testResumeId, testJobPostingId, {
+        matches: ['JavaScript', 'React'],
+        gaps: ['Python'],
+        suggestions: ['Learn Python']
       });
       testAnalysisId = analysis.id;
     });
@@ -232,10 +182,11 @@ describe('Analysis API', () => {
     });
 
     it('should return null for non-existent analysis', async () => {
+      const { randomUUID } = await import('crypto');
       const analysis = await prisma.analysisResult.findFirst({
         where: {
-          id: 'non-existent-id',
-          resume: { userId: mockUser.id }
+          id: randomUUID(),
+          resume: { userId: testUserId }
         }
       });
 
@@ -246,37 +197,27 @@ describe('Analysis API', () => {
   describe('GET /api/analysis', () => {
     beforeEach(async () => {
       // Create multiple test analyses
-      await prisma.analysisResult.createMany({
-        data: [
-          {
-            resumeId: testResumeId,
-            jobPostingId: testJobPostingId,
-            matches: ['JavaScript'],
-            gaps: [],
-            suggestions: []
-          },
-          {
-            resumeId: testResumeId,
-            jobPostingId: testJobPostingId,
-            matches: ['React'],
-            gaps: [],
-            suggestions: []
-          },
-          {
-            resumeId: testResumeId,
-            jobPostingId: testJobPostingId,
-            matches: ['TypeScript'],
-            gaps: [],
-            suggestions: []
-          }
-        ]
+      await createTestAnalysis(testResumeId, testJobPostingId, {
+        matches: ['JavaScript'],
+        gaps: [],
+        suggestions: []
+      });
+      await createTestAnalysis(testResumeId, testJobPostingId, {
+        matches: ['React'],
+        gaps: [],
+        suggestions: []
+      });
+      await createTestAnalysis(testResumeId, testJobPostingId, {
+        matches: ['TypeScript'],
+        gaps: [],
+        suggestions: []
       });
     });
 
     it('should retrieve all analyses for user', async () => {
       const analyses = await prisma.analysisResult.findMany({
         where: {
-          resume: { userId: mockUser.id }
+          resume: { userId: testUserId }
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -288,7 +229,7 @@ describe('Analysis API', () => {
       const analyses = await prisma.analysisResult.findMany({
         where: {
           resumeId: testResumeId,
-          resume: { userId: mockUser.id }
+          resume: { userId: testUserId }
         }
       });
 
@@ -300,7 +241,7 @@ describe('Analysis API', () => {
       const analyses = await prisma.analysisResult.findMany({
         where: {
           jobPostingId: testJobPostingId,
-          resume: { userId: mockUser.id }
+          resume: { userId: testUserId }
         }
       });
 
@@ -311,7 +252,7 @@ describe('Analysis API', () => {
     it('should support pagination', async () => {
       const page1 = await prisma.analysisResult.findMany({
         where: {
-          resume: { userId: mockUser.id }
+          resume: { userId: testUserId }
         },
         orderBy: { createdAt: 'desc' },
         take: 2,
@@ -320,7 +261,7 @@ describe('Analysis API', () => {
 
       const page2 = await prisma.analysisResult.findMany({
         where: {
-          resume: { userId: mockUser.id }
+          resume: { userId: testUserId }
         },
         orderBy: { createdAt: 'desc' },
         take: 2,
