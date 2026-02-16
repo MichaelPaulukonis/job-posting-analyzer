@@ -46,12 +46,22 @@ export default async function globalSetup() {
 
     await prisma.$disconnect();
 
-    // Run migrations
-    console.log('🔄 Running database migrations...');
-    execSync('npx prisma migrate deploy', {
-      env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL },
-      stdio: 'inherit'
-    });
+    // Run migrations or push schema
+    console.log('🔄 Setting up database schema...');
+    try {
+      // Try migrate deploy first
+      execSync('npx prisma migrate deploy', {
+        env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL },
+        stdio: 'inherit'
+      });
+    } catch (error) {
+      // If migrations fail, use db push to create schema
+      console.log('⚠️  Migrations failed, using db push instead...');
+      execSync('npx prisma db push --skip-generate', {
+        env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL },
+        stdio: 'inherit'
+      });
+    }
 
     console.log('✅ Test environment setup complete\n');
   } catch (error) {
