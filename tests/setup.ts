@@ -53,12 +53,17 @@ export async function cleanupTestData() {
 export async function createTestUser(userData?: {
   id?: string;
   email?: string;
-  displayName?: string;
+  name?: string;
+  firebaseUid?: string;
 }) {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(7);
+  
   const defaultUser = {
-    id: `test-user-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-    email: `test-${Date.now()}@example.com`,
-    displayName: 'Test User',
+    id: `test-user-${timestamp}-${random}`,
+    email: `test-${timestamp}@example.com`,
+    name: 'Test User',
+    firebaseUid: `firebase-${timestamp}-${random}`,
     ...userData
   };
 
@@ -66,7 +71,8 @@ export async function createTestUser(userData?: {
     data: {
       id: defaultUser.id,
       email: defaultUser.email,
-      displayName: defaultUser.displayName,
+      name: defaultUser.name,
+      firebaseUid: defaultUser.firebaseUid,
       createdAt: new Date(),
       updatedAt: new Date()
     }

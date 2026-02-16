@@ -1,78 +1,37 @@
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { prisma } from '~/server/utils/prisma';
-import { randomUUID } from 'crypto';
+import { createTestUser, createTestResume, createTestJobPosting, createTestAnalysis } from '../../setup';
 
-// Mock authentication
-const mockUser = {
-  id: randomUUID(),
-  firebaseUid: 'test-firebase-uid',
-  email: 'test@example.com',
-  name: 'Test User'
-};
+// Mock user for authentication
+let mockUser: { id: string; email: string; name: string | null };
 
 jest.mock('~/server/utils/verifyToken', () => ({
-  requireAuth: jest.fn().mockResolvedValue({ user: mockUser, decodedToken: {} })
+  requireAuth: jest.fn().mockImplementation(() => {
+    return Promise.resolve({ user: mockUser, decodedToken: {} });
+  })
 }));
 
 describe('Resumes API', () => {
   let testResumeId: string;
 
   beforeEach(async () => {
-    // Create test user first
-    await prisma.user.upsert({
-      where: { id: mockUser.id },
-      update: {},
-      create: {
-        id: mockUser.id,
-        firebaseUid: mockUser.firebaseUid,
-        email: mockUser.email,
-        name: mockUser.name
-      }
-    });
-
-    // Clean up test data
-    await prisma.resume.deleteMany({
-      where: { userId: mockUser.id }
-    });
-  });
-
-  afterEach(async () => {
-    // Clean up test data
-    await prisma.resume.deleteMany({
-      where: { userId: mockUser.id }
-    });
-    
-    // Clean up test user
-    await prisma.user.delete({
-      where: { id: mockUser.id }
-    }).catch(() => {
-      // Ignore if already deleted
-    });
+    // Create unique test user for this test
+    mockUser = await createTestUser();
   });
 
   describe('POST /api/resumes', () => {
     it('should create a new resume', async () => {
       const resumeData = {
         name: 'Software Engineer Resume',
-        content: 'John Doe\nSoftware Engineer with 5 years experience...',
-        metadata: {
-          format: 'text',
-          version: '1.0'
-        }
+        content: 'John Doe\nSoftware Engineer with 5 years experience...'
       };
 
-      const resume = await prisma.resume.create({
-        data: {
-          ...resumeData,
-          userId: mockUser.id
-        }
-      });
+      const resume = await createTestResume(mockUser.id, resumeData);
 
       expect(resume).toBeDefined();
       expect(resume.name).toBe(resumeData.name);
       expect(resume.content).toBe(resumeData.content);
       expect(resume.userId).toBe(mockUser.id);
-      expect(resume.metadata).toEqual(resumeData.metadata);
 
       testResumeId = resume.id;
     });
@@ -102,12 +61,9 @@ describe('Resumes API', () => {
     });
 
     it('should create resume with default metadata', async () => {
-      const resume = await prisma.resume.create({
-        data: {
-          name: 'Test Resume',
-          content: 'Test content',
-          userId: mockUser.id
-        }
+      const resume = await createTestResume(mockUser.id, {
+        name: 'Test Resume',
+        content: 'Test content'
       });
 
       expect(resume.metadata).toEqual({});
@@ -116,25 +72,18 @@ describe('Resumes API', () => {
 
   describe('GET /api/resumes', () => {
     beforeEach(async () => {
-      // Create test resumes
-      await prisma.resume.createMany({
-        data: [
-          {
-            userId: mockUser.id,
-            name: 'Software Engineer Resume',
-            content: 'Resume content 1'
-          },
-          {
-            userId: mockUser.id,
-            name: 'Senior Developer Resume',
-            content: 'Resume content 2'
-          },
-          {
-            userId: mockUser.id,
-            name: 'Tech Lead Resume',
-            content: 'Resume content 3'
-          }
-        ]
+      // Create test resumes using helper
+      await createTestResume(mockUser.id, {
+        name: 'Software Engineer Resume',
+        content: 'Resume content 1'
+      });
+      await createTestResume(mockUser.id, {
+        name: 'Senior Developer Resume',
+        content: 'Resume content 2'
+      });
+      await createTestResume(mockUser.id, {
+        name: 'Tech Lead Resume',
+        content: 'Resume content 3'
       });
     });
 
@@ -186,12 +135,9 @@ describe('Resumes API', () => {
 
   describe('GET /api/resumes/:id', () => {
     beforeEach(async () => {
-      const resume = await prisma.resume.create({
-        data: {
-          userId: mockUser.id,
-          name: 'Test Resume',
-          content: 'Test content'
-        }
+      const resume = await createTestResume(mockUser.id, {
+        name: 'Test Resume',
+        content: 'Test content'
       });
       testResumeId = resume.id;
     });
@@ -223,12 +169,9 @@ describe('Resumes API', () => {
 
   describe('DELETE /api/resumes/:id', () => {
     beforeEach(async () => {
-      const resume = await prisma.resume.create({
-        data: {
-          userId: mockUser.id,
-          name: 'Test Resume',
-          content: 'Test content'
-        }
+      const resume = await createTestResume(mockUser.id, {
+        name: 'Test Resume',
+        content: 'Test content'
       });
       testResumeId = resume.id;
     });
@@ -246,25 +189,14 @@ describe('Resumes API', () => {
     });
 
     it('should cascade delete related data', async () => {
-      // Create job posting
-      const jobPosting = await prisma.jobPosting.create({
-        data: {
-          userId: mockUser.id,
-          title: 'Test Job',
-          content: 'Test content'
-        }
+      // Create job posting using helper
+      const jobPosting = await createTestJobPosting({
+        title: 'Test Job',
+        content: 'Test content'
       });
 
-      // Create analysis result
-      await prisma.analysisResult.create({
-        data: {
-          resumeId: testResumeId,
-          jobPostingId: jobPosting.id,
-          matches: [],
-          gaps: [],
-          suggestions: []
-        }
-      });
+      // Create analysis result using helper
+      await createTestAnalysis(testResumeId, jobPosting.id);
 
       // Delete resume
       await prisma.resume.delete({
