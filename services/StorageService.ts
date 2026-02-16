@@ -59,6 +59,7 @@ export class StorageService {
       }
       return data.value;
     } else {
+      // Server-side: Use internal $fetch without baseURL for same-server calls
       const headers: HeadersInit = { ...options?.headers };
       if (event) {
         const authHeader = event.node.req.headers['authorization'];
@@ -66,7 +67,8 @@ export class StorageService {
           headers['authorization'] = authHeader;
         }
       }
-      return $fetch(path, { ...options, headers, baseURL: baseUrl });
+      // Use path directly without baseURL for internal server calls
+      return $fetch(path, { ...options, headers });
     }
   }
 
@@ -382,6 +384,41 @@ export class StorageService {
       console.error('Error clearing resumes:', error);
       // Fallback to localStorage if server clear fails
       StorageService.clearResumesFromLocalStorage();
+    }
+  }
+
+  /**
+   * Save a cover letter sample
+   */
+  static async saveCoverLetterSample(sample: { content: string; name: string; notes: string }, event?: any): Promise<string> {
+    try {
+      // Create sample object with ID and timestamp
+      const sampleToSave = {
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+        name: sample.name,
+        content: sample.content,
+        notes: sample.notes,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Get existing samples
+      const samples = await this.getCoverLetterSamples(event);
+      
+      // Add new sample to the beginning
+      samples.unshift(sampleToSave);
+      
+      // Save all samples back to server
+      await this.fetchWithBaseUrl('/api/cover-letter-samples', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(samples)
+      }, event);
+      
+      return sampleToSave.id;
+    } catch (error) {
+      console.error('Error saving cover letter sample to server:', error);
+      // Fallback to localStorage if server save fails
+      return StorageService.saveCoverLetterSampleToLocalStorage(sample);
     }
   }
 
