@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   postgres-test:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg15
     container_name: job-analyzer-test-db
     environment:
       POSTGRES_USER: testuser
