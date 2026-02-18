@@ -22,7 +22,7 @@ That's it! You now have a free, fast local PostgreSQL database with pgvector.
 ## Three Database Environments
 
 ### 1. 🏠 Local Dev (Recommended for Daily Work)
-- **Port:** 5432
+- **Port:** 5434
 - **Cost:** $0/month
 - **Speed:** Instant startup
 - **Use for:** Daily development, fast iteration
@@ -132,7 +132,7 @@ npm run db:rds:stop
 ### For Local Development (Recommended)
 ```bash
 # Use .env.local
-DATABASE_URL="postgresql://dbadmin:localdevpass@localhost:5432/jobanalyzer"
+DATABASE_URL="postgresql://dbadmin:localdevpass@localhost:5434/jobanalyzer"
 ```
 
 ### For RDS/Production
@@ -186,10 +186,10 @@ npm run test:db:logs        # View test database logs
 
 ## Troubleshooting
 
-### "Port 5432 already in use"
+### "Port 5434 already in use"
 ```bash
 # Check what's using the port
-lsof -i :5432
+lsof -i :5434
 
 # Stop local database
 npm run db:local:down
@@ -197,6 +197,10 @@ npm run db:local:down
 # Or stop system PostgreSQL
 brew services stop postgresql@15
 ```
+
+**Note:** Port 5434 is used to avoid conflicts with:
+- System PostgreSQL (port 5432)
+- Test database (port 5433)
 
 ### "Cannot connect to database"
 ```bash
