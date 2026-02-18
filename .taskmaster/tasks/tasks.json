@@ -1462,7 +1462,7 @@
   "aws-migration": {
     "tasks": [
       {
-        "id": 1,
+        "id": "1",
         "title": "AWS Account and IAM Setup",
         "description": "Create and configure AWS account with appropriate IAM permissions for the migration project",
         "status": "done",
@@ -1583,7 +1583,7 @@
         "updatedAt": "2026-02-13T04:30:34.588Z"
       },
       {
-        "id": 2,
+        "id": "2",
         "title": "RDS PostgreSQL Database Setup with pgvector",
         "description": "Set up a PostgreSQL database instance on RDS and enable pgvector extension for semantic search capabilities",
         "status": "done",
@@ -1661,7 +1661,7 @@
         "updatedAt": "2026-02-14T21:08:13.107Z"
       },
       {
-        "id": 3,
+        "id": "3",
         "title": "Database Schema Implementation",
         "description": "Create and initialize the database schema with tables for users, resumes, job postings, and analysis results",
         "status": "done",
@@ -1675,7 +1675,7 @@
         "updatedAt": "2026-02-14T21:11:24.494Z"
       },
       {
-        "id": 4,
+        "id": "4",
         "title": "S3 Bucket Setup for File Storage",
         "description": "Create and configure an S3 bucket for storing resume files and job posting documents",
         "status": "done",
@@ -1689,7 +1689,7 @@
         "updatedAt": "2026-02-14T21:37:00.919Z"
       },
       {
-        "id": 5,
+        "id": "5",
         "title": "Database Service Implementation",
         "description": "Create a database service to manage connections to PostgreSQL and implement data access methods",
         "status": "done",
@@ -1704,7 +1704,7 @@
         "updatedAt": "2026-02-15T15:34:27.765Z"
       },
       {
-        "id": 6,
+        "id": "6",
         "title": "S3 Service Implementation",
         "description": "Create a service to handle file uploads, downloads, and other S3 operations",
         "status": "done",
@@ -1718,7 +1718,7 @@
         "updatedAt": "2026-02-14T21:42:20.665Z"
       },
       {
-        "id": 7,
+        "id": "7",
         "title": "Firebase Auth Integration",
         "description": "Implement backend integration with Firebase Auth and create user synchronization with PostgreSQL",
         "status": "done",
@@ -1733,7 +1733,7 @@
         "updatedAt": "2026-02-15T15:28:56.818Z"
       },
       {
-        "id": 8,
+        "id": "8",
         "title": "API Endpoints Implementation",
         "description": "Create all Nitro API routes for user profile, resumes, job postings, and analysis",
         "status": "done",
@@ -1749,7 +1749,7 @@
         "updatedAt": "2026-02-15T16:36:52.603Z"
       },
       {
-        "id": 9,
+        "id": "9",
         "title": "Frontend Integration with AWS Backend",
         "description": "Update frontend components to use the new AWS backend services and endpoints",
         "status": "done",
@@ -1763,10 +1763,10 @@
         "updatedAt": "2026-02-15T16:46:18.556Z"
       },
       {
-        "id": 10,
+        "id": "10",
         "title": "Containerization and Deployment to AWS App Runner",
         "description": "Create Docker configuration and deploy the complete application to AWS App Runner",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [
           "2",
           "3",
@@ -1780,10 +1780,111 @@
         "priority": "medium",
         "details": "1. Create multi-stage Dockerfile\n2. Set up docker-compose for local testing\n3. Build and test container locally\n4. Create ECR repository and push image\n5. Set up AWS App Runner service\n6. Configure environment variables\n7. Set up auto-scaling and health checks\n\nSample Dockerfile:\n```dockerfile\n# Build stage\nFROM node:20-alpine AS builder\n\nWORKDIR /app\n\nCOPY package*.json ./\nRUN npm ci\n\nCOPY . .\nRUN npm run build\n\n# Production stage\nFROM node:20-alpine\n\nWORKDIR /app\n\nCOPY --from=builder /app/.output .\nCOPY --from=builder /app/.env .\n\nEXPOSE 3000\n\nCMD [\"node\", \"server/index.mjs\"]\n```\n\nSample docker-compose.yml:\n```yaml\nversion: '3'\n\nservices:\n  app:\n    build: .\n    ports:\n      - \"3000:3000\"\n    environment:\n      - NODE_ENV=development\n      - DATABASE_URL=postgres://postgres:password@db:5432/jobanalyzer\n      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}\n      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}\n      - AWS_REGION=${AWS_REGION}\n      - S3_BUCKET_NAME=${S3_BUCKET_NAME}\n      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}\n      - FIREBASE_CLIENT_EMAIL=${FIREBASE_CLIENT_EMAIL}\n      - FIREBASE_PRIVATE_KEY=${FIREBASE_PRIVATE_KEY}\n    depends_on:\n      - db\n\n  db:\n    image: postgres:15-alpine\n    environment:\n      - POSTGRES_PASSWORD=password\n      - POSTGRES_USER=postgres\n      - POSTGRES_DB=jobanalyzer\n    ports:\n      - \"5432:5432\"\n    volumes:\n      - pgdata:/var/lib/postgresql/data\n      # Initialize with schema\n      - ./server/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql\n\nvolumes:\n  pgdata:\n```\n\nDeployment steps:\n1. Build and tag Docker image\n2. Push to ECR\n3. Create App Runner service from ECR image\n4. Configure environment variables in App Runner\n5. Set up health checks and auto-scaling\n6. Configure domain (optional)",
         "testStrategy": "1. Test Docker build locally\n2. Verify container runs without errors\n3. Test environment variable configuration\n4. Verify database connectivity from container\n5. Test S3 access from container\n6. Perform health check tests\n7. Test scaling behavior\n8. Monitor logs for errors after deployment\n9. Verify all functionality in production environment",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Migrate from RDS PostgreSQL to Aurora Serverless v1",
+            "description": "Set up Aurora Serverless v1 database and migrate data from existing PostgreSQL database, enabling pgvector support and auto-pause functionality for cost optimization.",
+            "dependencies": [],
+            "details": "1. Create Aurora Serverless v1 cluster with PostgreSQL compatibility\n2. Enable pgvector extension on the new database\n3. Create migration script to transfer schema and data\n4. Update database connection strings in environment variables\n5. Test database connectivity and vector operations\n6. Configure auto-pause settings for dev/production environments\n7. Document connection parameters and scaling configurations",
+            "status": "done",
+            "testStrategy": "1. Verify pgvector functionality by creating and querying vector embeddings\n2. Test auto-pause functionality by monitoring database activity\n3. Compare query performance with previous RDS instance\n4. Validate all previous database tests pass with new Aurora setup",
+            "updatedAt": "2026-02-18T01:34:39.590Z",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Configure Nuxt for Lambda deployment",
+            "description": "Modify Nuxt configuration and build settings to make the application compatible with AWS Lambda serverless deployment.",
+            "dependencies": [
+              1
+            ],
+            "details": "1. Install aws-lambda preset for Nuxt\n2. Update nuxt.config.js to use serverless target\n3. Configure server middleware for Lambda compatibility\n4. Update API endpoints for serverless functions\n5. Modify build output structure for Lambda deployment\n6. Handle environment variables in Lambda context\n7. Configure cold start optimization strategies",
+            "status": "pending",
+            "testStrategy": "1. Test build process locally with serverless emulation\n2. Verify SSR functionality in local Lambda-like environment\n3. Measure cold start times and optimize as needed\n4. Test static asset loading from separate origin",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Create S3 bucket CloudFormation template for static assets",
+            "description": "Develop CloudFormation template to create and configure S3 bucket for hosting static assets of the Nuxt application.",
+            "dependencies": [],
+            "details": "1. Create CloudFormation template for S3 bucket creation\n2. Configure bucket policies for public read access to static assets\n3. Set up CORS configuration for browser access\n4. Configure default encryption for security\n5. Set up bucket versioning for rollback capability\n6. Create IAM policies for deployment access\n7. Define lifecycle rules for cost optimization\n8. Document bucket naming conventions and access patterns",
+            "status": "pending",
+            "testStrategy": "1. Validate CloudFormation template with AWS validation tools\n2. Test deployment of template in development environment\n3. Verify static assets can be accessed with proper CORS headers\n4. Test file upload and retrieval functionality",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Create Lambda function CloudFormation template",
+            "description": "Develop CloudFormation template for Lambda function deployment, including IAM roles, environment configuration, and integration settings.",
+            "dependencies": [
+              2
+            ],
+            "details": "1. Create CloudFormation template for Lambda function\n2. Define IAM roles with least privilege permissions\n3. Configure environment variables for different deployment stages\n4. Set proper memory allocation and timeout values\n5. Configure Lambda layers for shared dependencies\n6. Set up CloudWatch log groups with appropriate retention\n7. Configure VPC access for database connectivity\n8. Define error handling and retry mechanisms",
+            "status": "pending",
+            "testStrategy": "1. Validate IAM permissions with policy simulator\n2. Test Lambda function locally using AWS SAM\n3. Verify environment variable configuration\n4. Test database connectivity from Lambda context\n5. Validate CloudFormation template syntax",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Create API Gateway CloudFormation template",
+            "description": "Develop CloudFormation template for HTTP API Gateway to handle incoming requests and route them to Lambda function.",
+            "dependencies": [
+              4
+            ],
+            "details": "1. Create CloudFormation template for HTTP API Gateway\n2. Configure Lambda integrations with proper permissions\n3. Set up route mappings for API endpoints\n4. Configure throttling and quota limits\n5. Set up request/response mapping templates if needed\n6. Configure CORS settings for browser access\n7. Set up custom domain name configuration (optional)\n8. Configure logging and monitoring",
+            "status": "pending",
+            "testStrategy": "1. Test API endpoints with Postman or similar tool\n2. Verify CORS headers for browser requests\n3. Test rate limiting and throttling behavior\n4. Validate all API routes against application requirements",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Create CloudFront distribution CloudFormation template",
+            "description": "Develop CloudFormation template for CloudFront CDN to distribute static assets and proxy API requests for optimal performance.",
+            "dependencies": [
+              3,
+              5
+            ],
+            "details": "1. Create CloudFormation template for CloudFront distribution\n2. Configure S3 origin for static assets\n3. Set up API Gateway origin for dynamic content\n4. Define cache behaviors for different content types\n5. Configure SSL/TLS with ACM certificate\n6. Set up proper HTTP/HTTPS redirection\n7. Configure cache TTLs for different asset types\n8. Set up origin request policies and cache policies\n9. Configure geographic restrictions if needed",
+            "status": "pending",
+            "testStrategy": "1. Test content delivery from different geographic locations\n2. Verify cache behavior for static and dynamic content\n3. Test SSL/TLS configuration and certificate validity\n4. Perform load testing to validate CDN performance benefits",
+            "parentId": "undefined"
+          },
+          {
+            "id": 7,
+            "title": "Create deployment automation scripts",
+            "description": "Develop CI/CD scripts to automate the build, packaging, and deployment of the application to the serverless AWS architecture.",
+            "dependencies": [
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "details": "1. Create build script for Nuxt application\n2. Develop packaging script for Lambda deployment package\n3. Create CloudFormation deployment automation script\n4. Set up S3 asset upload automation\n5. Create CloudFront cache invalidation script\n6. Configure environment-specific deployment parameters\n7. Create rollback mechanisms for failed deployments\n8. Document the CI/CD process for team reference",
+            "status": "pending",
+            "testStrategy": "1. Test end-to-end deployment process in development environment\n2. Verify rollback functionality works as expected\n3. Test cache invalidation process\n4. Measure deployment time and optimize process where possible",
+            "parentId": "undefined"
+          },
+          {
+            "id": 8,
+            "title": "Deploy and verify complete serverless architecture",
+            "description": "Execute the deployment of the complete architecture and perform comprehensive testing to ensure all components are working as expected.",
+            "dependencies": [
+              1,
+              7
+            ],
+            "details": "1. Deploy CloudFormation stacks in proper order\n2. Verify database connectivity from Lambda function\n3. Test static asset delivery through CloudFront\n4. Verify API endpoints functionality\n5. Set up monitoring dashboards in CloudWatch\n6. Configure alarms for critical metrics\n7. Perform load testing to validate auto-scaling\n8. Document the deployed architecture with diagrams\n9. Create troubleshooting guide for common issues",
+            "status": "pending",
+            "testStrategy": "1. Execute end-to-end user flows to verify complete functionality\n2. Verify SSR works correctly for all routes\n3. Test database operations with realistic data loads\n4. Monitor cold start times and optimize if necessary\n5. Verify all integrations with external services work properly\n6. Compare performance and cost metrics with original App Runner solution",
+            "parentId": "undefined"
+          }
+        ],
+        "updatedAt": "2026-02-18T01:34:39.590Z"
       },
       {
-        "id": 11,
+        "id": "11",
         "title": "Fix StorageService Conversation Test Failures",
         "description": "Resolve failing tests in StorageService that are caused by $fetch not being defined in the test environment by implementing proper mocks for Nuxt composables or creating a testing strategy to handle this dependency.",
         "details": "1. Analyze the failing tests in the StorageService test suite to identify all occurrences where $fetch is being used\n\n2. Determine the best approach for resolving the issue:\n   - Option A: Properly mock Nuxt's $fetch functionality\n   - Option B: Temporarily skip affected tests with proper documentation\n   - Option C: Refactor the service to allow for easier testing without Nuxt dependencies\n\n3. If choosing Option A (recommended):\n   ```typescript\n   // Example mock implementation for $fetch in tests\n   import { vi } from 'vitest';\n   \n   // Setup global mocks in your test setup file\n   vi.mock('#app', () => ({\n     useFetch: vi.fn(),\n     useNuxtApp: () => ({\n       $fetch: vi.fn().mockImplementation((url, options) => {\n         // Return mock responses based on URL patterns\n         if (url.includes('/api/conversations')) {\n           return Promise.resolve({ data: { /* mock data */ } });\n         }\n         // Add other endpoint mocks as needed\n         return Promise.resolve(null);\n       })\n     })\n   }));\n   ```\n\n4. If refactoring the service:\n   ```typescript\n   // Make the StorageService accept a custom fetcher for better testability\n   export class StorageService {\n     private fetcher: (url: string, options?: any) => Promise<any>;\n     \n     constructor(customFetcher?: (url: string, options?: any) => Promise<any>) {\n       this.fetcher = customFetcher || (globalThis.$fetch || fetch);\n     }\n     \n     // Methods using this.fetcher instead of directly using $fetch\n   }\n   ```\n\n5. Update test files to use the appropriate mocking strategy\n\n6. Document the solution chosen and any known limitations\n\n7. Consider creating a common test utility for Nuxt composable mocking for future tests",
@@ -1797,7 +1898,7 @@
         "updatedAt": "2026-02-13T04:41:14.843Z"
       },
       {
-        "id": 12,
+        "id": "12",
         "title": "Update Admin Endpoints to Use PostgreSQL with Prisma ORM",
         "description": "Refactor admin endpoints in server/api/admin/storage-files/ to query data from PostgreSQL database using Prisma ORM instead of reading from legacy JSON files. This is a low-priority enhancement as the admin interface is a fallback system.",
         "details": "1. Identify all admin endpoints in server/api/admin/storage-files/ that currently use FileStorageService to read JSON files\n2. Examine how Prisma is currently used in the main API endpoints for reference\n3. If Prisma is not yet configured for the project:\n   a. Install Prisma dependencies (prisma, @prisma/client)\n   b. Initialize Prisma with 'npx prisma init'\n   c. Configure datasource to connect to the PostgreSQL database\n4. Analyze the current data structure in JSON files and create or update Prisma models accordingly\n5. Run 'npx prisma generate' to update the Prisma client\n6. Update the admin endpoint handlers to use Prisma client instead of FileStorageService\n7. Implement proper error handling for database operations\n8. Ensure the API response format remains compatible with the admin interface\n9. Add appropriate logging for database operations\n10. Update documentation to reflect the changes in the admin API",
@@ -1813,15 +1914,12 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-02-15T16:46:18.556Z",
-      "taskCount": 11,
+      "lastModified": "2026-02-18T01:34:39.593Z",
+      "taskCount": 12,
       "completedCount": 10,
       "tags": [
         "aws-migration"
-      ],
-      "created": "2026-02-15T21:24:26.507Z",
-      "description": "Tasks for aws-migration context",
-      "updated": "2026-02-15T21:25:49.502Z"
+      ]
     }
   }
 }
