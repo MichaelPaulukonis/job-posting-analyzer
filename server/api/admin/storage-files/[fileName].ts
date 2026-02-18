@@ -1,6 +1,12 @@
-import { FileStorageService, StorageItem } from '../../../services/FileStorageService';
 import { requireAuth } from '~/server/utils/verifyToken';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
+
+/**
+ * Admin endpoint to query database tables
+ * Maps old JSON file names to Prisma models
+ */
 export default defineEventHandler(async (event) => {
   try {
     await requireAuth(event);
@@ -13,7 +19,7 @@ export default defineEventHandler(async (event) => {
       });
     }
     
-    // Basic security check to prevent directory traversal
+    // Basic security check
     if (fileName.includes('..') || !fileName.endsWith('.json')) {
       throw createError({
         statusCode: 400,
@@ -21,18 +27,79 @@ export default defineEventHandler(async (event) => {
       });
     }
     
-    // Create a FileStorageService instance with the specified filename
-    const storageService = new FileStorageService<StorageItem>(fileName);
+    // Map file names to Prisma models
+    let data: any[] = [];
     
-    // Get all items from this storage file
-    const items = storageService.getAll();
+    switch (fileName) {
+      case 'resumes.json':
+        data = await prisma.resume.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 100, // Limit to prevent large responses
+        });
+        break;
+        
+      case 'job-postings.json':
+        data = await prisma.jobPosting.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+        });
+        break;
+        
+      case 'analysis-results.json':
+        data = await prisma.analysisResult.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+          include: {
+            resume: { select: { name: true } },
+            jobPosting: { select: { title: true, company: true } },
+          },
+        });
+        break;
+        
+      case 'cover-letters.json':
+        data = await prisma.coverLetter.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+          include: {
+            resume: { select: { name: true } },
+            jobPosting: { select: { title: true, company: true } },
+          },
+        });
+        break;
+        
+      case 'conversations.json':
+        data = await prisma.conversation.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+          include: {
+            resume: { select: { name: true } },
+            jobPosting: { select: { title: true, company: true } },
+          },
+        });
+        break;
+        
+      case 'users.json':
+        data = await prisma.user.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+        });
+        break;
+        
+      default:
+        throw createError({
+          statusCode: 404,
+          statusMessage: `Table not found: ${fileName}`,
+        });
+    }
     
-    return items;
+    return data;
   } catch (error) {
-    console.error('Error reading file:', error);
+    console.error('Error querying database:', error);
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to read file',
+      statusMessage: 'Failed to query database',
     });
+  } finally {
+    await prisma.$disconnect();
   }
 });
