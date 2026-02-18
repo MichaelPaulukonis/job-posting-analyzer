@@ -1,0 +1,266 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Aurora Serverless v1 PostgreSQL cluster with pgvector support and auto-pause for job-posting-analyzer'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'job-analyzer'
+    Description: 'Environment name for resource tagging and naming'
+  
+  DBName:
+    Type: String
+    Default: 'jobanalyzer'
+    Description: 'Initial database name'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: 'Must begin with a letter and contain only alphanumeric characters'
+  
+  DBUsername:
+    Type: String
+    Default: 'dbadmin'
+    Description: 'Master username for database'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: 'Must begin with a letter and contain only alphanumeric characters'
+  
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Description: 'Master password for database (min 8 characters)'
+    MinLength: 8
+    MaxLength: 41
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: 'Must contain only alphanumeric characters'
+  
+  MinCapacity:
+    Type: Number
+    Default: 2
+    AllowedValues: [2, 4, 8, 16, 32, 64]
+    Description: 'Minimum Aurora Capacity Units (ACU). 2 ACU = 4GB RAM'
+  
+  MaxCapacity:
+    Type: Number
+    Default: 4
+    AllowedValues: [2, 4, 8, 16, 32, 64]
+    Description: 'Maximum Aurora Capacity Units (ACU). 4 ACU = 8GB RAM'
+  
+  AutoPauseSeconds:
+    Type: Number
+    Default: 300
+    MinValue: 300
+    MaxValue: 86400
+    Description: 'Seconds of inactivity before auto-pause (300 = 5 minutes)'
+
+Resources:
+  # VPC for Aurora
+  AuroraVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.1.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-aurora-vpc'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-aurora-igw'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref AuroraVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Subnets in different AZs (required for Aurora)
+  AuroraSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref AuroraVPC
+      CidrBlock: 10.1.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-aurora-subnet-1'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  AuroraSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref AuroraVPC
+      CidrBlock: 10.1.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-aurora-subnet-2'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+
+  # Route Table
+  RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref AuroraVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-aurora-route-table'
+
+  Route:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref AuroraSubnet1
+      RouteTableId: !Ref RouteTable
+
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref AuroraSubnet2
+      RouteTableId: !Ref RouteTable
+
+  # DB Subnet Group
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: !Sub '${EnvironmentName}-aurora-subnet-group'
+      DBSubnetGroupDescription: 'Subnet group for Aurora Serverless cluster'
+      SubnetIds:
+        - !Ref AuroraSubnet1
+        - !Ref AuroraSubnet2
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+
+  # Security Group for Aurora
+  AuroraSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${EnvironmentName}-aurora-security-group'
+      GroupDescription: 'Security group for Aurora Serverless cluster'
+      VpcId: !Ref AuroraVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 0.0.0.0/0
+          Description: 'PostgreSQL access from anywhere (restrict in production)'
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-aurora-sg'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+
+  # DB Cluster Parameter Group for pgvector
+  DBClusterParameterGroup:
+    Type: AWS::RDS::DBClusterParameterGroup
+    Properties:
+      DBClusterParameterGroupName: !Sub '${EnvironmentName}-aurora-pgvector'
+      Description: 'Parameter group for Aurora Serverless with pgvector extension'
+      Family: aurora-postgresql11
+      Parameters:
+        shared_preload_libraries: 'pg_stat_statements'
+        rds.force_ssl: '0'
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+
+  # Aurora Serverless v1 Cluster
+  AuroraCluster:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Snapshot
+    Properties:
+      DBClusterIdentifier: !Sub '${EnvironmentName}-aurora-serverless'
+      Engine: aurora-postgresql
+      EngineMode: serverless
+      EngineVersion: '11.21'
+      DatabaseName: !Ref DBName
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref AuroraSecurityGroup
+      DBClusterParameterGroupName: !Ref DBClusterParameterGroup
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: '03:00-04:00'
+      PreferredMaintenanceWindow: 'sun:04:00-sun:05:00'
+      EnableHttpEndpoint: true
+      StorageEncrypted: true
+      DeletionProtection: false
+      ScalingConfiguration:
+        MinCapacity: !Ref MinCapacity
+        MaxCapacity: !Ref MaxCapacity
+        AutoPause: true
+        SecondsUntilAutoPause: !Ref AutoPauseSeconds
+      Tags:
+        - Key: Name
+          Value: !Sub '${EnvironmentName}-aurora-serverless'
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+        - Key: Purpose
+          Value: Application database with pgvector and auto-pause
+
+Outputs:
+  ClusterEndpoint:
+    Description: 'Aurora Serverless cluster endpoint'
+    Value: !GetAtt AuroraCluster.Endpoint.Address
+    Export:
+      Name: !Sub '${EnvironmentName}-aurora-endpoint'
+  
+  ClusterPort:
+    Description: 'Aurora Serverless cluster port'
+    Value: !GetAtt AuroraCluster.Endpoint.Port
+    Export:
+      Name: !Sub '${EnvironmentName}-aurora-port'
+  
+  DBName:
+    Description: 'Database name'
+    Value: !Ref DBName
+    Export:
+      Name: !Sub '${EnvironmentName}-aurora-db-name'
+  
+  ClusterArn:
+    Description: 'Aurora Serverless cluster ARN'
+    Value: !GetAtt AuroraCluster.DBClusterArn
+    Export:
+      Name: !Sub '${EnvironmentName}-aurora-arn'
+  
+  SecurityGroupId:
+    Description: 'Security group ID for Aurora cluster'
+    Value: !Ref AuroraSecurityGroup
+    Export:
+      Name: !Sub '${EnvironmentName}-aurora-security-group-id'
+  
+  ConnectionString:
+    Description: 'PostgreSQL connection string (without password)'
+    Value: !Sub 'postgresql://${DBUsername}@${AuroraCluster.Endpoint.Address}:${AuroraCluster.Endpoint.Port}/${DBName}'
+  
+  DataAPIEnabled:
+    Description: 'Data API enabled for Lambda access'
+    Value: 'true'
