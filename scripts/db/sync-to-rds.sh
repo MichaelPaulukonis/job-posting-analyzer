@@ -27,7 +27,7 @@ RDS_DB="jobanalyzer"
 
 # Local connection details
 LOCAL_HOST="localhost"
-LOCAL_PORT="5432"
+LOCAL_PORT="5434"
 LOCAL_USER="dbadmin"
 LOCAL_PASSWORD="localdevpass"
 LOCAL_DB="jobanalyzer"

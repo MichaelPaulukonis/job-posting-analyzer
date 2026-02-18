@@ -16,9 +16,9 @@ cp .env.local .env
 
 ## Database Environments
 
-### 1. Local Dev Database (Port 5432)
+### 1. Local Dev Database (Port 5434)
 - **Purpose**: Daily development work
-- **Connection**: `postgresql://dbadmin:localdevpass@localhost:5432/jobanalyzer`
+- **Connection**: `postgresql://dbadmin:localdevpass@localhost:5434/jobanalyzer`
 - **Cost**: Free
 - **Data**: Can sync with RDS or use independently
 
