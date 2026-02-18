@@ -38,10 +38,18 @@ for i in {1..30}; do
 done
 
 echo ""
-echo "Step 2: Running Prisma migrations..."
+echo "Step 2: Setting up database schema..."
+cd "$PROJECT_ROOT"
 # Use .env.local for this operation
 export $(cat .env.local | grep -v '^#' | xargs)
-npx prisma migrate deploy
+
+# First, push the schema to create all tables
+echo "Creating database schema..."
+npx prisma db push --force-reset --accept-data-loss
+
+# Then mark migrations as applied
+echo "Marking migrations as applied..."
+npx prisma migrate resolve --applied add_firebase_uid || true
 
 echo ""
 echo "Step 3: Generating Prisma client..."
