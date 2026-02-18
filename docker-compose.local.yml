@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  postgres-dev:
+    image: pgvector/pgvector:pg15
+    container_name: job-analyzer-dev-db
+    environment:
+      POSTGRES_USER: dbadmin
+      POSTGRES_PASSWORD: localdevpass
+      POSTGRES_DB: jobanalyzer
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbadmin -d jobanalyzer"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres-dev-data:
+    driver: local
