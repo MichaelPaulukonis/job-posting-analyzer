@@ -19,6 +19,8 @@ Thumbs.db
 
 # Ignore environment files - these should be passed in during runtime
 .env
+.env.*
+!.env.example
 
 # Ignore git files
 .git

@@ -23,8 +23,8 @@ COPY . .
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Start the app in development mode
-CMD ["npm", "run", "dev"]
+# Generate Prisma client and start the app
+CMD ["sh", "-c", "npx prisma generate && npm run dev"]
 
 # -- End of dev stage --
 
@@ -33,11 +33,17 @@ CMD ["npm", "run", "dev"]
 # Build stage
 FROM base AS builder
 
+# Set a dummy DATABASE_URL for Prisma generation during build
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
+
 # Install only production dependencies
 RUN npm ci
 
 # Copy the rest of the application files
 COPY . .
+
+# Generate Prisma client
+RUN npx prisma generate
 
 # Build the Nuxt.js application
 RUN npm run build
