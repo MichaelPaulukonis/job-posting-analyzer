@@ -6,16 +6,22 @@ services:
     ports:
       - "3050:3000"
     environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://dbadmin:localdevpass@host.docker.internal:5434/jobanalyzer?schema=public}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GEMINI_MODEL=${GEMINI_MODEL:-gemini-pro}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-2}
-      - BASE_URL=http://localhost:3000
+      - BASE_URL=http://localhost:3050
+      - NUXT_PUBLIC_API_BASE=http://localhost:3050
+      - PORT=3000
+      - HOST=0.0.0.0
     volumes:
       - app-storage:/app
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3050"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -5,17 +5,19 @@ services:
       target: dev
     ports:
       - "3050:3000"
+    env_file:
+      - .env.docker
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-pro}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-2}
-      - BASE_URL=http://localhost:3050
+      - DATABASE_URL=postgresql://dbadmin:localdevpass@host.docker.internal:5434/jobanalyzer?schema=public
+      - PORT=3000
+      - HOST=0.0.0.0
     volumes:
       - .:/app
       - /app/node_modules
       - /app/.nuxt
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
   app-storage:
