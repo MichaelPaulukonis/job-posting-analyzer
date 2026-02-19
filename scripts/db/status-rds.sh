@@ -15,8 +15,8 @@ NC='\033[0m'
 echo -e "${GREEN}=== RDS Instance Status ===${NC}"
 echo ""
 
-# Get instance details
-aws rds describe-db-instances \
+# Get instance details (disable pager)
+AWS_PAGER="" aws rds describe-db-instances \
   --db-instance-identifier $DB_INSTANCE_ID \
   --query 'DBInstances[0].{Status:DBInstanceStatus,Endpoint:Endpoint.Address,Engine:Engine,EngineVersion:EngineVersion,InstanceClass:DBInstanceClass,Storage:AllocatedStorage,MultiAZ:MultiAZ}' \
   --output table
