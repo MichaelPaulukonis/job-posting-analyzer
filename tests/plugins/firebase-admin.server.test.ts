@@ -30,12 +30,14 @@ describe('Firebase admin plugin', () => {
 
   test('initializes when FIREBASE_SERVICE_ACCOUNT JSON string present', async () => {
     const consoleInfoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
-    const serviceAccount = JSON.stringify({
+    // Test fixture - not a real service account
+    const TEST_SERVICE_ACCOUNT = {
       type: 'service_account',
       project_id: 'test',
       private_key: '-----BEGIN PRIVATE KEY-----\nTESTKEY\n-----END PRIVATE KEY-----\n',
       client_email: 'firebase-admin@test.iam.gserviceaccount.com',
-    });
+    };
+    const serviceAccount = JSON.stringify(TEST_SERVICE_ACCOUNT);
     jest.doMock('#imports', () => ({ defineNitroPlugin: (fn: any) => fn, useRuntimeConfig: () => ({ FIREBASE_SERVICE_ACCOUNT: serviceAccount }) }));
     delete process.env.FIREBASE_SERVICE_ACCOUNT;
     const admin = await import('firebase-admin');

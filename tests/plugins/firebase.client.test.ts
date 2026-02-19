@@ -22,14 +22,17 @@ describe('Firebase client plugin', () => {
   });
 
   test('initializes when public config present', async () => {
+    // Test fixture - not real Firebase credentials
+    const TEST_FIREBASE_CONFIG = {
+      FIREBASE_API_KEY: 'test-api-key-fixture',
+      FIREBASE_AUTH_DOMAIN: 'test-domain',
+      FIREBASE_PROJECT_ID: 'test-project',
+      FIREBASE_APP_ID: '1:1:web:1'
+    };
+    
     jest.doMock('#imports', () => ({
       defineNuxtPlugin: (fn: any) => fn,
-      useRuntimeConfig: () => ({ public: {
-        FIREBASE_API_KEY: 'test-api',
-        FIREBASE_AUTH_DOMAIN: 'test',
-        FIREBASE_PROJECT_ID: 'test',
-        FIREBASE_APP_ID: '1:1:web:1'
-      } }),
+      useRuntimeConfig: () => ({ public: TEST_FIREBASE_CONFIG }),
     }));
 
     // Modules to verify calls
