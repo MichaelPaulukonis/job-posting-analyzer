@@ -102,9 +102,9 @@ PGPASSWORD="$LOCAL_PASSWORD" psql \
 echo -e "${GREEN}✓ Data restored to local database${NC}"
 echo ""
 
-echo "Step 5: Running Prisma migrations..."
+echo "Step 5: Generating Prisma client..."
 cd "$PROJECT_ROOT"
-npx prisma migrate deploy
+npx prisma generate
 
 echo ""
 echo -e "${GREEN}=== Sync Complete ===${NC}"
@@ -112,6 +112,6 @@ echo ""
 echo "Summary:"
 echo "  • RDS data dumped to: $DUMP_FILE"
 echo "  • Local database updated with RDS data"
-echo "  • Prisma migrations applied"
+echo "  • Schema and data restored from RDS"
 echo ""
 echo "Your local dev database now matches RDS!"

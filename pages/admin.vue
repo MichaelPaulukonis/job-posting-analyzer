@@ -10,25 +10,25 @@
       <h1 class="text-2xl font-bold">⚙️ Admin Panel</h1>
     </div>
 
-    <!-- Storage Files Section -->
+    <!-- Database Tables Section -->
     <div class="bg-white shadow-md rounded-lg p-6 mb-6">
       <div class="flex justify-between items-center mb-4">
         <div>
-          <h2 class="text-xl font-semibold">Storage Files</h2>
-          <p class="text-gray-600">View and inspect local storage files used by the application.</p>
+          <h2 class="text-xl font-semibold">Database Tables</h2>
+          <p class="text-gray-600">View and inspect data stored in PostgreSQL database.</p>
         </div>
         <button 
           @click="createSampleFile" 
           class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded"
           :disabled="isCreatingSample"
         >
-          {{ isCreatingSample ? 'Creating...' : 'Create Sample File' }}
+          {{ isCreatingSample ? 'Creating...' : 'Create Sample Record' }}
         </button>
       </div>
       
       <div v-if="isLoading" class="text-center py-8">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        <p class="mt-2 text-gray-600">Loading storage files...</p>
+        <p class="mt-2 text-gray-600">Loading database tables...</p>
       </div>
       
       <div v-else-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
@@ -36,7 +36,7 @@
       </div>
       
       <div v-else-if="storageFiles.length === 0" class="text-center py-8 text-gray-500">
-        <p>No storage files found. Click the "Create Sample File" button to generate a test file.</p>
+        <p>No database tables found. Click the "Create Sample Record" button to generate test data.</p>
       </div>
       
       <div v-else>
@@ -119,7 +119,7 @@ const debugInfo = computed(() => {
   };
 });
 
-// Fetch storage files
+// Fetch database tables
 const fetchStorageFiles = async () => {
   isLoading.value = true;
   error.value = null;
@@ -134,14 +134,14 @@ const fetchStorageFiles = async () => {
     
     storageFiles.value = data.value as string[] || [];
   } catch (err) {
-    error.value = `Failed to load storage files: ${err instanceof Error ? err.message : String(err)}`;
-    console.error('Error loading storage files:', err);
+    error.value = `Failed to load database tables: ${err instanceof Error ? err.message : String(err)}`;
+    console.error('Error loading database tables:', err);
   } finally {
     isLoading.value = false;
   }
 };
 
-// Create a sample file
+// Create a sample record
 const createSampleFile = async () => {
   if (isCreatingSample.value) return;
   
@@ -154,11 +154,11 @@ const createSampleFile = async () => {
       throw new Error(fetchError.value.message || 'Unknown error occurred');
     }
     
-    // Refresh the file list
+    // Refresh the table list
     await fetchStorageFiles();
   } catch (err) {
-    console.error('Error creating sample file:', err);
-    error.value = `Failed to create sample file: ${err instanceof Error ? err.message : String(err)}`;
+    console.error('Error creating sample record:', err);
+    error.value = `Failed to create sample record: ${err instanceof Error ? err.message : String(err)}`;
   } finally {
     isCreatingSample.value = false;
   }
