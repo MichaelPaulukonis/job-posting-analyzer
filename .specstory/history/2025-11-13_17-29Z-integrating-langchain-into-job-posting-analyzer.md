@@ -232,6 +232,133 @@ Write this up as a markdown file in `docs/plans/`
 
 _**Agent (model copilot/oswe-vscode-prime)**_
 
+<tool-use data-tool-type="task" data-tool-name="manage_todo_list">
+<details>
+<summary>Tool use: **manage_todo_list** • Using "Manage and track todo items for task planning"</summary>
+
+**Created 3 todos**
+
+- [ ] Draft plan
+  > Create a plan file in docs/plans/ describing LangChain integration, with scope, approach, steps, testing, and risks
+- [ ] Create Markdown file
+  > Write the actual docs/plans/13.langchain-integration.md file with full content
+- [ ] Review and finalize
+  > Review the plan file for completeness, follow project plan structure and mark as completed
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="manage_todo_list">
+<details>
+<summary>Tool use: **manage_todo_list** • Using "Manage and track todo items for task planning"</summary>
+
+**Starting: *Draft plan* (1/3)**
+
+- [-] Draft plan
+  > Create a plan file in docs/plans/ describing LangChain integration, with scope, approach, steps, testing, and risks
+- [ ] Create Markdown file
+  > Write the actual docs/plans/13.langchain-integration.md file with full content
+- [ ] Review and finalize
+  > Review the plan file for completeness, follow project plan structure and mark as completed
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="unknown" data-tool-name="copilot_createFile">
+<details>
+<summary>Tool use: **copilot_createFile**</summary>
+
+
+Parameters:
+
+```json
+{
+  "file_path": "/Users/michaelpaulukonis/projects/job-posting-analyzer/docs/plans/13.langchain-integration.md",
+  "relativeWorkspacePath": "13.langchain-integration.md"
+}
+```
+Additional data:
+
+```json
+{
+  "vscodeToolId": "copilot_createFile",
+  "isHidden": false
+}
+```
+Result:
+
+```json
+{
+  "invocationMessage": "Creating [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/docs/plans/13.langchain-integration.md)",
+  "pastTenseMessage": "Created [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/docs/plans/13.langchain-integration.md)",
+  "isConfirmed": {
+    "type": 1
+  },
+  "content": "",
+  "textEditContent": "# 13. LangChain Integration Plan\n\n## Overview\n\nThis plan describes how LangChain can be integrated into the Job Posting Analyzer project to improve document processing, contextual retrieval, analysis reliability, and developer productivity. The objective is to leverage LangChain's chains, memory, RAG (Retrieval-Augmented Generation), and tool/agent abstractions to build more robust, maintainable, and extensible analysis pipelines without changing the existing UI or user experience.\n\n## Problem Statement\n\nThe current system uses a service-based LLM integration with provider-specific classes (e.g., &#96;GeminiLLMService&#96;, &#96;ClaudeLLMService&#96;, &#96;MockLLMService&#96;). While functional, the system can be enhanced in these areas:\n\n- Document extraction and parsing from more diverse formats with higher reliability.\n- Retrieval-augmented analysis (RAG) to provide relevant, contextualized responses driven by resume/job posting content.\n- Multi-step analysis workflows (e.g., extract, match, gap, suggest, generate cover letter) that are easier to reason about and test.\n- Conversation/history-driven improvements for subsequent user flows (cover letters, follow-ups) using memory.\n- Tool-based enrichment for external data lookups (job market trends, LinkedIn company info, skill taxonomies).\n\nThe goal is to introduce LangChain as an internal building block while preserving the external API and interfaces for the rest of the system.\n\n## Requirements\n\nFunctional requirements:\n\n1. Add support for LangChainJS as an optional service implementation for analysis flows.\n2. Provide RAG capabilities for skill matching and gap analysis.\n3. Implement document loaders for both job postings and resume files with better quality extraction, and chunking for embeddings.\n4. Add memory and conversation history to improve subsequent requests (cover letters, iterative analysis).\n5. Create reusable chains for common tasks (skill extraction, match scoring, gap identification, suggestion generation).\n6. Add optional tool integration for external data (job market data, skill taxonomies) behind a configuration flag.\n7. Maintain existing LLMServiceInterface so switching is backward compatible and incremental.\n\nNon-functional requirements:\n\n- Incremental rollout with minimal risk to production flows.\n- Keep cost controls and rate limiting for embeddings and LLM calls.\n- Maintain test coverage and minimal interface changes.\n- No large infra shifts (start with in-memory vector stores for PoC; production-grade vector stores optional later).\n\n## Technical Approach\n\n1. Use LangChainJS (the Node/TypeScript variant) for local integration to match the current stack.\n2. Build a new service &#96;LangChainLLMService&#96; implementing &#96;LLMServiceInterface&#96;. This will be the entrypoint for analysis that leverages chains, memory, and vector stores.\n3. Create document loader utilities for the common resume and posting types (PDF, TXT, MD). Use LangChain document loaders and add a small wrapper to integrate with the project's file storage/repository pattern.\n4. Add &#96;MemoryVectorStore&#96; for PoC RAG; plan migration to a production vector store (Pinecone, Milvus, or Weaviate) for scale.\n5. Implement these initial chains:\n   - &#96;skillExtractionChain&#96;: Extract a canonical list of skills and fuzzy synonyms from a resume or job posting.\n   - &#96;vectorizationChain&#96;: Build embeddings and populate vector store.\n   - &#96;ragAnalysisChain&#96;: Given job posting content and vector store, retrieve top-k resume/context sections to produce analysis and match scores.\n   - &#96;gapAnalysisChain&#96;: Use the retrieved context to produce suggested improvements.\n6. Add &#96;ConversationMemory&#96; integration to store per-user or per-resume analysis history. Use a Date/Version stamp so we can invalidate or refresh memory when underlying content changes.\n7. Provide a &#96;tools&#96; abstraction (LangChain Tools) for external data lookups (job market, skill taxonomy). Use these tools in the agent-based chain for optional features.\n8. Add configuration toggles to the UI and server for enabling or disabling LangChain-based flows, memory, vector store provider selection, and tooling.\n\n## Implementation Steps (Phased)\n\nPhase 0 — Preparation\n- Add &#96;langchain&#96; to the project dependencies and any required embedding provider packages (e.g., &#96;@pinecone-database/pinecone&#96; or an OpenAI embedders package if required for PoC).\n- Add basic docs for &#96;LangChainLLMService&#96; and new config options.\n\nPhase 1 — PoC: Document Loaders &amp; RAG (2-4 days)\n- Implement &#96;DocumentLoader&#96; utilities integrating LangChain's loaders.\n- Create &#96;MemoryVectorStore&#96; PoC wrapper to store embeddings.\n- Implement a &#96;LangChainLLMService&#96; that performs the analysis by:\n  - Loading the resume / job posting docs\n  - Chunking and embedding\n  - Storing and searching for relevant contexts with the vector store\n  - Running a simple chain for match/gap/suggestion generation.\n- Add minimal unit tests with mock embeddings and LLM services.\n\nPhase 2 — Chains, Memory, and Tools (4-8 days)\n- Build modular chains: skill extraction, gap analysis, cover letter generation chain.\n- Add memory (per-resume or per-user) using LangChain's memory, backed by local storage for MVP.\n- Build tools for job market research and skill taxonomy lookup; implement small mock version for testing.\n- Add integration tests that run chains with a mock LLM provider.\n\nPhase 3 — UI integration &amp; API (2-4 days)\n- Add a &#96;useLangChain&#96; config flag in &#96;composables&#96; and a switch in the &#96;ServiceSelector&#96; UI.\n- Update &#96;useAnalysis&#96; to call &#96;LangChainLLMService&#96; when enabled.\n- Add toggles in the admin pages for vector store provider selection, memory TTL, and tool options.\n- Add a migration/cleanup flow for vector store content as part of the repo or server-side housekeeping.\n\nPhase 4 — Production-ready enhancements &amp; deployment (6-10 days)\n- Add support for a production-grade vector store (Pinecone or Weaviate) as a provider option.\n- Add request-level metrics and usage logging for cost and performance alerts.\n- Add rate limiting and cost controls for embeddings/LLM calls.\n- Extend test coverage, add Playwright E2E tests for the full flow.\n\n## Testing Strategy\n\n- Unit Tests:\n  - Mock the LLM and vector store to test chain logic and extraction flows. Add tests for the new &#96;LangChainLLMService&#96; that confirm calls and output shape.\n  - Validate document loading and chunking logic.\n- Integration Tests:\n  - Use a mock or test LLM provider (e.g., &#96;MockLLMService&#96;) plus in-memory vector store to confirm RAG flows work end-to-end for a variety of resume and job posting inputs.\n  - Test memory persistence and invalidation behavior.\n- E2E Tests:\n  - Playwright tests covering analysis flow with LangChain enabled, cover letter generation, and the admin toggles for disabling/enabling the feature.\n- Performance/Stress Testing:\n  - Benchmark embedding and retrieval latency with representative dataset sizes.\n- Acceptance Criteria:\n  - The &#96;LangChainLLMService&#96; generates the same or better quality analysis than the current system for a standard test set of job postings and resumes.\n  - The UI remains unchanged except for feature toggles and selectors.\n  - The PoC RAG does not produce a significant (&gt; 15%) latency overhead for typical inputs.\n\n## Risks &amp; Mitigation\n\n- Risk: Increased complexity and maintenance overhead.\n  - Mitigation: Start with a small PoC; keep the existing LLM integration untouched and behind a feature flag; incrementally move chains into production.\n- Risk: Cost increases due to embeddings + additional LLM calls.\n  - Mitigation: Add safeguards: sample rate limiting, TTL for vectors, instrumentation &amp; monitoring, local caching for repeated queries.\n- Risk: Latency/performance regressions.\n  - Mitigation: Use in-memory vector store for PoC; choose a production vector provider for scale; batch embeddings and calls where possible.\n- Risk: Security issues (exposing data to vector stores or third-party services).\n  - Mitigation: Use secure env configurations, keep sensitive data on server-side only, allow on-prem vector store providers.\n- Risk: Compatibility &amp; vendor lock-in.\n  - Mitigation: Continue to allow multiple vector store and embedding providers (config-based). Keep &#96;LLMServiceInterface&#96; compatibility.\n\n## Dependencies\n\n- &#96;langchain&#96; (JS/TS) — core library for chains, memory, tools\n- Embedding providers (OpenAI embeddings or other provider) for vectorization\n- Optional vector store connectors: Pinecone, Weaviate, Milvus, or an in-house DB (PoC uses &#96;MemoryVectorStore&#96;)\n- Additional packages for PDF/diff parsing if not covered already\n- Dev infra: tests and CI updates for E2E/Playwright and Jest/Vitest\n\n## Acceptance Criteria\n\n- Implement &#96;LangChainLLMService&#96; and wire it as an optional LLM service through the existing &#96;LLMServiceFactory&#96;.\n- Add docs explaining how to enable LangChain and how to configure vector store provider and memory settings.\n- Implement at least one full RAG-based job/resume matching flow in &#96;LangChainLLMService&#96; used for comparisons.\n- Add tests (unit/integration/E2E)\n- Add admin/config UI to choose the provider and feature toggles\n\n## Rollout &amp; Milestones\n\n- Milestone 1 (PoC complete): &#96;LangChainLLMService&#96; PoC with &#96;MemoryVectorStore&#96; and document loaders — T+ 2 weeks.\n- Milestone 2 (Feature complete): RAG + chains + memory with tests and UI toggles — T+ 4 weeks.\n- Milestone 3 (Production-ready): Integrate production vector store, metrics, and cost controls — T+ 8 weeks.\n\n## Next Steps\n\n1. Review this plan and confirm acceptance or propose edits.\n2. Add a PRD or update an existing plan in &#96;.taskmaster/docs/&#96; if a longer initiative is expected.\n3. Create discrete tasks in Taskmaster for each phase (PoC, Chains, UI, Prod) and assign owners.\n\n---\n\nCreated by: Job Posting Analyzer Team\nDate: 2025-11-18\n",
+  "toolCallResult": null
+}
+```
+Status: **completed**
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="manage_todo_list">
+<details>
+<summary>Tool use: **manage_todo_list** • Using "Manage and track todo items for task planning"</summary>
+
+**Starting: *Create Markdown file* (2/3)**
+
+- [x] Draft plan
+  > Create a plan file in docs/plans/ describing LangChain integration, with scope, approach, steps, testing, and risks
+- [-] Create Markdown file
+  > Write the actual docs/plans/13.langchain-integration.md file with full content
+- [ ] Review and finalize
+  > Review the plan file for completeness, follow project plan structure and mark as completed
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="copilot_readFile">
+<details>
+<summary>Tool use: **copilot_readFile** • Reading [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/docs/plans/13.langchain-integration.md)</summary>
+
+
+Read [](file:///Users/michaelpaulukonis/projects/job-posting-analyzer/docs/plans/13.langchain-integration.md)
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="task" data-tool-name="manage_todo_list">
+<details>
+<summary>Tool use: **manage_todo_list** • Using "Manage and track todo items for task planning"</summary>
+
+**Completed: *Create Markdown file* (2/3)**
+
+- [x] Draft plan
+  > Create a plan file in docs/plans/ describing LangChain integration, with scope, approach, steps, testing, and risks
+- [x] Create Markdown file
+  > Write the actual docs/plans/13.langchain-integration.md file with full content
+- [x] Review and finalize
+  > Review the plan file for completeness, follow project plan structure and mark as completed
+
+</details>
+</tool-use>
+
+---
+
 **Planning LangChain Integration**
 
 I need to create a markdown file in `docs/plans/` to explain how LangChain can benefit the project. This process is non-trivial and involves multiple steps, so I must utilize `manage_todo_list` to outline tasks and track progress. The file should adhere to the "Plan-File Requirement" in the `.github/copilot-instructions.md`. I’ll name it "NN.langchain-integration.md" and ensure it includes a problem statement, requirements, technical approach, and more, crafting a clear and structured plan.**Following Project Standards**

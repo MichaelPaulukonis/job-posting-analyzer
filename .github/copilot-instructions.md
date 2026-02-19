@@ -1,6 +1,6 @@
 ---
 description: AI rules derived by SpecStory from the project AI interaction history
-globs: *
+applyTo: *
 ---
 
 # GitHub Copilot Instructions for Job Posting Analyzer
@@ -23,6 +23,7 @@ When suggesting code, please use the following technologies:
 - **AWS SDK for JavaScript** (when migrating to AWS)
 - **CloudFormation** (when using AWS for infrastructure as code)
 - **Terraform** (when using AWS for infrastructure as code)
+- **LangChainJS** (the Node/TypeScript variant)
 
 ## 1. Project Structure
 
@@ -436,3 +437,14 @@ When using AWS for infrastructure as code, consider a hybrid approach using both
 
 1. Use the provided template `docs/adr/TEMPLATE.md` to create new ADRs.
 2. Refer to `docs/adr/README.md` for guidance on creating and maintaining ADRs.
+
+## 25. LangChain Integration (Planning)
+
+1. The project can use LangChain to improve document processing, retrieval-augmented generation, analysis chains, memory management, and tool integration.
+2. To integrate LangChain, build a new service `LangChainLLMService` implementing `LLMServiceInterface`.
+3. Implement document loader utilities for common resume and posting types (PDF, TXT, MD).
+4. Add `MemoryVectorStore` for PoC RAG; plan migration to a production vector store (Pinecone, Milvus, or Weaviate) for scale.
+5. Implement initial chains: `skillExtractionChain`, `vectorizationChain`, `ragAnalysisChain`, and `gapAnalysisChain`.
+6. Add `ConversationMemory` integration to store per-user or per-resume analysis history.
+7. Provide a `tools` abstraction (LangChain Tools) for external data lookups (job market, skill taxonomy).
+8. Add configuration toggles to the UI and server for enabling or disabling LangChain-based flows, memory, vector store provider selection, and tooling.
