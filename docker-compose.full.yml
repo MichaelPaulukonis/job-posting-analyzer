@@ -1,0 +1,64 @@
+version: '3.8'
+
+# Full local development environment: App + Database
+# Use this for complete local development without AWS dependencies
+
+services:
+  # PostgreSQL database for local development
+  postgres-dev:
+    image: pgvector/pgvector:pg15
+    container_name: job-analyzer-dev-db
+    environment:
+      POSTGRES_USER: dbadmin
+      POSTGRES_PASSWORD: localdevpass
+      POSTGRES_DB: jobanalyzer
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dbadmin -d jobanalyzer"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - job-analyzer-network
+
+  # Nuxt application (development mode)
+  job-analyzer-dev:
+    build:
+      context: .
+      target: dev
+    container_name: job-analyzer-app-dev
+    ports:
+      - "3050:3000"
+    environment:
+      - DATABASE_URL=postgresql://dbadmin:localdevpass@postgres-dev:5432/jobanalyzer?schema=public
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-pro}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-haiku-4-5}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - BASE_URL=http://localhost:3050
+      - NUXT_PUBLIC_API_BASE=http://localhost:3050
+      - NUXT_PUBLIC_AUTH_DISABLED=true
+      - HOST=0.0.0.0
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.nuxt
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - job-analyzer-network
+
+volumes:
+  postgres-dev-data:
+    driver: local
+
+networks:
+  job-analyzer-network:
+    driver: bridge

@@ -81,63 +81,57 @@ npm run dev
 ```
 
 
-## Docker notes
+## Docker Setup
 
-This project is fully containerized using Docker and Docker Compose, providing a consistent environment for both development and production.
+This project uses Docker for both development and production environments. We have **three deployment scenarios** to support different workflows.
 
-### Development Environment
+### Quick Start - Full Local Development (Recommended)
 
-The development environment is configured for hot-reloading, meaning any changes you make to the source code will be instantly reflected in the running container without needing to rebuild the image.
-
-**To start the development server:**
+For daily development with everything running locally:
 
 ```bash
-npm run docker:dev
+npm run dev:full
 ```
 
-The application will be available at `http://localhost:3050`.
+This starts both the Nuxt app and PostgreSQL database. Access at `http://localhost:3050`.
 
-**When to rebuild the development image:**
-
-You only need to rebuild the Docker image when you make changes to the underlying environment, such as:
-
-*   Adding or removing dependencies in `package.json`.
-*   Modifying the `Dockerfile`.
-*   Changing the `docker-compose.dev.yml` file.
-
-To rebuild, run:
+### All Docker Commands
 
 ```bash
-# Stop the running containers
-npm run docker:stop
+# Full local development (app + database)
+npm run dev:full              # Start everything
+npm run dev:full:down         # Stop everything
 
-# Rebuild the image and start the containers
-npm run docker:dev
+# Local database only (run app with npm run dev)
+npm run db:local:up           # Start database
+npm run db:local:down         # Stop database
+
+# Testing
+npm run test:integration      # Runs tests (auto-starts test DB)
+
+# App-only Docker (connects to external DB)
+npm run docker:dev            # Development mode
+npm run docker:build          # Build production
+npm run docker:run            # Run production
+npm run docker:stop           # Stop app containers
+
+# AWS RDS management
+npm run db:rds:status         # Check RDS status
+npm run db:rds:start          # Start RDS (costs money!)
+npm run db:rds:stop           # Stop RDS (save money!)
 ```
 
-### Production Environment
+### Documentation
 
-The production environment uses a multi-stage Docker build to create a lean, optimized image.
+- **Quick Reference**: See [docs/DOCKER-QUICK-START.md](docs/DOCKER-QUICK-START.md)
+- **Complete Guide**: See [docs/plans/docker-deployment-plan.md](docs/plans/docker-deployment-plan.md)
 
-**To build and run the production server:**
+### Which Setup Should I Use?
 
-```bash
-# Build the production image
-npm run docker:build
-
-# Start the production container
-npm run docker:run
-```
-
-The application will be available at `http://localhost:3000`.
-
-**Important:** Unlike the development setup, you **must** rebuild the image (`npm run docker:build`) every time you make code changes for them to be reflected in the production container.
-
-### Stopping Docker Containers
-
-To stop all running containers for this project (both dev and prod), run:
-
-```bash
-npm run docker:stop
-```
+| Scenario | Command | What It Does |
+|----------|---------|--------------|
+| Daily development | `npm run dev:full` | App + local database in Docker |
+| Running tests | `npm run test:integration` | Auto-starts test database |
+| Debugging with IDE | `npm run db:local:up` then `npm run dev` | Database in Docker, app on host |
+| Testing with AWS | `npm run db:rds:start` then `npm run docker:dev` | App in Docker, RDS in AWS |
 

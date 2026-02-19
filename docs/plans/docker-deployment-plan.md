@@ -1,319 +1,458 @@
-# Docker Deployment Plan for Job Posting Analyzer
+# Docker Deployment Strategy for Job Posting Analyzer
 
 ## Overview
 
-This plan outlines the dockerization of the Nuxt 3 Job Posting Analyzer application for local development and deployment. The goal is to make the application readily available while maintaining security for private use and including environment variables in the deployment.
+This document outlines the complete Docker strategy for the Job Posting Analyzer application. The strategy supports three distinct deployment scenarios, each optimized for different use cases.
 
-## Current Application Analysis
+## Current Architecture
 
 ### Technology Stack
 - **Framework**: Nuxt 3 with Vue 3 Composition API
-- **Runtime**: Node.js (ESM modules)
+- **Runtime**: Node.js 23 (ESM modules)
+- **Database**: PostgreSQL 15 with pgvector extension
 - **Package Manager**: npm
 - **Build Tool**: Nuxt's built-in Vite-based build system
-- **Dependencies**: AI SDKs (Anthropic, Google), PDF.js, TailwindCSS
+- **Dependencies**: AI SDKs (Anthropic, Google), PDF.js, TailwindCSS, Prisma
 
-### Environment Configuration
-- Uses `runtimeConfig` in `nuxt.config.ts`
-- Requires API keys for Gemini and Anthropic services
-- Configurable base URL for different environments
-- Current `.env.example` shows expected variables
+## Three-Tier Docker Strategy
 
-## Deployment Options
+### 1. Full Local Development (App + Database)
+**File**: `docker-compose.full.yml`  
+**Use Case**: Complete local development without AWS dependencies
 
-### Option 1: Single-Stage Production Build (Recommended)
-**Best for**: Ready-to-use deployment with smaller image size
+**What it includes:**
+- Nuxt application (development mode with hot reload)
+- PostgreSQL 15 with pgvector (local database)
+- Automatic database connection configuration
+- Shared Docker network for service communication
 
-**Pros:**
-- Smaller final image size (~200-400MB)
-- Production-optimized
-- Faster container startup
-- Security-focused (no dev dependencies in final image)
+**When to use:**
+- Daily development work
+- Testing database-dependent features locally
+- Working offline or without AWS access
+- Rapid iteration without cloud costs
 
-**Cons:**
-- Longer build time
-- Less flexibility for debugging
-- Requires rebuild for code changes
-
-### Option 2: Development-Focused Build
-**Best for**: Active development and debugging
-
-**Pros:**
-- Faster rebuilds during development
-- Full development toolchain available
-- Hot reload capabilities
-- Easier debugging
-
-**Cons:**
-- Larger image size (~800MB-1GB)
-- Includes unnecessary dev dependencies in production
-- Potential security concerns with dev tools
-
-### Option 3: Multi-Stage Build (Optimal)
-**Best for**: Production deployment with development flexibility
-
-**Pros:**
-- Small production image
-- Separate development stage available
-- Best of both worlds
-- Industry best practice
-
-**Cons:**
-- More complex Dockerfile
-- Slightly longer initial build time
-
-## Recommended Implementation Plan
-
-### Phase 1: Basic Dockerization
-
-#### 1.1 Create Dockerfile (Multi-Stage Build)
-```dockerfile
-# Development stage
-FROM node:20-alpine AS development
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-EXPOSE 3000
-CMD ["npm", "run", "dev"]
-
-# Build stage
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-# Production stage
-FROM node:20-alpine AS production
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --omit=dev && npm cache clean --force
-COPY --from=builder /app/.output ./.output
-EXPOSE 3000
-CMD ["node", ".output/server/index.mjs"]
-```
-
-#### 1.2 Create .dockerignore
-```dockerignore
-node_modules
-.nuxt
-.output
-.git
-.env
-notes
-README.md
-*.log
-.DS_Store
-tests
-jest.config.js
-```
-
-#### 1.3 Create docker-compose.yml
-```yaml
-version: '3.8'
-
-services:
-  job-analyzer:
-    build:
-      context: .
-      target: production
-    ports:
-      - "3000:3000"
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-pro}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-2}
-      - BASE_URL=http://localhost:3000
-    volumes:
-      - app-storage:/app/storage
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-volumes:
-  app-storage:
-```
-
-### Phase 2: Configuration Updates
-
-#### 2.1 Update nuxt.config.ts
-No changes are required in `nuxt.config.ts` for the host and port configuration. Nuxt 3 automatically respects the `HOST` and `PORT` environment variables, which are set in the `Dockerfile`. The `runtimeConfig` for `baseUrl` should still be checked to ensure it correctly uses environment variables.
-
-#### 2.2 Update package.json scripts
-```json
-{
-  "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
-    "test": "jest",
-    "docker:build": "docker build -t job-posting-analyzer .",
-    "docker:run": "docker-compose up -d",
-    "docker:dev": "docker-compose -f docker-compose.dev.yml up",
-    "docker:stop": "docker-compose down"
-  }
-}
-```
-
-### Phase 3: Development Workflow
-
-#### 3.1 Create docker-compose.dev.yml
-```yaml
-version: '3.8'
-
-services:
-  job-analyzer-dev:
-    build:
-      context: .
-      target: development
-    ports:
-      - "3000:3000"
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-pro}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-2}
-      - BASE_URL=http://localhost:3000
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - app-storage:/app/storage
-    restart: unless-stopped
-
-volumes:
-  app-storage:
-```
-
-#### 3.2 Create startup scripts
-
-**scripts/docker-setup.sh**
+**Commands:**
 ```bash
-#!/bin/bash
-# Setup script for Docker deployment
+# Start everything (app + database)
+npm run dev:full
 
-echo "Setting up Job Posting Analyzer Docker environment..."
+# Start with rebuild
+npm run dev:full:build
 
-# Check if .env exists
-if [ ! -f .env ]; then
-    echo "Creating .env file from .env.example..."
-    cp .env.example .env
-    echo "Please edit .env file with your API keys before running docker-compose up"
-    exit 1
-fi
+# Stop everything
+npm run dev:full:down
 
-# Build and start the application
-echo "Building and starting Docker containers..."
-docker-compose up -d
-
-echo "Application should be available at http://localhost:3000"
-echo "Use 'docker-compose logs -f' to view logs"
+# View logs
+npm run dev:full:logs
 ```
 
-### Phase 4: Storage Considerations
+**Access:**
+- Application: http://localhost:3050
+- Database: localhost:5434 (from host machine)
+- Database: postgres-dev:5432 (from within Docker network)
 
-#### 4.1 Persistent Storage Strategy
-Since the app uses client-side storage, we need to consider:
+**Environment:**
+- Uses `.env.local` for configuration
+- Database URL: `postgresql://dbadmin:localdevpass@postgres-dev:5432/jobanalyzer?schema=public`
 
-1. **Local Storage**: Remains browser-specific, no Docker changes needed
-2. **File Storage**: If implementing server-side file storage, add volume mounts
-3. **Analysis History**: Currently client-side, consider server-side persistence
+---
 
-#### 4.2 Optional: Server-Side Storage Enhancement
-```yaml
-# Add to docker-compose.yml volumes section
-volumes:
-  - ./data:/app/data  # For uploaded files
-  - app-storage:/app/storage  # For application data
+### 2. Database-Only Deployments
+
+#### 2a. Local Development Database
+**File**: `docker-compose.local.yml`  
+**Use Case**: Run database in Docker, app on host machine
+
+**What it includes:**
+- PostgreSQL 15 with pgvector only
+- Persistent volume for data storage
+- Port 5434 exposed to host
+
+**When to use:**
+- Running app directly with `npm run dev` (not in Docker)
+- Debugging app with full IDE integration
+- Need database but want app running natively
+
+**Commands:**
+```bash
+# Start local database
+npm run db:local:up
+
+# Stop local database
+npm run db:local:down
+
+# View database logs
+npm run db:local:logs
+
+# Setup/initialize database
+npm run db:local:setup
 ```
 
-## Implementation Steps
+**Access:**
+- Database: localhost:5434
+- Connection: `postgresql://dbadmin:localdevpass@localhost:5434/jobanalyzer?schema=public`
 
-### Step 1: Prepare Docker Files
-1. Create Dockerfile with multi-stage build
-2. Create .dockerignore file
-3. Create docker-compose.yml and docker-compose.dev.yml
-4. Create setup script
+#### 2b. Test Database
+**File**: `docker-compose.test.yml`  
+**Use Case**: Isolated database for integration tests
 
-### Step 2: Update Configuration
-1. Modify nuxt.config.ts for Docker compatibility
-2. Update package.json with Docker scripts
-3. Ensure .env file is properly configured
+**What it includes:**
+- PostgreSQL 15 with pgvector
+- In-memory storage (tmpfs) for speed
+- Port 5433 exposed to host
+- Separate from development data
 
-### Step 3: Test Deployment
-1. Build Docker image: `npm run docker:build`
-2. Test development mode: `docker-compose -f docker-compose.dev.yml up`
-3. Test production mode: `npm run docker:run`
-4. Verify all AI services work correctly
-5. Test file upload functionality
+**When to use:**
+- Running integration tests
+- CI/CD pipelines
+- Testing database migrations
 
-### Step 4: Documentation
-1. Update README.md with Docker instructions
-2. Document environment variable requirements
-3. Create troubleshooting guide
+**Commands:**
+```bash
+# Start test database
+npm run test:db:up
 
-## Required Configuration Changes
+# Stop test database
+npm run test:db:down
 
-### Critical Updates Needed:
+# View test database logs
+npm run test:db:logs
 
-1. **nuxt.config.ts**: Add host: '0.0.0.0' for Docker networking
-2. **Package.json**: Add Docker convenience scripts
-3. **Environment Variables**: Ensure all required vars are documented
-4. **Port Configuration**: Make port configurable via environment
+# Run integration tests (starts DB automatically)
+npm run test:integration
+```
 
-### Optional Enhancements:
+**Access:**
+- Database: localhost:5433
+- Connection: `postgresql://testuser:testpass@localhost:5433/jobanalyzer_test?schema=public`
 
-1. **Health Checks**: Add endpoint for container health monitoring
-2. **Logging**: Configure structured logging for container environments
-3. **SSL/TLS**: Add HTTPS support for production deployment
-4. **Resource Limits**: Configure memory and CPU limits
+---
 
-## Security Considerations
+### 3. App-Only Deployment
 
-Since this is for private use with .env included:
+#### 3a. Development Mode
+**File**: `docker-compose.dev.yml`  
+**Use Case**: Run app in Docker, connect to external database (RDS)
 
-1. **Network Security**: Use Docker networks to isolate containers
-2. **File Permissions**: Ensure proper file permissions in container
-3. **API Key Security**: Environment variables are properly scoped
-4. **Update Strategy**: Plan for regular security updates
+**What it includes:**
+- Nuxt application (development mode)
+- Hot reload with volume mounts
+- No database (expects external connection)
 
-## Monitoring and Maintenance
+**When to use:**
+- Testing against AWS RDS database
+- Simulating production environment
+- Sharing development environment
 
-1. **Health Checks**: Container health monitoring
-2. **Log Management**: Centralized logging with docker-compose logs
-3. **Backup Strategy**: Plan for data backup if server-side storage is added
-4. **Update Process**: Strategy for updating the containerized application
+**Commands:**
+```bash
+# Start app in development mode
+npm run docker:dev
 
-## Future Enhancements
+# Stop app
+npm run docker:dev:stop
+```
 
-1. **Database Integration**: If moving from client-side to server-side storage
-2. **Load Balancing**: If scaling becomes necessary
-3. **CI/CD Pipeline**: Automated building and deployment
-4. **Monitoring Stack**: Prometheus/Grafana integration
+**Access:**
+- Application: http://localhost:3050
+- Database: Configured via `DATABASE_URL` in `.env`
 
-## Estimated Timeline
+#### 3b. Production Mode
+**File**: `docker-compose.yml`  
+**Use Case**: Production-ready app deployment
 
-- **Phase 1 (Basic Dockerization)**: 2-4 hours
-- **Phase 2 (Configuration Updates)**: 1-2 hours  
-- **Phase 3 (Development Workflow)**: 1-2 hours
-- **Phase 4 (Storage Considerations)**: 1-3 hours (depending on complexity)
-- **Testing and Documentation**: 2-3 hours
+**What it includes:**
+- Nuxt application (production build)
+- Optimized image size
+- Health checks
+- No database (expects external connection)
 
-**Total Estimated Time**: 7-14 hours depending on complexity and testing thoroughness.
+**When to use:**
+- Production deployments
+- Performance testing
+- Final validation before AWS deployment
 
-## Next Steps
+**Commands:**
+```bash
+# Build production image
+npm run docker:build
 
-1. Review this plan and confirm approach
-2. Implement Phase 1 (basic Dockerization)
-3. Test basic functionality
-4. Iterate through remaining phases
-5. Document the final setup process
+# Start production app
+npm run docker:run
 
-This plan provides a comprehensive approach to dockerizing the Job Posting Analyzer while maintaining its functionality and making it readily available for your use.
+# Stop production app
+npm run docker:stop
+```
+
+**Access:**
+- Application: http://localhost:3050
+- Database: Configured via `DATABASE_URL` in `.env`
+
+---
+
+## Database Management Scripts
+
+### RDS Management (AWS)
+```bash
+# Start RDS instance (costs money when running)
+npm run db:rds:start
+
+# Stop RDS instance (saves money)
+npm run db:rds:stop
+
+# Check RDS status
+npm run db:rds:status
+```
+
+### Data Synchronization
+```bash
+# Pull data from RDS to local database
+npm run db:sync:from-rds
+
+# Push data from local database to RDS
+npm run db:sync:to-rds
+```
+
+---
+
+## Decision Tree: Which Setup Should I Use?
+
+```
+What are you doing?
+│
+├─ Daily development work
+│  └─ Use: npm run dev:full
+│     (Full local: app + database)
+│
+├─ Running integration tests
+│  └─ Use: npm run test:integration
+│     (Automatically starts test database)
+│
+├─ Debugging app with IDE
+│  ├─ Start: npm run db:local:up
+│  └─ Then: npm run dev
+│     (Database in Docker, app on host)
+│
+├─ Testing against AWS RDS
+│  ├─ Start: npm run db:rds:start
+│  ├─ Configure: DATABASE_URL in .env
+│  └─ Run: npm run docker:dev
+│     (App in Docker, RDS in AWS)
+│
+└─ Production deployment testing
+   ├─ Build: npm run docker:build
+   └─ Run: npm run docker:run
+      (Production app, external database)
+```
+
+---
+
+## Port Allocation
+
+| Service | Port | Used By |
+|---------|------|---------|
+| App (all modes) | 3050 | All docker-compose files |
+| Local Dev Database | 5434 | docker-compose.local.yml, docker-compose.full.yml |
+| Test Database | 5433 | docker-compose.test.yml |
+| RDS Database | 5432 | AWS RDS (not Docker) |
+
+---
+
+## Environment Configuration
+
+### .env.local (Full Local Development)
+```bash
+DATABASE_URL="postgresql://dbadmin:localdevpass@localhost:5434/jobanalyzer?schema=public"
+GEMINI_API_KEY=your-key
+ANTHROPIC_API_KEY=your-key
+NUXT_PUBLIC_AUTH_DISABLED=true
+```
+
+### .env.test (Integration Tests)
+```bash
+DATABASE_URL="postgresql://testuser:testpass@localhost:5433/jobanalyzer_test?schema=public"
+```
+
+### .env (AWS/Production)
+```bash
+DATABASE_URL="postgresql://dbadmin:password@rds-endpoint:5432/jobanalyzer?schema=public"
+AWS_ACCESS_KEY_ID=your-key
+AWS_SECRET_ACCESS_KEY=your-secret
+```
+
+---
+
+## Dockerfile Structure
+
+The `Dockerfile` uses multi-stage builds for optimization:
+
+### Stage 1: Base
+- Node.js 23 Alpine
+- Copies package files
+
+### Stage 2: Development (target: dev)
+- Installs all dependencies
+- Enables hot reload
+- Used by: docker-compose.dev.yml, docker-compose.full.yml
+
+### Stage 3: Builder
+- Production dependencies only
+- Builds Nuxt application
+- Intermediate stage
+
+### Stage 4: Production (target: production)
+- Minimal final image
+- Only built output and production dependencies
+- Used by: docker-compose.yml
+
+---
+
+## Common Workflows
+
+### Starting Fresh Development
+```bash
+# 1. Start full local environment
+npm run dev:full
+
+# 2. Wait for services to be ready
+# 3. Access app at http://localhost:3050
+```
+
+### Running Tests
+```bash
+# 1. Start test database
+npm run test:db:up
+
+# 2. Run tests
+npm run test:integration
+
+# 3. Stop test database
+npm run test:db:down
+```
+
+### Working with AWS RDS
+```bash
+# 1. Start RDS instance
+npm run db:rds:start
+
+# 2. Check status
+npm run db:rds:status
+
+# 3. Pull latest data
+npm run db:sync:from-rds
+
+# 4. Work locally
+npm run dev:full
+
+# 5. Push changes back
+npm run db:sync:to-rds
+
+# 6. Stop RDS to save costs
+npm run db:rds:stop
+```
+
+### Production Testing
+```bash
+# 1. Build production image
+npm run docker:build
+
+# 2. Start production app
+npm run docker:run
+
+# 3. Test at http://localhost:3050
+
+# 4. Stop when done
+npm run docker:stop
+```
+
+---
+
+## Troubleshooting
+
+### Port Already in Use
+```bash
+# Check what's using the port
+lsof -i :3050  # or :5434, :5433
+
+# Stop conflicting services
+npm run dev:full:down
+npm run db:local:down
+npm run test:db:down
+```
+
+### Database Connection Issues
+```bash
+# Check database is running
+docker ps | grep postgres
+
+# Check database logs
+npm run db:local:logs
+# or
+npm run test:db:logs
+
+# Verify connection string
+echo $DATABASE_URL
+```
+
+### Docker Build Failures
+```bash
+# Clean Docker cache
+docker system prune -a
+
+# Rebuild from scratch
+npm run dev:full:build
+```
+
+### Volume Permission Issues
+```bash
+# Reset volumes
+docker-compose -f docker-compose.full.yml down -v
+docker-compose -f docker-compose.local.yml down -v
+```
+
+---
+
+## Cost Optimization
+
+### Local Development (Free)
+- Use `docker-compose.full.yml` for all development
+- Only start RDS when needed for testing
+- Stop RDS immediately after use
+
+### AWS RDS (Paid)
+- Start: `npm run db:rds:start` (costs ~$0.02/hour)
+- Stop: `npm run db:rds:stop` (saves money)
+- Status: `npm run db:rds:status` (check before starting)
+
+### Best Practice
+1. Develop locally with `npm run dev:full` (free)
+2. Test against RDS occasionally (minimal cost)
+3. Always stop RDS when done: `npm run db:rds:stop`
+
+---
+
+## File Reference
+
+| File | Purpose | Services |
+|------|---------|----------|
+| `docker-compose.full.yml` | Full local dev | App + Local DB |
+| `docker-compose.local.yml` | Database only (dev) | Local DB |
+| `docker-compose.test.yml` | Database only (test) | Test DB |
+| `docker-compose.dev.yml` | App only (dev mode) | App |
+| `docker-compose.yml` | App only (production) | App |
+| `Dockerfile` | Multi-stage build | All stages |
+| `.dockerignore` | Build exclusions | - |
+
+---
+
+## Summary
+
+The Docker strategy provides flexibility for different development scenarios:
+
+- **Full local development**: Everything in Docker, no AWS needed
+- **Hybrid development**: Database in Docker, app on host for debugging
+- **Testing**: Isolated test database with in-memory storage
+- **Production**: Optimized app container connecting to external database
+
+Choose the setup that matches your current task, and use the decision tree above to guide your choice.
