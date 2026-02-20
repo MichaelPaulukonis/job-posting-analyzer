@@ -54,11 +54,22 @@
               </button>
               <button 
                 @click="saveCoverLetter"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+                :disabled="isSaving"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Save
+                {{ isSaving ? 'Saving...' : 'Save' }}
               </button>
             </div>
+          </div>
+
+          <!-- Success message -->
+          <div v-if="saveSuccess" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            <p>✓ Cover letter saved successfully!</p>
+          </div>
+
+          <!-- Error message -->
+          <div v-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <p>✗ {{ error }}</p>
           </div>
 
           <div v-if="isGenerating" class="text-center py-8">
@@ -214,6 +225,8 @@ const {
   sampleLetter,
   coverLetter,
   isGenerating,
+  isSaving,
+  saveSuccess,
   showRegenerateDialog,
   regenerateInstructions,
   regenerateOption,

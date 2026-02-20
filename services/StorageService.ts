@@ -172,21 +172,96 @@ export class StorageService {
    */
   static async saveCoverLetter(analysisId: string, coverLetter: CoverLetter, event?: any): Promise<void> {
     try {
-      // Note: New API doesn't have cover letter storage yet
-      // For now, update localStorage only
-      const savedAnalyses = this.getAnalysesFromLocalStorage();
-      const analysisIndex = savedAnalyses.findIndex(a => a.id === analysisId);
-      
-      if (analysisIndex === -1) {
-        throw new Error('Analysis not found');
+      // Try to save to API first
+      try {
+        console.log(`[StorageService] Saving cover letter to API for analysis: ${analysisId}`);
+        
+        // Prepare API request body with all cover letter data
+        const requestBody = {
+          analysisId,
+          content: coverLetter.content,
+          timestamp: coverLetter.timestamp,
+          sampleContent: coverLetter.sampleContent,
+          history: coverLetter.history,
+          editedSections: coverLetter.editedSections
+        };
+        
+        // Call API endpoint
+        const response = await this.fetchWithBaseUrl('/api/storage/cover-letters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        }, event);
+        
+        console.log('[StorageService] Cover letter saved to API successfully:', response);
+        
+        // On success: Update localStorage cache
+        const savedAnalyses = this.getAnalysesFromLocalStorage();
+        const analysisIndex = savedAnalyses.findIndex(a => a.id === analysisId);
+        
+        if (analysisIndex !== -1) {
+          savedAnalyses[analysisIndex].coverLetter = coverLetter;
+          this.syncAnalysesToLocalStorage(savedAnalyses);
+        }
+        
+      } catch (apiError) {
+        console.error('[StorageService] Error saving cover letter to API:', apiError);
+        console.warn('[StorageService] Falling back to localStorage-only save');
+        
+        // Fall back to localStorage-only save
+        const savedAnalyses = this.getAnalysesFromLocalStorage();
+        const analysisIndex = savedAnalyses.findIndex(a => a.id === analysisId);
+        
+        if (analysisIndex === -1) {
+          throw new Error('Analysis not found');
+        }
+        
+        savedAnalyses[analysisIndex].coverLetter = coverLetter;
+        this.syncAnalysesToLocalStorage(savedAnalyses);
+        
+        // Re-throw error to allow UI to show error message
+        throw apiError;
       }
       
-      savedAnalyses[analysisIndex].coverLetter = coverLetter;
-      this.syncAnalysesToLocalStorage(savedAnalyses);
-      
     } catch (error) {
-      console.error('Error saving cover letter:', error);
+      console.error('[StorageService] Error saving cover letter:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get cover letters for an analysis from the API
+   */
+  static async getCoverLettersForAnalysis(analysisId: string, event?: any): Promise<CoverLetter[]> {
+    try {
+      console.log(`[StorageService] Fetching cover letters for analysis: ${analysisId}`);
+      
+      const response = await this.fetchWithBaseUrl(
+        `/api/storage/cover-letters?analysisId=${analysisId}`,
+        {},
+        event
+      );
+      
+      console.log('[StorageService] Cover letters fetched from API:', response);
+      
+      // Convert database format to CoverLetter format
+      if (Array.isArray(response)) {
+        return response.map((cl: any) => ({
+          content: cl.content,
+          timestamp: cl.metadata?.timestamp || cl.createdAt,
+          sampleContent: cl.metadata?.sampleContent || '',
+          history: cl.metadata?.history || [],
+          editedSections: cl.metadata?.editedSections || []
+        }));
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('[StorageService] Error fetching cover letters from API:', error);
+      // Fall back to localStorage
+      const savedAnalyses = this.getAnalysesFromLocalStorage();
+      const analysis = savedAnalyses.find(a => a.id === analysisId);
+      return analysis?.coverLetter ? [analysis.coverLetter] : [];
     }
   }
   

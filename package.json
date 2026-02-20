@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "dotenv -e .env.local -- nuxt dev",
+    "dev:rds": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
@@ -69,6 +70,8 @@
     "@playwright/test": "^1.53.2",
     "@types/jest": "^29.5.14",
     "@types/pdfjs-dist": "^2.10.377",
+    "dotenv-cli": "^11.0.0",
+    "fast-check": "^4.5.3",
     "husky": "^9.1.7",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2",

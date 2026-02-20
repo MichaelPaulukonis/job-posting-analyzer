@@ -1,0 +1,118 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Fault Condition** - Cover Letter Database Persistence
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: Scope the property to concrete failing cases: Save button click with valid cover letter content and analysisId
+  - Test that clicking Save button makes an API call to `/api/storage/cover-letters` (from Fault Condition in design)
+  - Test that a database record is created in `cover_letters` table after save
+  - Test that UI feedback is shown (loading state, then success or error message)
+  - The test assertions should match the Expected Behavior Properties from design
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found:
+    - No API endpoint exists at `/api/storage/cover-letters`
+    - No network request is made when Save button is clicked
+    - `cover_letters` table remains empty (0 records)
+    - No loading indicator or success message is shown to user
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Non-Save Operations
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs (operations that are NOT clicking Save button)
+  - Observe: Conversations are saved to database via `/api/storage/conversations` on unfixed code
+  - Observe: Cover letters are generated correctly with all AI services on unfixed code
+  - Observe: Cover letter samples are saved via `/api/cover-letter-samples` on unfixed code
+  - Observe: localStorage fallback works when API is unavailable on unfixed code
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements
+  - Property-based testing generates many test cases for stronger guarantees
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [x] 3. Fix for Cover Letter Save Bug
+
+  - [x] 3.1 Create API endpoint for cover letter saves
+    - Create new file `server/api/storage/cover-letters.ts`
+    - Implement POST handler to accept cover letter data (analysisId, content, timestamp, sampleContent, history, editedSections)
+    - Validate required fields (analysisId, content)
+    - Look up analysis result to get resumeId and jobPostingId
+    - Use Prisma client to create record in `cover_letters` table with proper relationships
+    - Return created record with ID
+    - Implement GET handler to retrieve cover letters by analysisId or all cover letters
+    - Add authentication using `requireAuth()` middleware like conversations endpoint
+    - Add error handling with appropriate HTTP status codes (400 for validation, 401 for auth, 500 for database errors)
+    - _Bug_Condition: isBugCondition(input) where input.action = 'save' AND input.coverLetter.content.length > 0 AND input.analysisId EXISTS_
+    - _Expected_Behavior: API endpoint creates database record and returns success response (from design)_
+    - _Preservation: Conversation saving via /api/storage/conversations must continue to work (from design)_
+    - _Requirements: 2.2, 2.3, 2.4, 2.5, 2.6_
+
+  - [x] 3.2 Update StorageService to call API endpoint
+    - Modify `services/StorageService.ts` function `saveCoverLetter()` (lines 207-227)
+    - Add API call using `fetchWithBaseUrl()` to POST to `/api/storage/cover-letters`
+    - Include all cover letter data: analysisId, content, timestamp, sampleContent, history, editedSections
+    - Look up analysis to get resumeId and jobPostingId before API call
+    - Wrap API call in try-catch for error handling
+    - On success: Update localStorage cache
+    - On failure: Fall back to localStorage-only save and throw error
+    - Return success indicator to allow UI to show feedback
+    - _Bug_Condition: isBugCondition(input) where StorageService.saveCoverLetter() only updates localStorage_
+    - _Expected_Behavior: StorageService makes API call and handles success/error (from design)_
+    - _Preservation: localStorage fallback must continue to work when API fails (from design)_
+    - _Requirements: 2.2, 2.6_
+
+  - [x] 3.3 Add UI feedback in useCoverLetter composable
+    - Modify `composables/useCoverLetter.ts` function `saveCoverLetter()` (lines 213-226)
+    - Create `isSaving` ref and set to true before save operation
+    - Add success feedback: Show success message/toast when save completes
+    - Add error feedback: Show error message if save fails (display error.value)
+    - Set `isSaving` to false after save completes (success or error)
+    - Clear previous error messages on successful save
+    - _Bug_Condition: isBugCondition(input) where no UI feedback is shown during save_
+    - _Expected_Behavior: UI shows loading state, then success or error message (from design)_
+    - _Preservation: Cover letter generation and display must continue to work unchanged (from design)_
+    - _Requirements: 2.1, 2.6_
+
+  - [x] 3.4 Update Save button with loading state
+    - Modify `pages/cover-letter/[id].vue` Save button (line 56)
+    - Bind `:disabled="isSaving"` to Save button to prevent duplicate saves
+    - Show loading spinner or "Saving..." text while save is in progress
+    - Show temporary success message after save (auto-dismiss after 3 seconds)
+    - Display error message near Save button if save fails
+    - Allow user to retry save after error
+    - _Bug_Condition: isBugCondition(input) where Save button provides no feedback_
+    - _Expected_Behavior: Save button shows loading state and success/error feedback (from design)_
+    - _Preservation: All other cover letter page functionality must remain unchanged (from design)_
+    - _Requirements: 2.1, 2.6_
+
+  - [x] 3.5 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Cover Letter Database Persistence
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - Verify API call is made to `/api/storage/cover-letters`
+    - Verify database record is created in `cover_letters` table
+    - Verify UI feedback is shown (loading, then success or error)
+    - _Requirements: Expected Behavior Properties from design (2.1, 2.2, 2.3, 2.4, 2.5, 2.6)_
+
+  - [x] 3.6 Verify preservation tests still pass
+    - **Property 2: Preservation** - Non-Save Operations
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm conversation saving still works via `/api/storage/conversations`
+    - Confirm cover letter generation still works with all AI services
+    - Confirm cover letter sample saving still works via `/api/cover-letter-samples`
+    - Confirm localStorage fallback still works when API is unavailable
+    - Confirm all tests still pass after fix (no regressions)
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
