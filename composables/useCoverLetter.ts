@@ -23,6 +23,8 @@ export function useCoverLetter() {
     editedSections: []
   });
   const isGenerating = ref(false);
+  const isSaving = ref(false);
+  const saveSuccess = ref(false);
   const showRegenerateDialog = ref(false);
   const regenerateInstructions = ref('');
   const regenerateOption = ref('keep');
@@ -84,13 +86,44 @@ export function useCoverLetter() {
       
       if (foundAnalysis) {
         analysis.value = foundAnalysis;
-        if (foundAnalysis.coverLetter) {
-          coverLetter.content = foundAnalysis.coverLetter.content;
-          coverLetter.timestamp = foundAnalysis.coverLetter.timestamp;
-          coverLetter.sampleContent = foundAnalysis.coverLetter.sampleContent || '';
-          coverLetter.history = foundAnalysis.coverLetter.history || [];
-          coverLetter.editedSections = foundAnalysis.coverLetter.editedSections || [];
-          originalContent.value = coverLetter.content;
+        
+        // Try to load cover letter from API first
+        try {
+          console.log('[useCoverLetter] Loading cover letters from API for analysis:', analysisId);
+          const coverLetters = await StorageService.getCoverLettersForAnalysis(analysisId);
+          
+          if (coverLetters.length > 0) {
+            // Use the most recent cover letter
+            const latestCoverLetter = coverLetters[0];
+            console.log('[useCoverLetter] Loaded cover letter from API:', latestCoverLetter);
+            
+            coverLetter.content = latestCoverLetter.content;
+            coverLetter.timestamp = latestCoverLetter.timestamp;
+            coverLetter.sampleContent = latestCoverLetter.sampleContent || '';
+            coverLetter.history = latestCoverLetter.history || [];
+            coverLetter.editedSections = latestCoverLetter.editedSections || [];
+            originalContent.value = coverLetter.content;
+          } else if (foundAnalysis.coverLetter) {
+            // Fall back to localStorage if no API data
+            console.log('[useCoverLetter] No cover letter in API, using localStorage');
+            coverLetter.content = foundAnalysis.coverLetter.content;
+            coverLetter.timestamp = foundAnalysis.coverLetter.timestamp;
+            coverLetter.sampleContent = foundAnalysis.coverLetter.sampleContent || '';
+            coverLetter.history = foundAnalysis.coverLetter.history || [];
+            coverLetter.editedSections = foundAnalysis.coverLetter.editedSections || [];
+            originalContent.value = coverLetter.content;
+          }
+        } catch (err) {
+          console.error('[useCoverLetter] Error loading cover letter from API:', err);
+          // Fall back to localStorage
+          if (foundAnalysis.coverLetter) {
+            coverLetter.content = foundAnalysis.coverLetter.content;
+            coverLetter.timestamp = foundAnalysis.coverLetter.timestamp;
+            coverLetter.sampleContent = foundAnalysis.coverLetter.sampleContent || '';
+            coverLetter.history = foundAnalysis.coverLetter.history || [];
+            coverLetter.editedSections = foundAnalysis.coverLetter.editedSections || [];
+            originalContent.value = coverLetter.content;
+          }
         }
         
         // Try to load existing conversation for this analysis
@@ -218,6 +251,10 @@ export function useCoverLetter() {
   const saveCoverLetter = async () => {
     if (!analysis.value) return;
     
+    isSaving.value = true;
+    saveSuccess.value = false;
+    error.value = ''; // Clear previous errors
+    
     try {
       await StorageService.saveCoverLetter(analysisId, {
         content: coverLetter.content,
@@ -227,9 +264,19 @@ export function useCoverLetter() {
         editedSections: coverLetter.editedSections
       });
       
+      // Show success feedback
+      saveSuccess.value = true;
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => {
+        saveSuccess.value = false;
+      }, 3000);
+      
     } catch (err) {
       console.error('Error saving cover letter:', err);
       error.value = err instanceof Error ? err.message : 'Failed to save cover letter';
+    } finally {
+      isSaving.value = false;
     }
   };
 
@@ -311,6 +358,8 @@ export function useCoverLetter() {
     sampleLetter,
     coverLetter,
     isGenerating,
+    isSaving,
+    saveSuccess,
     showRegenerateDialog,
     regenerateInstructions,
     regenerateOption,
