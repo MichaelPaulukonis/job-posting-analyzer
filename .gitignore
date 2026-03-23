@@ -26,6 +26,7 @@ keys/
 
 # SpecStory explanation file
 .specstory/.what-is-this.md
+.specstory/debug/
 
 # local storage for project development
 .data

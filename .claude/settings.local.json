@@ -1,4 +1,11 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /Users/michaelpaulukonis/projects/job-posting-analyzer/.env*)",
+      "mcp__task-master-ai__get_task",
+      "mcp__task-master-ai__expand_task"
+    ]
+  },
   "enabledMcpjsonServers": [
     "task-master-ai",
     "Snyk"
