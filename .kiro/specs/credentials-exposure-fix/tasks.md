@@ -1,0 +1,130 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Fault Condition** - Credentials Exposed in Documentation
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate credentials are currently exposed
+  - **Scoped PBT Approach**: For this deterministic bug, scope the property to concrete failing cases (specific credential strings in specific files)
+  - Test that documentation files contain plain-text credentials (from Fault Condition in design)
+  - Search for actual password strings: `Mongoworlion123`, `localdevpass`, `testpass`
+  - Search for connection string pattern: `postgresql://[^$\[].*:[^$\[].*@` (credentials embedded in URLs)
+  - Verify credentials exist in `docs/database-setup.md` and `scripts/db/README.md`
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found (exact locations and formats of exposed credentials)
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Documentation Quality and Completeness
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED documentation for non-credential content
+  - Identify sections that should remain unchanged: workflow descriptions, NPM scripts, troubleshooting, cost comparisons
+  - Write tests capturing observed documentation structure and completeness
+  - Manual review is recommended: verify all non-credential sections remain intact
+  - Create checklist for preservation verification:
+    - Workflow sections complete and clear
+    - NPM script references accurate
+    - Troubleshooting sections helpful
+    - Cost comparisons accurate
+    - Instruction clarity maintained
+    - Example usefulness preserved
+  - Run preservation checks on UNFIXED documentation
+  - **EXPECTED OUTCOME**: Checks PASS (this confirms baseline quality to preserve)
+  - Mark task complete when preservation criteria are documented and verified on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+
+- [x] 3. Fix credentials exposure in documentation
+
+  - [x] 3.1 Sanitize docs/database-setup.md
+    - Replace production RDS credentials with placeholders
+    - Find: `postgresql://dbadmin:Mongoworlion123@job-analyzer-postgres...rds.amazonaws.com:5432/jobanalyzer`
+    - Replace with: `postgresql://[USERNAME]:[PASSWORD]@[RDS_ENDPOINT]:5432/[DATABASE]` or `${DATABASE_URL}`
+    - Replace local dev credentials with placeholders
+    - Find: `postgresql://dbadmin:localdevpass@localhost:5434/jobanalyzer`
+    - Replace with: `postgresql://[USERNAME]:[PASSWORD]@localhost:5434/[DATABASE]` or `${DATABASE_URL}`
+    - Replace test database credentials with placeholders
+    - Find: `postgresql://testuser:testpass@localhost:5433/jobanalyzer_test`
+    - Replace with: `postgresql://[USERNAME]:[PASSWORD]@localhost:5433/[DATABASE]` or `${DATABASE_URL}`
+    - Update all environment file examples to show structure without actual credentials
+    - Add clear instructions to copy `.env.example` and fill in actual values
+    - Add security notes about never committing `.env` files
+    - Preserve all non-credential content: workflows, troubleshooting, cost comparisons, NPM scripts
+    - _Bug_Condition: isBugCondition(file) where file.path = 'docs/database-setup.md' AND file.content CONTAINS plain-text credentials_
+    - _Expected_Behavior: All credentials replaced with placeholders like [PASSWORD] or ${DATABASE_URL}_
+    - _Preservation: All workflow descriptions, troubleshooting steps, cost comparisons, and NPM script references remain unchanged_
+    - _Requirements: 2.1, 2.2, 2.3, 2.5, 2.6, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
+
+  - [x] 3.2 Sanitize scripts/db/README.md
+    - Replace production RDS credentials with placeholders
+    - Replace local dev credentials with placeholders
+    - Replace test database credentials with placeholders
+    - Update all environment file examples to show structure without actual credentials
+    - Add clear instructions to reference `.env` files
+    - Add security notes about credential management
+    - Preserve all non-credential content: script descriptions, usage examples, workflow instructions
+    - _Bug_Condition: isBugCondition(file) where file.path = 'scripts/db/README.md' AND file.content CONTAINS plain-text credentials_
+    - _Expected_Behavior: All credentials replaced with placeholders like [PASSWORD] or ${DATABASE_URL}_
+    - _Preservation: All script descriptions, usage examples, and workflow instructions remain unchanged_
+    - _Requirements: 2.1, 2.2, 2.3, 2.5, 2.6, 3.1, 3.2, 3.3, 3.4_
+
+  - [x] 3.3 Create or update .env.example
+    - Create `.env.example` file with placeholder values if it doesn't exist
+    - Include all required environment variables with clear placeholder format
+    - Add comments explaining each variable's purpose
+    - Show structure: `DATABASE_URL="postgresql://[USERNAME]:[PASSWORD]@[HOST]:[PORT]/[DATABASE]"`
+    - Include examples for all environments: production, local dev, test
+    - Add instructions at top of file explaining how to use it
+    - Verify `.env` files remain in `.gitignore`
+    - _Bug_Condition: Users need a template for setting up credentials without exposing actual values_
+    - _Expected_Behavior: .env.example provides clear template with placeholders_
+    - _Preservation: .gitignore continues to exclude .env files_
+    - _Requirements: 2.3, 2.5, 3.7_
+
+  - [x] 3.4 Document password rotation process
+    - Create documentation for rotating compromised RDS password
+    - Include steps for AWS RDS console password rotation
+    - Include steps for CloudFormation-based password rotation
+    - Document how to update local `.env` files after rotation
+    - Add security best practices for credential management
+    - Note: Actual password rotation should be performed separately by authorized personnel
+    - _Bug_Condition: Production RDS password has been exposed and must be rotated_
+    - _Expected_Behavior: Clear documentation exists for password rotation process_
+    - _Preservation: N/A (new documentation)_
+    - _Requirements: 2.4_
+
+  - [x] 3.5 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - No Credentials in Documentation
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms credentials have been removed
+    - Run bug condition exploration test from step 1
+    - Verify searches for `Mongoworlion123`, `localdevpass`, `testpass` return no results
+    - Verify connection string pattern search finds only placeholders or environment variable references
+    - Verify both documentation files contain only placeholders
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - _Requirements: 2.1, 2.2, 2.6_
+
+  - [x] 3.6 Verify preservation tests still pass
+    - **Property 2: Preservation** - Documentation Quality Maintained
+    - **IMPORTANT**: Re-run the SAME checks from task 2 - do NOT create new checks
+    - Run preservation property checks from step 2
+    - Verify workflow sections remain complete and clear
+    - Verify NPM script references remain accurate
+    - Verify troubleshooting sections remain helpful
+    - Verify cost comparisons remain accurate
+    - Verify instruction clarity is maintained despite placeholder usage
+    - Verify examples remain useful with placeholders
+    - **EXPECTED OUTCOME**: Checks PASS (confirms no regressions)
+    - Confirm all documentation quality preserved after credential sanitization
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Verify bug condition test passes (no credentials found in documentation)
+  - Verify preservation checks pass (documentation quality maintained)
+  - Verify `.env.example` exists with proper placeholders
+  - Verify `.gitignore` excludes `.env` files
+  - Test fresh repository clone to ensure no credentials visible
+  - Follow documentation setup instructions to verify clarity with placeholders
+  - Ask user if questions arise about password rotation or deployment

@@ -2,15 +2,30 @@
 
 Scripts for managing local development and RDS databases.
 
+## ⚠️ Security Notice
+
+**IMPORTANT:** This guide uses placeholder credentials for demonstration purposes.
+
+- **Never commit `.env` files** containing real credentials to git
+- **Always use `.env.example`** as a template and fill in your actual values
+- **Copy `.env.example` to `.env`** and update with your credentials
+- **Keep `.env` in `.gitignore`** (already configured)
+
+For production RDS credentials, consider using AWS Secrets Manager.
+
 ## Quick Start
 
 ### First Time Setup
 
 ```bash
-# Set up local development database
+# 1. Copy environment template and add your credentials
+cp .env.example .env
+# Edit .env and fill in your actual database credentials
+
+# 2. Set up local development database
 ./scripts/db/setup-local.sh
 
-# Copy local env to main env (or use .env.local directly)
+# 3. Copy local env to main env (or use .env.local directly)
 cp .env.local .env
 ```
 
@@ -18,21 +33,23 @@ cp .env.local .env
 
 ### 1. Local Dev Database (Port 5434)
 - **Purpose**: Daily development work
-- **Connection**: `postgresql://dbadmin:localdevpass@localhost:5434/jobanalyzer`
+- **Connection**: `postgresql://[USERNAME]:[PASSWORD]@localhost:5434/[DATABASE]`
 - **Cost**: Free
 - **Data**: Can sync with RDS or use independently
 
 ### 2. Local Test Database (Port 5433)
 - **Purpose**: Integration tests only
-- **Connection**: `postgresql://testuser:testpass@localhost:5433/jobanalyzer_test`
+- **Connection**: `postgresql://[USERNAME]:[PASSWORD]@localhost:5433/[DATABASE]`
 - **Cost**: Free
 - **Data**: Isolated, ephemeral (uses tmpfs)
 
 ### 3. RDS Production (Remote)
 - **Purpose**: Production/demo environment
-- **Connection**: Via AWS RDS endpoint
+- **Connection**: `postgresql://[USERNAME]:[PASSWORD]@[RDS_ENDPOINT]:5432/[DATABASE]`
 - **Cost**: $2.30/month (stopped), $12-15/month (running)
 - **Data**: Production data, sync occasionally
+
+**Note:** Replace `[USERNAME]`, `[PASSWORD]`, `[DATABASE]`, and `[RDS_ENDPOINT]` with your actual values in `.env` files.
 
 ## Available Scripts
 
@@ -219,9 +236,21 @@ npm run test:db:down
 
 ## Environment Files
 
+### Setup Instructions
+
+1. **Copy the template:**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Fill in your actual credentials** in `.env` (never commit this file!)
+
+3. **Reference `.env` files** in your scripts and applications
+
 ### `.env` (RDS - Production)
 ```bash
-DATABASE_URL="postgresql://dbadmin:Mongoworlion123@job-analyzer-postgres...rds.amazonaws.com:5432/jobanalyzer"
+# Format - replace with your actual credentials
+DATABASE_URL="postgresql://[USERNAME]:[PASSWORD]@[RDS_ENDPOINT]:5432/[DATABASE]"
 ```
 
 **Use for:**
@@ -233,7 +262,8 @@ DATABASE_URL="postgresql://dbadmin:Mongoworlion123@job-analyzer-postgres...rds.a
 
 ### `.env.local` (Local Dev)
 ```bash
-DATABASE_URL="postgresql://dbadmin:localdevpass@localhost:5432/jobanalyzer"
+# Format - replace with your actual credentials
+DATABASE_URL="postgresql://[USERNAME]:[PASSWORD]@localhost:5434/[DATABASE]"
 ```
 
 **Use for:**
@@ -245,12 +275,18 @@ DATABASE_URL="postgresql://dbadmin:localdevpass@localhost:5432/jobanalyzer"
 
 ### `.env.test` (Test Database)
 ```bash
-DATABASE_URL="postgresql://testuser:testpass@localhost:5433/jobanalyzer_test"
+# Format - replace with your actual credentials
+DATABASE_URL="postgresql://[USERNAME]:[PASSWORD]@localhost:5433/[DATABASE]"
 ```
 
 **Use for:**
 - Integration tests only
 - Automatically used by test scripts
+
+**Security Reminder:**
+- All `.env` files are in `.gitignore` and should never be committed
+- Use strong, unique passwords for each environment
+- Consider AWS Secrets Manager for production credentials
 
 ---
 
@@ -371,10 +407,14 @@ docker ps  # Check local
 
 ## Security Notes
 
+- **Never commit `.env` files** - they contain sensitive credentials
+- **Always use `.env.example`** as a template for required variables
 - Local databases use simple passwords (fine for local dev)
-- RDS password is in `.env` (should use Secrets Manager in production)
-- Backup files contain real data (excluded from git)
-- Test database uses tmpfs (data deleted on stop)
+- **RDS passwords** should be stored in AWS Secrets Manager for production
+- Backup files contain real data (excluded from git via `.gitignore`)
+- **Test database** uses tmpfs (data deleted on stop, no sensitive data)
+- **Rotate passwords** immediately if credentials are ever exposed
+- **Use strong passwords** for all production databases
 
 ---
 

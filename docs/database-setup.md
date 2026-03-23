@@ -2,6 +2,17 @@
 
 Quick guide for setting up and using the local development database.
 
+## ⚠️ Security Notice
+
+**IMPORTANT:** This guide uses placeholder credentials for demonstration purposes.
+
+- **Never commit `.env` files** containing real credentials to git
+- **Always use `.env.example`** as a template and fill in your actual values
+- **Copy `.env.example` to `.env`** and update with your credentials
+- **Keep `.env` in `.gitignore`** (already configured)
+
+For production RDS credentials, consider using AWS Secrets Manager.
+
 ## TL;DR - Get Started in 2 Minutes
 
 ```bash
@@ -17,11 +28,14 @@ npm run dev
 
 That's it! You now have a free, fast local PostgreSQL database with pgvector.
 
+**Note:** For first-time setup, copy `.env.example` to `.env` and fill in your credentials if needed.
+
 ---
 
 ## Three Database Environments
 
 ### 1. 🏠 Local Dev (Recommended for Daily Work)
+
 - **Port:** 5434
 - **Cost:** $0/month
 - **Speed:** Instant startup
@@ -34,6 +48,7 @@ npm run db:local:logs    # View logs
 ```
 
 ### 2. 🧪 Local Test (Automatic)
+
 - **Port:** 5433
 - **Cost:** $0/month
 - **Speed:** Instant startup
@@ -46,6 +61,7 @@ npm run test:db:down     # Stop
 ```
 
 ### 3. ☁️ RDS Production (AWS Learning)
+
 - **Port:** 5432 (remote)
 - **Cost:** $2.30/month (stopped), $12-15/month (running)
 - **Speed:** 2-3 minutes to start
@@ -129,32 +145,55 @@ npm run db:rds:stop
 
 ## Environment Files
 
+### Setup Instructions
+
+1. **Copy the template:**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Fill in your actual credentials** in `.env` (never commit this file!)
+
+3. **Use environment-specific files** for different contexts
+
 ### For Local Development (Recommended)
+
 ```bash
-# Use .env.local
-DATABASE_URL="postgresql://dbadmin:localdevpass@localhost:5434/jobanalyzer"
+# .env.local - Use for daily development
+DATABASE_URL="postgresql://[USERNAME]:[PASSWORD]@localhost:5434/[DATABASE]"
 ```
 
 ### For RDS/Production
+
 ```bash
-# Use .env
-DATABASE_URL="postgresql://dbadmin:Mongoworlion123@job-analyzer-postgres...rds.amazonaws.com:5432/jobanalyzer"
+# .env - Use for production/AWS
+DATABASE_URL="postgresql://[USERNAME]:[PASSWORD]@[RDS_ENDPOINT]:5432/[DATABASE]"
 ```
 
 ### Quick Switch
+
 ```bash
 # Switch to local
 cp .env.local .env
 
 # Switch to RDS
-git checkout .env  # Restore original
+git checkout .env  # Restore from git (ensure .env has RDS credentials)
+# Or copy from .env.example and fill in RDS credentials
 ```
+
+**Security Reminder:**
+
+- `.env` files are in `.gitignore` and should never be committed
+- Use strong, unique passwords for each environment
+- Consider AWS Secrets Manager for production credentials
 
 ---
 
 ## NPM Scripts Reference
 
 ### Local Database
+
 ```bash
 npm run db:local:setup      # Initial setup (one-time)
 npm run db:local:up         # Start local database
@@ -163,12 +202,14 @@ npm run db:local:logs       # View database logs
 ```
 
 ### Data Sync
+
 ```bash
 npm run db:sync:from-rds    # Pull RDS → Local
 npm run db:sync:to-rds      # Push Local → RDS (⚠️ caution)
 ```
 
 ### RDS Management
+
 ```bash
 npm run db:rds:start        # Start RDS instance
 npm run db:rds:stop         # Stop RDS instance
@@ -176,6 +217,7 @@ npm run db:rds:status       # Check RDS status
 ```
 
 ### Test Database
+
 ```bash
 npm run test:db:up          # Start test database
 npm run test:db:down        # Stop test database
@@ -187,6 +229,7 @@ npm run test:db:logs        # View test database logs
 ## Troubleshooting
 
 ### "Port 5434 already in use"
+
 ```bash
 # Check what's using the port
 lsof -i :5434
@@ -199,10 +242,12 @@ brew services stop postgresql@15
 ```
 
 **Note:** Port 5434 is used to avoid conflicts with:
+
 - System PostgreSQL (port 5432)
 - Test database (port 5433)
 
 ### "Cannot connect to database"
+
 ```bash
 # Check if database is running
 docker ps | grep job-analyzer
@@ -216,6 +261,7 @@ npm run db:local:logs
 ```
 
 ### "Prisma migrations fail"
+
 ```bash
 # Reset local database
 npm run db:local:down
@@ -224,6 +270,7 @@ npm run db:local:setup
 ```
 
 ### "RDS connection timeout"
+
 ```bash
 # Check RDS status
 npm run db:rds:status
@@ -253,16 +300,19 @@ aws sts get-caller-identity
 ## Data Persistence
 
 ### Local Dev Database
+
 - Data stored in Docker volume: `postgres-dev-data`
 - Persists across restarts
 - Delete with: `docker volume rm job-posting-analyzer_postgres-dev-data`
 
 ### Test Database
+
 - Data stored in memory (tmpfs)
 - Deleted when stopped
 - Fresh database for each test run
 
 ### RDS
+
 - Data stored in AWS EBS
 - Persists when stopped
 - Billed for storage (~$2.30/month)
@@ -271,10 +321,14 @@ aws sts get-caller-identity
 
 ## Security Notes
 
+- **Never commit `.env` files** - they contain sensitive credentials
+- **Always use `.env.example`** as a template for required variables
 - Local databases use simple passwords (fine for local dev)
-- RDS password in `.env` (consider AWS Secrets Manager for production)
+- **RDS passwords** should be stored in AWS Secrets Manager for production
 - Backup files contain real data (excluded from git via `.gitignore`)
-- Test database is ephemeral (no sensitive data)
+- **Test database** is ephemeral with no sensitive data
+- **Rotate passwords** immediately if credentials are ever exposed
+- **Use strong passwords** for all production databases
 
 ---
 
