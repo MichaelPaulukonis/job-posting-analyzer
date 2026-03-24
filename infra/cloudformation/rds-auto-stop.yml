@@ -1,0 +1,266 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Automated RDS instance management for job-posting-analyzer.
+  A Lambda function runs on a 6-day schedule and stops the RDS instance
+  unless the /jobanalyzer/db-keep-running SSM parameter is set to 'true'.
+  This prevents AWS from auto-restarting a stopped instance after 7 days.
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: 'job-analyzer'
+    Description: 'Environment name used for resource naming and tagging'
+
+  DBIdentifier:
+    Type: String
+    Default: 'job-analyzer-postgres'
+    Description: 'RDS instance identifier to manage'
+
+  SSMParameterName:
+    Type: String
+    Default: '/jobanalyzer/db-keep-running'
+    Description: 'SSM parameter path that controls whether the DB should stay running'
+
+Resources:
+
+  # ============================================================
+  # Task 1.1: IAM Role with minimum required permissions
+  # ============================================================
+
+  RDSAutoStopRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${EnvironmentName}-rds-auto-stop-role'
+      Description: 'Lambda execution role for automated RDS instance stopping'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # Grants CloudWatch Logs write access (CreateLogGroup, CreateLogStream, PutLogEvents)
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: RDSStopPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: DescribeAndStopRDS
+                Effect: Allow
+                Action:
+                  - rds:DescribeDBInstances
+                  - rds:StopDBInstance
+                  - rds:DescribeDBClusters
+                  - rds:StopDBCluster
+                Resource: '*'
+        - PolicyName: SSMReadPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadKeepRunningParameter
+                Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SSMParameterName}'
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+
+  # ============================================================
+  # Task 1.2: SSM Parameter for RDS management toggle
+  # ============================================================
+
+  RDSKeepRunningParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Ref SSMParameterName
+      Type: String
+      Value: 'false'
+      Description: >
+        Controls automated RDS stop behavior.
+        'false' (default): Lambda will stop the RDS instance on schedule.
+        'true': Lambda will skip the stop — use this when the DB needs to stay up.
+        Update via: scripts/db/toggle-rds-auto-stop.sh
+      Tier: Standard
+      Tags:
+        Environment: !Ref EnvironmentName
+        Project: job-posting-analyzer
+
+  # ============================================================
+  # Task 1.3: Lambda function for RDS management
+  # Task 1.4: Part of unified CloudFormation template
+  # ============================================================
+
+  RDSAutoStopFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${EnvironmentName}-rds-auto-stop'
+      Description: 'Stops the RDS instance on schedule unless db-keep-running SSM parameter is true'
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Role: !GetAtt RDSAutoStopRole.Arn
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          DB_IDENTIFIER: !Ref DBIdentifier
+          SSM_PARAMETER_NAME: !Ref SSMParameterName
+      Code:
+        ZipFile: |
+          import boto3
+          import logging
+          import os
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          SSM_PARAMETER_NAME = os.environ.get("SSM_PARAMETER_NAME", "/jobanalyzer/db-keep-running")
+          DB_IDENTIFIER = os.environ.get("DB_IDENTIFIER", "")
+
+          def lambda_handler(event, context):
+              if not DB_IDENTIFIER:
+                  logger.error("DB_IDENTIFIER environment variable is not set")
+                  return {"statusCode": 400, "body": "DB_IDENTIFIER environment variable is required but not set"}
+
+              ssm = boto3.client("ssm")
+              rds = boto3.client("rds")
+
+              try:
+                  response = ssm.get_parameter(Name=SSM_PARAMETER_NAME)
+                  keep_running = response["Parameter"]["Value"].strip().lower()
+                  logger.info("SSM parameter %s = '%s'", SSM_PARAMETER_NAME, keep_running)
+              except ssm.exceptions.ParameterNotFound:
+                  logger.warning("SSM parameter %s not found; defaulting to allow stop", SSM_PARAMETER_NAME)
+                  keep_running = "false"
+              except Exception as e:
+                  logger.error("Error reading SSM parameter: %s", str(e))
+                  return {"statusCode": 500, "body": f"Error reading SSM parameter: {str(e)}"}
+
+              if keep_running == "true":
+                  logger.info("db-keep-running is true — skipping stop")
+                  return {"statusCode": 200, "body": "db-keep-running is true. No action taken."}
+
+              try:
+                  response = rds.describe_db_instances(DBInstanceIdentifier=DB_IDENTIFIER)
+                  instance = response["DBInstances"][0]
+                  current_status = instance["DBInstanceStatus"]
+                  engine = instance.get("Engine", "")
+                  logger.info("RDS instance %s: status=%s engine=%s", DB_IDENTIFIER, current_status, engine)
+              except Exception as e:
+                  logger.error("Error describing RDS instance %s: %s", DB_IDENTIFIER, str(e))
+                  return {"statusCode": 500, "body": f"Error describing RDS instance: {str(e)}"}
+
+              if current_status != "available":
+                  msg = f"Instance {DB_IDENTIFIER} is not in 'available' state (current: {current_status}). No action taken."
+                  logger.info(msg)
+                  return {"statusCode": 200, "body": msg}
+
+              try:
+                  if engine.startswith("aurora"):
+                      cluster_id = instance.get("DBClusterIdentifier", DB_IDENTIFIER)
+                      logger.info("Stopping Aurora cluster %s", cluster_id)
+                      rds.stop_db_cluster(DBClusterIdentifier=cluster_id)
+                      msg = f"Successfully initiated stop of Aurora cluster {cluster_id}"
+                  else:
+                      logger.info("Stopping RDS instance %s", DB_IDENTIFIER)
+                      rds.stop_db_instance(DBInstanceIdentifier=DB_IDENTIFIER)
+                      msg = f"Successfully initiated stop of RDS instance {DB_IDENTIFIER}"
+
+                  logger.info(msg)
+                  return {"statusCode": 200, "body": msg}
+
+              except Exception as e:
+                  logger.error("Error stopping RDS instance %s: %s", DB_IDENTIFIER, str(e))
+                  return {"statusCode": 500, "body": f"Error stopping RDS instance: {str(e)}"}
+      Tags:
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Project
+          Value: job-posting-analyzer
+
+  RDSAutoStopLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${RDSAutoStopFunction}'
+      RetentionInDays: 30
+
+  # ============================================================
+  # Task 1.5: EventBridge rule — trigger every 6 days
+  # Runs before the 7-day AWS auto-restart window
+  # ============================================================
+
+  RDSAutoStopScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${EnvironmentName}-rds-auto-stop-schedule'
+      Description: 'Triggers RDS auto-stop Lambda every 6 days to prevent 7-day auto-restart'
+      # Every 6 days at 02:00 UTC
+      ScheduleExpression: 'cron(0 2 */6 * ? *)'
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt RDSAutoStopFunction.Arn
+          Id: RDSAutoStopTarget
+          RetryPolicy:
+            MaximumRetryAttempts: 2
+            MaximumEventAgeInSeconds: 3600
+
+  RDSAutoStopInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref RDSAutoStopFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt RDSAutoStopScheduleRule.Arn
+
+Outputs:
+  LambdaFunctionName:
+    Description: 'Name of the RDS auto-stop Lambda function'
+    Value: !Ref RDSAutoStopFunction
+    Export:
+      Name: !Sub '${EnvironmentName}-rds-auto-stop-function'
+
+  LambdaFunctionArn:
+    Description: 'ARN of the RDS auto-stop Lambda function'
+    Value: !GetAtt RDSAutoStopFunction.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-rds-auto-stop-function-arn'
+
+  IAMRoleArn:
+    Description: 'ARN of the Lambda execution IAM role'
+    Value: !GetAtt RDSAutoStopRole.Arn
+    Export:
+      Name: !Sub '${EnvironmentName}-rds-auto-stop-role-arn'
+
+  SSMParameterName:
+    Description: 'SSM parameter that controls the auto-stop behavior'
+    Value: !Ref RDSKeepRunningParameter
+    Export:
+      Name: !Sub '${EnvironmentName}-rds-keep-running-param'
+
+  EventBridgeRuleArn:
+    Description: 'ARN of the EventBridge schedule rule'
+    Value: !GetAtt RDSAutoStopScheduleRule.Arn
+
+  DeploymentInstructions:
+    Description: 'How to deploy this stack'
+    Value: !Sub |
+      Deploy:
+        aws cloudformation deploy \
+          --template-file infra/cloudformation/rds-auto-stop.yml \
+          --stack-name ${EnvironmentName}-rds-auto-stop \
+          --capabilities CAPABILITY_NAMED_IAM \
+          --parameter-overrides DBIdentifier=job-analyzer-postgres
+
+      Keep DB running (before starting work):
+        ./scripts/db/toggle-rds-auto-stop.sh --keep-running
+
+      Allow auto-stop (when done):
+        ./scripts/db/toggle-rds-auto-stop.sh --allow-stop
+
+      Test Lambda manually:
+        aws lambda invoke --function-name ${EnvironmentName}-rds-auto-stop /tmp/response.json
+        cat /tmp/response.json

@@ -1942,12 +1942,12 @@
   "dev-tooling": {
     "tasks": [
       {
-        "id": 1,
+        "id": "1",
         "title": "Implement AWS Lambda for Automated PostgreSQL RDS Instance Management",
         "description": "Create a Lambda function that automatically pauses/stops an AWS RDS PostgreSQL instance based on environment variables and runs on a scheduled basis to prevent unnecessary charges.",
         "details": "1. Set up an AWS Lambda function using Python or Node.js\n2. Configure IAM permissions for Lambda to control RDS instances (using the minimum required permissions)\n3. Implement the Lambda function to:\n   - Check an environment variable (e.g., DB_AUTO_PAUSE_ENABLED)\n   - If enabled, check the current state of the specified RDS instance\n   - If the instance is running, stop or pause it depending on instance type\n   - Log the action and result\n4. Set up a CloudWatch Events/EventBridge rule to trigger the Lambda on a schedule (e.g., weekly)\n5. Implement error handling and notifications (e.g., SNS) for any failures\n6. Create a complementary function or parameter to allow for easy resumption when needed\n7. Document the solution including environment variable specifications\n\nCode example (Python):\n```python\nimport boto3\nimport os\nimport logging\n\nlogger = logging.getLogger()\nlogger.setLevel(logging.INFO)\n\ndef lambda_handler(event, context):\n    # Check if auto-pause is enabled\n    auto_pause_enabled = os.environ.get('DB_AUTO_PAUSE_ENABLED', 'false').lower() == 'true'\n    db_identifier = os.environ.get('DB_IDENTIFIER')\n    \n    if not auto_pause_enabled:\n        logger.info(f\"Auto-pause is disabled. Exiting without action.\")\n        return {\n            'statusCode': 200,\n            'body': 'Auto-pause is disabled. No action taken.'\n        }\n    \n    if not db_identifier:\n        logger.error(\"DB_IDENTIFIER environment variable is not set.\")\n        return {\n            'statusCode': 400,\n            'body': 'DB_IDENTIFIER environment variable is required but not set.'\n        }\n    \n    rds = boto3.client('rds')\n    \n    try:\n        # Get the current state of the DB instance\n        response = rds.describe_db_instances(DBInstanceIdentifier=db_identifier)\n        instance = response['DBInstances'][0]\n        current_status = instance['DBInstanceStatus']\n        \n        # Check if the instance can be paused (Aurora) or stopped (regular RDS)\n        if 'Engine' in instance and instance['Engine'].startswith('aurora'):\n            if current_status == 'available':\n                logger.info(f\"Pausing Aurora cluster {db_identifier}\")\n                rds.stop_db_cluster(DBClusterIdentifier=db_identifier)\n                return {\n                    'statusCode': 200,\n                    'body': f'Successfully initiated pause of Aurora cluster {db_identifier}'\n                }\n            else:\n                logger.info(f\"Aurora cluster {db_identifier} is not in available state (current: {current_status}).\")\n        else:  # Regular RDS instance\n            if current_status == 'available':\n                logger.info(f\"Stopping RDS instance {db_identifier}\")\n                rds.stop_db_instance(DBInstanceIdentifier=db_identifier)\n                return {\n                    'statusCode': 200,\n                    'body': f'Successfully initiated stop of RDS instance {db_identifier}'\n                }\n            else:\n                logger.info(f\"RDS instance {db_identifier} is not in available state (current: {current_status}).\")\n        \n        return {\n            'statusCode': 200,\n            'body': f'No action needed. Current status: {current_status}'\n        }\n    \n    except Exception as e:\n        logger.error(f\"Error managing RDS instance {db_identifier}: {str(e)}\")\n        return {\n            'statusCode': 500,\n            'body': f'Error: {str(e)}'\n        }\n```",
         "testStrategy": "1. Configure a test environment with a small RDS PostgreSQL instance\n2. Set up the Lambda function with the required environment variables:\n   - DB_IDENTIFIER: [test-db-identifier]\n   - DB_AUTO_PAUSE_ENABLED: true\n3. Manual testing:\n   - Invoke the Lambda manually with DB_AUTO_PAUSE_ENABLED=true and verify the database stops/pauses\n   - Check AWS CloudWatch logs to confirm successful action\n   - Invoke the Lambda with DB_AUTO_PAUSE_ENABLED=false and verify no action is taken\n4. Scheduled testing:\n   - Set up a test schedule with a short interval (e.g., 5 minutes)\n   - Start the database manually and verify it gets stopped automatically\n   - Modify the schedule to match the actual weekly requirement\n5. Recovery testing:\n   - Verify that the database can be successfully started after being stopped by the Lambda\n   - Document the procedure for manually restarting when needed\n6. Edge case testing:\n   - Test behavior when the database is in a transitioning state\n   - Test with invalid DB identifiers\n   - Test with insufficient IAM permissions to verify error handling\n7. Cost verification:\n   - Monitor AWS billing for a complete cycle to ensure charges stop when the database is paused\n   - Verify that the solution prevents the automatic restart after the one-week period\n8. Long-term testing:\n   - Set up monitoring to ensure the Lambda continues to function over multiple weeks",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "medium",
         "subtasks": [
@@ -1957,8 +1957,10 @@
             "description": "Create an IAM role for the Lambda function with the minimum permissions needed to describe/stop RDS instances and read from SSM Parameter Store.",
             "dependencies": [],
             "details": "Create an IAM role with the following policies attached: 1) Custom policy for RDS actions (rds:DescribeDBInstances, rds:StopDBInstance, rds:DescribeDBClusters, rds:StopDBCluster) 2) Read-only access to SSM Parameter Store (ssm:GetParameter) with resource constraint to /jobanalyzer/db-keep-running parameter. Use the principle of least privilege throughout.",
-            "status": "pending",
-            "testStrategy": "Verify the role can be assumed by Lambda and has the correct permission boundaries by using the IAM policy simulator."
+            "status": "done",
+            "testStrategy": "Verify the role can be assumed by Lambda and has the correct permission boundaries by using the IAM policy simulator.",
+            "updatedAt": "2026-03-23T14:28:31.731Z",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1966,8 +1968,10 @@
             "description": "Set up the SSM Parameter Store parameter that will control whether the RDS instance should be kept running or not.",
             "dependencies": [],
             "details": "Create an SSM Parameter with path /jobanalyzer/db-keep-running, type String, value 'false' (default), and appropriate description explaining its purpose. Ensure proper encryption with AWS KMS and set up parameter history tracking.",
-            "status": "pending",
-            "testStrategy": "Verify the parameter can be retrieved through the AWS console and CLI to confirm correct permissions and value."
+            "status": "done",
+            "testStrategy": "Verify the parameter can be retrieved through the AWS console and CLI to confirm correct permissions and value.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-23T14:28:31.749Z"
           },
           {
             "id": 3,
@@ -1978,8 +1982,10 @@
               2
             ],
             "details": "Create a Python Lambda function that: 1) Retrieves the /jobanalyzer/db-keep-running parameter from SSM 2) Identifies the target RDS instance from environment variables 3) Checks if parameter is 'false' and instance is 'available' 4) Stops the instance if conditions are met 5) Includes proper error handling and logging 6) Returns appropriate responses. Include detection for Aurora vs standard RDS instances.",
-            "status": "pending",
-            "testStrategy": "Test the function with different parameter values and RDS states, using the Lambda test console with various event inputs."
+            "status": "done",
+            "testStrategy": "Test the function with different parameter values and RDS states, using the Lambda test console with various event inputs.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-23T14:28:31.754Z"
           },
           {
             "id": 4,
@@ -1991,8 +1997,10 @@
               3
             ],
             "details": "Create a CloudFormation template that includes: 1) The IAM role with appropriate permissions 2) The SSM Parameter with default value 3) The Lambda function with environment variables for DB identifier 4) Event rule (will be added in next task) 5) Proper resource naming and tagging 6) Outputs section for important resource IDs and ARNs. Ensure the template is reusable across environments.",
-            "status": "pending",
-            "testStrategy": "Validate the template using AWS CloudFormation Linter and deploy to a test environment to verify all resources are created correctly."
+            "status": "done",
+            "testStrategy": "Validate the template using AWS CloudFormation Linter and deploy to a test environment to verify all resources are created correctly.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-23T14:28:31.759Z"
           },
           {
             "id": 5,
@@ -2003,8 +2011,10 @@
               4
             ],
             "details": "Create an EventBridge (formerly CloudWatch Events) rule with: 1) Schedule expression for every 6 days (cron(0 0 */6 * ? *)) 2) Target set to the Lambda function 3) Proper IAM permissions for EventBridge to invoke Lambda 4) Add the rule definition to the CloudFormation template. Include retry policy and error handling configuration.",
-            "status": "pending",
-            "testStrategy": "Test the rule by temporarily changing the schedule to a shorter interval, verifying the Lambda is invoked, and then restoring the 6-day schedule."
+            "status": "done",
+            "testStrategy": "Test the rule by temporarily changing the schedule to a shorter interval, verifying the Lambda is invoked, and then restoring the 6-day schedule.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-23T14:28:31.765Z"
           },
           {
             "id": 6,
@@ -2014,8 +2024,10 @@
               2
             ],
             "details": "Implement a helper script that: 1) Takes a command-line argument to set the parameter to 'true' or 'false' 2) Uses AWS SDK or AWS CLI to update the SSM parameter 3) Includes validation and confirmation prompts 4) Outputs clear success/failure messages 5) Provides a --help option explaining the script's purpose and usage 6) Includes proper error handling and authentication check.",
-            "status": "pending",
-            "testStrategy": "Test the script with various inputs including valid values, invalid values, and missing arguments to ensure it handles all cases correctly."
+            "status": "done",
+            "testStrategy": "Test the script with various inputs including valid values, invalid values, and missing arguments to ensure it handles all cases correctly.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-23T14:28:31.769Z"
           },
           {
             "id": 7,
@@ -2027,8 +2039,10 @@
               6
             ],
             "details": "Develop a test plan that includes: 1) Manual Lambda invocation with different parameter values 2) Verification of scheduled execution 3) Testing the helper script functionality 4) Edge cases (e.g., already stopped instances, instances in transition states) 5) Error handling verification 6) Performance testing 7) Security validation. Document all test results and fix any issues discovered.",
-            "status": "pending",
-            "testStrategy": "Execute each test case and document the results, including screenshots or logs as evidence. Create regression test scripts for future use."
+            "status": "done",
+            "testStrategy": "Execute each test case and document the results, including screenshots or logs as evidence. Create regression test scripts for future use.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-24T17:08:47.365Z"
           },
           {
             "id": 8,
@@ -2041,16 +2055,23 @@
               7
             ],
             "details": "Create documentation that includes: 1) Overview of the solution architecture 2) Instructions for deploying via CloudFormation 3) Parameter reference guide 4) Step-by-step runbook for starting DB when needed 5) Troubleshooting guide 6) Monitoring recommendations 7) Security considerations 8) Cost savings estimates. Format the documentation in Markdown for easy maintenance and version control.",
-            "status": "pending",
-            "testStrategy": "Have someone unfamiliar with the solution attempt to use the documentation to perform common tasks, and incorporate their feedback."
+            "status": "done",
+            "testStrategy": "Have someone unfamiliar with the solution attempt to use the documentation to perform common tasks, and incorporate their feedback.",
+            "parentId": "undefined",
+            "updatedAt": "2026-03-24T17:08:47.380Z"
           }
-        ]
+        ],
+        "updatedAt": "2026-03-24T17:08:47.380Z"
       }
     ],
     "metadata": {
-      "created": "2026-03-23T03:36:00.723Z",
-      "updated": "2026-03-23T03:39:02.879Z",
-      "description": "Tag created on 3/22/2026"
+      "version": "1.0.0",
+      "lastModified": "2026-03-24T17:08:47.380Z",
+      "taskCount": 1,
+      "completedCount": 1,
+      "tags": [
+        "dev-tooling"
+      ]
     }
   }
 }

@@ -158,6 +158,28 @@ Check current RDS status.
 
 ---
 
+#### `toggle-rds-auto-stop.sh`
+Control the automated Lambda stop behavior via SSM parameter.
+
+```bash
+./scripts/db/toggle-rds-auto-stop.sh --keep-running  # Prevent auto-stop
+./scripts/db/toggle-rds-auto-stop.sh --allow-stop    # Allow auto-stop (default)
+./scripts/db/toggle-rds-auto-stop.sh --status        # Show current setting
+```
+
+**How it works:**
+- Updates the `/jobanalyzer/db-keep-running` SSM parameter
+- The `job-analyzer-rds-auto-stop` Lambda reads this parameter on its 6-day schedule
+- `true` → Lambda skips stopping the DB; `false` (default) → Lambda stops it
+
+**When to use:**
+- Run `--keep-running` before starting a work session requiring the RDS instance
+- Run `--allow-stop` when done (so the Lambda resumes cost-saving behavior)
+
+**Requires:** The `job-analyzer-rds-auto-stop` CloudFormation stack to be deployed.
+
+---
+
 ## Common Workflows
 
 ### Daily Development (Local Only)
