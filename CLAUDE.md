@@ -73,7 +73,7 @@ Database
 
 ### AI Service Architecture
 
-All AI providers implement `LLMServiceInterface`. `LLMServiceFactory` selects provider based on env config. `MockLLMService` is used in tests. Adding a provider = implement the interface + register in factory.
+All AI providers implement `LLMServiceInterface`. `LLMServiceFactory` selects provider based on env config. `MockLLMService` is used in tests. Adding a provider = implement the interface + register in factory. The user's selected provider is shared between the analysis and cover-letter generation features and persisted in `localStorage`.
 
 ### Auth Flow
 
@@ -83,11 +83,26 @@ All AI providers implement `LLMServiceInterface`. `LLMServiceFactory` selects pr
 
 ### Storage Hybrid Pattern
 
-`StorageService` (`/services/StorageService.ts`) attempts PostgreSQL first via API calls; falls back to browser localStorage. This allows offline/unauthenticated usage. The app is transitioning from JSON-file storage (`.data/`) to PostgreSQL.
+`StorageService` (`/services/StorageService.ts`) attempts PostgreSQL first via API calls; falls back to browser localStorage. This allows offline/unauthenticated usage. The app is transitioning from JSON-file storage (`.data/`) to PostgreSQL. Legacy JSON files: `resumes.json`, `analysis-history.json`, `conversations.json`, `cover-letter-samples.json`.
 
 ## SFC Structure Convention
 
 Vue single-file components must follow this order: `<script setup lang="ts">` → `<template>` → `<style lang="scss" scoped>`.
+
+## Coding Standards
+
+- Formatting (Prettier): single quotes, semicolons required, 2-space indent, 100-char line limit, no trailing commas.
+- Prefer semantic HTML elements over generic divs; comply with WCAG 2.1 AA.
+
+## Debugging Patterns
+
+- Server-side API errors: log request details (endpoint, params), the error, and the full response.
+- Client-side: validate server responses are the expected shape (e.g. array) before using array methods; fall back to cached data on invalid/unexpected data.
+- File storage issues: log read attempts, raw data length, parsed data type, and any parse errors.
+
+## Testing Standards
+
+Target ≥80% test coverage for critical business logic (services, utils). Component tests use `@testing-library/vue`, focused on user behavior over implementation detail.
 
 ## Database Environments
 
