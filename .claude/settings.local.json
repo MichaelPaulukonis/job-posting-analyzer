@@ -3,7 +3,12 @@
     "allow": [
       "Bash(ls -la /Users/michaelpaulukonis/projects/job-posting-analyzer/.env*)",
       "mcp__task-master-ai__get_task",
-      "mcp__task-master-ai__expand_task"
+      "mcp__task-master-ai__expand_task",
+      "Bash(git commit:*)",
+      "Bash(chmod:*)",
+      "mcp__task-master-ai__set_task_status",
+      "Bash(aws cloudformation:*)",
+      "Bash(aws lambda:*)"
     ]
   },
   "enabledMcpjsonServers": [
