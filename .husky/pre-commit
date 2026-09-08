@@ -3,6 +3,9 @@ if [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ]; then
   # Bump the version without creating a git tag or running git commands
   npm version patch --no-git-tag-version
 
+  # npm version's package-lock.json write can lag package.json's - force sync
+  npm install --package-lock-only --no-audit --no-fund
+
   # Add package.json and package-lock.json to the commit
   git add package.json package-lock.json
 fi
