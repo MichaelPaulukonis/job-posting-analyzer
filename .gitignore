@@ -24,9 +24,8 @@ logs
 !.env.example
 keys/
 
-# SpecStory explanation file
-.specstory/.what-is-this.md
-.specstory/debug/
+# SpecStory - backed up to cloud, no need to track in git
+.specstory/
 
 # local storage for project development
 .data
